@@ -7,14 +7,14 @@ PROGBASE=$PWD"/"
 #PROGBASE=$PWD"/"
 
 #XINPUT=$PROGBASE"../../../mnt/bruegner/x_10M_50_double"
-XINPUT=$PROGBASE"../../../ramdisk/x_10M_50_double"
-CINPUT=$PROGBASE"../../../mnt/bruegner/c_100_50_double"
-OUTPUTBASE=$PROGBASE"../../../mnt/bruegner/res/x10M"
+XINPUT=$PROGBASE"/mnt/ssd/x_1M_50_double"
+CINPUT=$PROGBASE"/mnt/ssd/c_100_50_double"
+OUTPUTBASE=$PROGBASE"/mnt/ssd/res/x1M"
 
-#NAMES=("kmeans-mt-dt" "kmeans-mt-nvt")
-NAMES=("kmeans-mt-nvt")
-#THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
-THREADS=(8)
+NAMES=("kmeans-mt-pt" "kmeans-mt-dt" "kmeans-mt-nvt")
+#NAMES=("kmeans-mt-nvt")
+THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
+#THREADS=(8)
 NIT=10
 SMD=2
 LMD=1
