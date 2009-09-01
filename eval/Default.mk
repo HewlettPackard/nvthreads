@@ -51,11 +51,11 @@ eval-pthread: $(TEST_NAME)-pthread
 ############ dthread builders ############
 
 DTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
-#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
+#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/libdthreads64.so -ldl
 ifneq (, $(findstring -m32, $(CFLAGS)))
-	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread32.so -ldl
+	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/libdthread32.so -ldl
 else
-	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread.so -ldl
+	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/libdthread.so -ldl
 endif
 
 
@@ -74,7 +74,7 @@ obj/%-dthread.o: %.cpp
 	$(CXX) $(DTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 ### FIXME, put the 
-$(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
+$(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/libdthread.so
 	$(CC) $(DTHREAD_CFLAGS) -o $@.out $(DTHREAD_OBJS) $(DTHREAD_LIBS)
 
 eval-dthread: $(TEST_NAME)-dthread
@@ -84,7 +84,7 @@ eval-dthread: $(TEST_NAME)-dthread
 
 ############ nvthread builders ############
 NVTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
-#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
+#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/libdthreads64.so -ldl
 ifneq (, $(findstring -m32, $(CFLAGS)))
 	NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/src/libnvthread32.so -ldl
 else
