@@ -32,18 +32,18 @@
 #ifdef ENABLE_PROFILING
 
 typedef struct timeinfo {
-	unsigned long low;
-	unsigned long high;
+    unsigned long low;
+    unsigned long high;
 } timeinfo_t;
 
 void start(struct timeinfo *ti);
-double stop(struct timeinfo * begin, struct timeinfo * end);
-static unsigned long long elapse2ms(double elapsed){
+double stop(struct timeinfo *begin, struct timeinfo *end);
+static unsigned long long elapse2ms(double elapsed) {
     return (unsigned long long)elapsed;
 }
 
-#define TIMER(x) size_t x##_total; timeinfo_t x##_start
-#define COUNTER(x) volatile size_t x##_count;
+#define TIMER(x) uint64_t x##_total; timeinfo_t x##_start
+#define COUNTER(x) volatile uint64_t x##_count;
 
 #define START_TIMER(x) start(&global_data->stats.x##_start)
 #define STOP_TIMER(x) global_data->stats.x##_total += elapse2ms(stop(&global_data->stats.x##_start, NULL))
@@ -51,34 +51,60 @@ static unsigned long long elapse2ms(double elapsed){
 
 #define INC_COUNTER(x) global_data->stats.x##_count++
 #define DEC_COUNTER(x) global_data->stats.x##_count--
-#define ADD_COUNTER(x, y) global_data->stats.x##_count += y
+#define ADD_COUNTER(x, y) global_data->stats.x##_count += y 
 #define PRINT_COUNTER(x) fprintf(stderr, " " #x " count: %lu\n", global_data->stats.x##_count)
 #define PRINT_LOG_COUNTER(x) fprintf(stderr, " logging: %lf ms\n", (double)(global_data->stats.x##_count * 1000) / CLOCKS_PER_SEC)
 #define PRINT_LOGGER_TIMER(x) fprintf(stderr, " " #x " time: %.4fms\n", (double)global_data->stats.x##_total)
 
+// For page density
+#define COUNTER_ARRAY(x,size) volatile uint64_t x##_count[size];
+#define INC_COUNTER_ARRAY(x, index) global_data->stats.x##_count[index]++
+#define INIT_COUNTER_ARRAY(x, size){\
+    for( int i = 0; i < size; i++ ) {\
+        global_data->stats.x##_count[i] = 0;\
+    }\
+}
+
+#define PRINT_COUNTER_ARRAY(x, size) {\
+    for( int i = 0; i < size; i++ ) {\
+        if( global_data->stats.x##_count[i] != 0 ) {\
+            fprintf(stderr, #x"[%d]: %lu\n", i, global_data->stats.x##_count[i]);\
+        }\
+    }\
+}
+#define OUTPUT_COUNTER_ARRAY_FILE(x, size, fp){\
+    for( int i = 0; i < size; i++ ) {\
+        fprintf(fp, "%d, %lu\n", i, global_data->stats.x##_count[i]);\
+    }\
+}
+
 struct runtime_stats {
-	//size_t alloc_count;
-	//size_t cleanup_size;
-	TIMER(serial);
+    //size_t alloc_count;
+    //size_t cleanup_size;
+    TIMER(serial);
     TIMER(logging);
     COUNTER(logtimer);  // * 1000 / CLOCKS_PER_SEC
-	COUNTER(commit);
-	COUNTER(twinpage);
-	COUNTER(suspectpage);
-	COUNTER(slowpage);
-	COUNTER(dirtypage_modified);
+    COUNTER(commit);
+    COUNTER(twinpage);
+    COUNTER(suspectpage);
+    COUNTER(slowpage);
+    COUNTER(dirtypage_modified);
     COUNTER(dirtypage_owned);
-	COUNTER(lazypage);
-	COUNTER(shorttrans);
+    COUNTER(lazypage);
+    COUNTER(shorttrans);
     COUNTER(faults);
     COUNTER(transactions);
     COUNTER(dirtypage_inserted);
     COUNTER(loggedpages);
+    COUNTER_ARRAY(pagedensity, 4097UL);
+    COUNTER(pdcount);
+    COUNTER(dummy);
 };
 
 #else
 
-struct runtime_stats {};
+struct runtime_stats {
+};
 
 #define START_TIMER(x)
 #define STOP_TIMER(x)
@@ -87,9 +113,9 @@ struct runtime_stats {};
 #define INC_COUNTER(x)
 #define DEC_COUNTER(x)
 #define PRINT_COUNTER(x)
-#define ADD_COUNTER(x, y) 
-#define PRINT_COUNTER(x) 
-#define PRINT_LOG_COUNTER(x) 
+#define ADD_COUNTER(x, y)
+#define PRINT_COUNTER(x)
+#define PRINT_LOG_COUNTER(x)
 #define PRINT_LOGGER_TIMER(x)
 
 #endif
