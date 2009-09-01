@@ -3,9 +3,9 @@
 #PROGBASE="nvthreads/apps/pagerank/multithreaded/"
 PROGBASE=""
 
-INPUT="/mnt/ssd/bruegner/adj_twitter_sort"
+INPUT="../../../../mnt/bruegner/adj_twitter_sort"
 #INPUT="../../../../mnt/bruegner/adj_livejournal_snap"
-OUTPUTBASE="/mnt/ssd/bruegner/res/twitter"
+OUTPUTBASE="../../../../mnt/bruegner/res/twitter"
 
 #NAMES=("prr-pt" "prr-dt" "prr-nvt")
 NAMES=("prr-pt")
