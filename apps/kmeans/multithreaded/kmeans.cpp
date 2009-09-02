@@ -333,15 +333,7 @@ bool stob(string s, string s_t, string s_f) {
 
 /* ==== MULTI-THREADED K-MEANS ==== */
 
-pthread_mutex_t mutex_log;
-pthread_mutex_t mutex_counter;
 pthread_mutex_t mutex_lbls;
-pthread_mutex_t mutex_c_norms;
-pthread_mutex_t mutex_c_sum;
-pthread_mutex_t mutex_c_count;
-
-pthread_barrier_t barrier_calc_c_norms;
-pthread_barrier_t barrier_find_center;
 
 void *kmeans_worker(void *p_data) {
 	t_data *data = (t_data*)p_data;
@@ -405,18 +397,12 @@ void *kmeans_worker(void *p_data) {
 		}
 	}
 
-	if((*data).sync_method == SyncMethod::ON_T_EXIT) {
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-			(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
-	}
-	else if((*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
-		pthread_mutex_lock(&mutex_lbls);
+	pthread_mutex_lock(&mutex_lbls);
 
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-					(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
+	for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
+		(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
 
-		pthread_mutex_unlock(&mutex_lbls);
-	}
+	pthread_mutex_unlock(&mutex_lbls);
 
 	pthread_exit(NULL);
 }
@@ -428,16 +414,7 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 	pthread_t threads[NUM_THREADS];
 
-	// init barriers and mutexes
-	pthread_barrier_init(&barrier_calc_c_norms, NULL, NUM_THREADS);
-	pthread_barrier_init(&barrier_find_center, NULL, NUM_THREADS);
-
-	pthread_mutex_init(&mutex_log, NULL);
-	pthread_mutex_init(&mutex_counter, NULL);
 	pthread_mutex_init(&mutex_lbls, NULL);
-	pthread_mutex_init(&mutex_c_norms, NULL);
-	pthread_mutex_init(&mutex_c_sum, NULL);
-	pthread_mutex_init(&mutex_c_count, NULL);
 
 	int x_sz = (*x).size();
 	int v_sz = (*x)[0].size();
@@ -527,13 +504,6 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 		for(int t = 0; t < NUM_THREADS; t++) {
 			pthread_join(threads[t], NULL);
-
-			// merge labels of this thread if AFTER_T_EXIT-syncing is enabled
-			if(sync_method == SyncMethod::AFTER_T_EXIT) {
-				for(int i = data[t].x_start; i < data[t].x_start + data[t].x_length; i++) {
-					(*lbls)[i] = (*(data[t]).lbls_loc)[i];
-				}
-			}
 		}
 
 		// merge sums and count
