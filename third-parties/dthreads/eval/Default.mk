@@ -48,8 +48,8 @@ eval-pthread: $(TEST_NAME)-pthread
 ############ dthread builders ############
 
 DTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
-DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
-#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads.so -ldl
+#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
+DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread.so -ldl
 
 DTHREAD_OBJS = $(addprefix obj/, $(addsuffix -dthread.o, $(TEST_FILES)))
 
@@ -66,7 +66,7 @@ obj/%-dthread.o: %.cpp
 	$(CXX) $(DTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 ### FIXME, put the 
-$(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthreads.so
+$(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
 	$(CC) $(DTHREAD_CFLAGS) -o $@ $(DTHREAD_OBJS) $(DTHREAD_LIBS)
 
 eval-dthread: $(TEST_NAME)-dthread
