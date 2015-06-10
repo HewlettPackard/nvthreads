@@ -2,7 +2,7 @@ include ../defines.mk
 
 TEST_NAME = histogram
 TEST_FILES = histogram
-TEST_ARGS = $(DATASET_HOME)/histogram/large.bmp
+TEST_ARGS = $(DATASET_HOME)/histogram_datafiles/large.bmp
 
 DMP_O_GRAN = 6
 DMP_O_QUANTUM = 100000

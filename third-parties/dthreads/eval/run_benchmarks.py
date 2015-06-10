@@ -7,7 +7,7 @@ import re
 
 all_benchmarks = os.listdir('tests')
 all_benchmarks.remove('Makefile')
-all_benchmarks.remove('.svn')
+#all_benchmarks.remove('.svn')
 all_benchmarks.sort()
 
 all_configs = ['pthread', 'dmp_o', 'dmp_b', 'dthread']

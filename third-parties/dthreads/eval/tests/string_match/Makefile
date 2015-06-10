@@ -2,7 +2,7 @@ include ../defines.mk
 
 TEST_NAME = string_match
 TEST_FILES = string_match
-TEST_ARGS = $(DATASET_HOME)/string_match/key_file_500MB.txt
+TEST_ARGS = $(DATASET_HOME)/string_match_datafiles/key_file_500MB.txt
 
 DMP_O_GRAN = 6
 DMP_O_QUANTUM = 100000

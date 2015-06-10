@@ -25,7 +25,7 @@
 */ 
 
 #if defined(ENABLE_DMP)
-#include "dmp.h"
+//#include "dmp.h"
 #endif
 
 #include <stdio.h>

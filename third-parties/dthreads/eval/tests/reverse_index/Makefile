@@ -2,7 +2,7 @@ include ../defines.mk
 
 TEST_NAME = reverse_index
 TEST_FILES = reverseindex
-TEST_ARGS = $(DATASET_HOME)/reverse_index
+TEST_ARGS = $(DATASET_HOME)/reverse_index_datafiles
 
 DMP_O_GRAN = 6
 DMP_O_QUANTUM = 100000
