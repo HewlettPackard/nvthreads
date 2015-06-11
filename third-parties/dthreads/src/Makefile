@@ -6,7 +6,7 @@ DEPS = $(SRCS) $(INC_DIR)/xpersist.h $(INC_DIR)/xdefines.h $(INC_DIR)/xglobals.h
 
 INCLUDE_DIRS = -I$(INC_DIR) -I$(INC_DIR)/heaplayers -I$(INC_DIR)/heaplayers/util
 
-TARGETS = libdthread.so
+TARGETS = libdthread.so libdthread32.so
 
 all: $(TARGETS)
 

@@ -114,3 +114,6 @@ third-parties/dthreads/eval/tests/blackscholes/streamcluster-pthread
 third-parties/dthreads/eval/tests/blackscholes/streamcluster-dthread
 third-parties/dthreads/eval/tests/blackscholes/swaptions-pthread
 third-parties/dthreads/eval/tests/blackscholes/swaptions-dthread
+third-parties/dthreads/eval/tests/streamcluster/streamcluster-dthread
+third-parties/dthreads/eval/tests/streamcluster/streamcluster-pthread
+third-parties/dthreads/eval/tests/dedup/output.dat.ddp
