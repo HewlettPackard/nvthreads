@@ -13,7 +13,7 @@ all_benchmarks.remove('ferret')
 all_benchmarks.sort()
 all_benchmarks.append('dedup')
 all_benchmarks.append('ferret')
-all_configs = ['pthread', 'dthread']
+all_configs = ['dthread', 'pthread']
 runs = 3
 
 for b in all_benchmarks:

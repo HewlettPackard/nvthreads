@@ -16,7 +16,7 @@ ifeq ($(NCORES), 2)
 endif
 
 THREADS = 24
-TEST_ARGS = $(THREADS) 15000 2000 $(DATASET_HOME)/canneal/400000.nets 128
+TEST_ARGS = $(THREADS) 15000 2000 $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/kernels/canneal/inputs/2500000.nets 128
 
 CFLAGS = -DENABLE_THREADS -DPARALLEL
 LIBS = -lm -lstdc++
