@@ -7,11 +7,17 @@ import re
 
 all_benchmarks = os.listdir('tests')
 all_benchmarks.remove('Makefile')
+all_benchmarks.remove('dedup')
+all_benchmarks.remove('ferret')
 #all_benchmarks.remove('.svn')
 all_benchmarks.sort()
-
-all_configs = ['pthread', 'dmp_o', 'dmp_b', 'dthread']
+all_benchmarks.append('dedup')
+all_benchmarks.append('ferret')
+all_configs = ['pthread', 'dthread']
 runs = 3
+
+for b in all_benchmarks:
+	print b
 
 cores = 'current'
 
@@ -76,6 +82,7 @@ elif cores == 2:
 if runs < 4:
         print 'Warning: with fewer than 4 runs per benchmark, all runs are averaged. Request at least 4 runs to discard the min and max runs from the average.'
 
+cores=24
 data = {}
 try:
 	for benchmark in benchmarks:
@@ -88,10 +95,12 @@ try:
 				os.chdir('tests/'+benchmark)
 				
 				start_time = os.times()[4]
-				
+				print 'make: make'+' eval-'+config+' NCORES='+str(cores)
 				p = subprocess.Popen(['make', 'eval-'+config, 'NCORES='+str(cores)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				output = p.stdout.read()
+				print 'cmd: '+output
 				p.wait()
-				
+
 				time = os.times()[4] - start_time
 				data[benchmark][config].append(time)
 	

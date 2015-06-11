@@ -2,7 +2,7 @@ include ../defines.mk
 
 TEST_NAME = blackscholes
 TEST_FILES = blackscholes
-TEST_ARGS = 8 $(DATASET_HOME)/blackscholes/in_1M.txt prices.txt
+TEST_ARGS = 24 $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/apps/blackscholes/inputs/in_10M.txt prices.txt
 
 CFLAGS = -DENABLE_THREADS -DPARALLEL -DNCO=2 -DN=960
 PTHREAD_LIBS = -lm -lstdc++

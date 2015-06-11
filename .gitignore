@@ -106,3 +106,11 @@ third-parties/dthreads/test/eval/tests/ferret/ferret-dthread
 third-parties/dthreads/test/eval/tests/ferret/ferret-pthread
 third-parties/dthreads/test/eval/tests/swaptions/swaptions-dthread
 third-parties/dthreads/test/eval/tests/swaptions/swaptions-pthread
+third-parties/dthreads/eval/tests/blackscholes/blackscholes-dthread
+third-parties/dthreads/eval/tests/blackscholes/blackscholes-pthread
+third-parties/dthreads/eval/tests/blackscholes/canneal-pthread
+third-parties/dthreads/eval/tests/blackscholes/canneal-dthread
+third-parties/dthreads/eval/tests/blackscholes/streamcluster-pthread
+third-parties/dthreads/eval/tests/blackscholes/streamcluster-dthread
+third-parties/dthreads/eval/tests/blackscholes/swaptions-pthread
+third-parties/dthreads/eval/tests/blackscholes/swaptions-dthread
