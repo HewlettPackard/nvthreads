@@ -817,7 +817,7 @@ SendBlock(void * targs)
   int fd = 0;
   struct hash_entry * entry; 
 
-  fd = open(conf->outfile, O_CREAT|O_TRUNC|O_WRONLY|O_TRUNC);
+  fd = open(conf->outfile, O_CREAT|O_TRUNC|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR);
   if (fd < 0) {
     perror("SendBlock open");
     return NULL;

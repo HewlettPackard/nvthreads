@@ -1,5 +1,4 @@
 include ../defines.mk
-include $(HOME)/Default.mk
 
 TEST_NAME = canneal
 TEST_FILES = annealer_thread rng netlist main netlist_elem
@@ -16,6 +15,7 @@ ifeq ($(NCORES), 2)
 	THREADS = 1
 endif
 
+THREADS = 24
 TEST_ARGS = $(THREADS) 15000 2000 $(DATASET_HOME)/canneal/400000.nets 128
 
 CFLAGS = -DENABLE_THREADS -DPARALLEL
@@ -28,3 +28,4 @@ DMP_B_GRAN = 6
 DMP_B_QUANTUM = 100000
 
 
+include $(HOME)/Default.mk

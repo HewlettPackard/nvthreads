@@ -1,6 +1,6 @@
 DTHREADS_HOME=../../..
 
-NCORES ?= 8
+NCORES ?= 24
 
 #CC = gcc -m32 -march=core2 -mtune=core2
 #CXX = g++ -m32 -march=core2 -mtune=core2
@@ -8,7 +8,8 @@ CC = gcc -march=core2 -mtune=core2
 CXX = g++ -march=core2 -mtune=core2
 CFLAGS += -O5
 
-CONFIGS = pthread dthread dmp_o dmp_b
+#CONFIGS = pthread dthread dmp_o dmp_b
+CONFIGS = pthread dthread 
 PROGS = $(addprefix $(TEST_NAME)-, $(CONFIGS))
 
 .PHONY: default all clean
