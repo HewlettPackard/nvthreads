@@ -1,0 +1,18 @@
+How to run Graph inference demo:
+
+1. Install Dependencies:
+	sudo yum install boost-devel
+	sudo yum install numactl-devel
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+
+2. Go to code folder
+	enter make
+
+3. Go to demo folder
+	chmod +x runDemo.sh
+	run runDemo.sh
+
+
+4. Modify configuration file or parameter as defined on the README file
+	
