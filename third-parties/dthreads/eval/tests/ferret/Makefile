@@ -1,9 +1,9 @@
 include ../defines.mk
 
-NCORES=24
+#NCORES=24
 TEST_NAME = ferret
 TEST_FILES = ferret arena assign bench bitmap cass cass_dist cass_reg cuckoo_hash dataset dist emd env error hash hash_table heap import map matrix raw stat table timer topk tp tpool util edge extract image srm local LSH LSH_query_batch LSH_query perturb recall
-TEST_ARGS = $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/apps/ferret/inputs/corel lsh $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/apps/ferret/inputs/queries 10 20 $(NCORES) output.txt
+TEST_ARGS = $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/apps/ferret/inputs/corel lsh $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/apps/ferret/inputs/queries 10 20 $(NTHREADS) output.txt
 
 CFLAGS = -Iinclude -g -m32
 LIBS = -Llib -lrt -lm -lgsl -lgslcblas -lMagick /usr/lib/i386-linux-gnu/libjpeg.so.62

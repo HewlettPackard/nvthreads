@@ -1,6 +1,7 @@
 DTHREADS_HOME=../../..
 
 NCORES ?= 24
+NTHREADS ?=12
 
 #CC = gcc -m32 -march=core2 -mtune=core2
 #CXX = g++ -m32 -march=core2 -mtune=core2
@@ -44,7 +45,8 @@ $(TEST_NAME)-pthread: $(PTHREAD_OBJS)
 	$(CC) $(PTHREAD_CFLAGS) -o $@ $(PTHREAD_OBJS) $(PTHREAD_LIBS)
 
 eval-pthread: $(TEST_NAME)-pthread
-	time ./$(TEST_NAME)-pthread $(TEST_ARGS) &> /dev/null
+	time ./$(TEST_NAME)-pthread $(TEST_ARGS)
+	#time ./$(TEST_NAME)-pthread $(TEST_ARGS) &> /dev/null
 
 ############ dthread builders ############
 

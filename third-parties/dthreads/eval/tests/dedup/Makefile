@@ -3,14 +3,14 @@ include ../defines.mk
 TEST_NAME = dedup
 TEST_FILES = binheap decoder dedup encoder hashtable queue rabin tree util
 
-ifeq ($(NCORES), 8)
-	THREADS = 2
-else
-	THREADS = 1
-endif
+#ifeq ($(NCORES), 8)
+#	THREADS = 2
+#else
+#	THREADS = 1
+#endif
 
-THREADS=24
-TEST_ARGS = -c -p -f -t $(THREADS) -i ./media.dat -o output.dat.ddp
+#THREADS=24
+TEST_ARGS = -c -p -f -t $(NTHREADS) -i ./media.dat -o output.dat.ddp
 
 #CFLAGS = -D_XOPEN_SOURCE=600 -Iinclude -DENABLE_THREADS -DPARALLEL -std=gnu99 -D_XOPEN_SOURCE=600 -DMD32_REG_T=int -funroll-loops -fprefetch-loop-arrays -fstrict-aliasing -Wstrict-aliasing -O5 -fkeep-inline-functions -DOPENSSL_THREADS -D_REENTRANT -DL_ENDIAN -DTERMIO -DUSE_MMAP
 CFLAGS = -g -Iinclude -DENABLE_THREADS -DPARALLEL -std=gnu99 -DMD32_REG_T=int -D_REENTRANT -DL_ENDIAN -DUSE_MMAP -D_XOPEN_SOURCE=600
