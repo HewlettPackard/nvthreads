@@ -3,20 +3,20 @@ include ../defines.mk
 TEST_NAME = canneal
 TEST_FILES = annealer_thread rng netlist main netlist_elem
 
-ifeq ($(NCORES), 8)
-	THREADS = 7
-endif
+#ifeq ($(NCORES), 8)
+#	THREADS = 7
+#endif
 
-ifeq ($(NCORES), 4)
-	THREADS = 3
-endif
+#ifeq ($(NCORES), 4)
+#	THREADS = 3
+#endif
 
-ifeq ($(NCORES), 2)
-	THREADS = 1
-endif
+#ifeq ($(NCORES), 2)
+#	THREADS = 1
+#endif
 
-THREADS = 24
-TEST_ARGS = $(THREADS) 15000 2000 $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/kernels/canneal/inputs/2500000.nets 128
+#THREADS = 12
+TEST_ARGS = $(NTHREADS) 15000 2000 $(DATASET_HOME)/parsec-3.0-naive/parsec-3.0/pkgs/kernels/canneal/inputs/2500000.nets 128
 
 CFLAGS = -DENABLE_THREADS -DPARALLEL
 LIBS = -lm -lstdc++

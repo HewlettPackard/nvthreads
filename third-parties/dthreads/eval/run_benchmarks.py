@@ -4,22 +4,45 @@ import os
 import sys
 import subprocess
 import re
+import multiprocessing as mp
+import time
+
+# activate all cores
+allcores = mp.cpu_count()
+for cpu in range(1,allcores):
+	cmd = 'echo 1 > /sys/devices/system/cpu/cpu'+str(cpu)+'/online'
+	os.system(cmd);
+
+cores = 12
 
 all_benchmarks = os.listdir('tests')
 all_benchmarks.remove('Makefile')
-all_benchmarks.remove('dedup')
-all_benchmarks.remove('ferret')
+all_benchmarks.remove('kmeans')
+all_benchmarks.remove('reverse_index')
+all_benchmarks.remove('string_match')
+all_benchmarks.remove('word_count')
+all_benchmarks.remove('histogram')
+all_benchmarks.remove('linear_regression')
+all_benchmarks.remove('matrix_multiply')
+all_benchmarks.remove('pca')
+#all_benchmarks.remove('blackscholes')
+#all_benchmarks.remove('canneal')
+#all_benchmarks.remove('dedup')
+#all_benchmarks.remove('ferret')
+#all_benchmarks.remove('streamcluster')
+#all_benchmarks.remove('swaptions')
+#all_benchmarks.remove('nv')
+#all_benchmarks.remove('defines.mk')
 #all_benchmarks.remove('.svn')
 all_benchmarks.sort()
-all_benchmarks.append('dedup')
-all_benchmarks.append('ferret')
-all_configs = ['dthread', 'pthread']
+#all_benchmarks.append('dedup')
+#all_benchmarks.append('ferret')
+all_configs = ['pthread', 'dthread']
 runs = 3
 
 for b in all_benchmarks:
 	print b
 
-cores = 'current'
 
 if len(sys.argv) == 1:
 	print 'Usage: '+sys.argv[0]+' <benchmark names> <config names> <runs>'
@@ -54,35 +77,18 @@ if len(benchmarks) == 0:
 if len(configs) == 0:
 	configs = all_configs
 
-if cores == 8:
-	os.system('echo 1 > /sys/devices/system/cpu/cpu1/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu2/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu3/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu4/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu5/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu6/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu7/online')
-elif cores == 4:
-	os.system('echo 0 > /sys/devices/system/cpu/cpu1/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu2/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu3/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu4/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu5/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu6/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu7/online')
-elif cores == 2:
-	os.system('echo 0 > /sys/devices/system/cpu/cpu1/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu2/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu3/online')
-	os.system('echo 1 > /sys/devices/system/cpu/cpu4/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu5/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu6/online')
-	os.system('echo 0 > /sys/devices/system/cpu/cpu7/online')
+
+for cpu in range(1,cores):
+	cmd = 'echo 1 > /sys/devices/system/cpu/cpu'+str(cpu)+'/online'		
+	os.system(cmd)
+for cpu in range(cores, allcores):
+	cmd = 'echo 0 > /sys/devices/system/cpu/cpu'+str(cpu)+'/online'
+	os.system(cmd)
 
 if runs < 4:
         print 'Warning: with fewer than 4 runs per benchmark, all runs are averaged. Request at least 4 runs to discard the min and max runs from the average.'
 
-cores=24
+print 'cores: '+str(cores)+', runs: '+str(runs)
 data = {}
 try:
 	for benchmark in benchmarks:
@@ -91,20 +97,22 @@ try:
 			data[benchmark][config] = []
 	
 			for n in range(0, runs):
-				print 'Running '+benchmark+'.'+config
+				print 'Running '+str(n)+': '+benchmark+'.'+config
 				os.chdir('tests/'+benchmark)
 				
 				start_time = os.times()[4]
-				print 'make: make'+' eval-'+config+' NCORES='+str(cores)
+				#print 'make: make'+' eval-'+config+' NCORES='+str(cores)
 				p = subprocess.Popen(['make', 'eval-'+config, 'NCORES='+str(cores)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				output = p.stdout.read()
-				print 'cmd: '+output
+				#output = p.stdout.read()
+				#print 'cmd: '+output
 				p.wait()
 
 				time = os.times()[4] - start_time
 				data[benchmark][config].append(time)
-	
 				os.chdir('../..')
+
+			mean = (sum(data[benchmark][config])-max(data[benchmark][config])-min(data[benchmark][config]))/(runs-2)
+			print benchmark+'.'+config+': '+str(mean)
 
 except:
 	print 'Aborted!'
@@ -126,3 +134,9 @@ for benchmark in benchmarks:
 		else:
 			print '\tNOT RUN',
 	print
+
+# activate all cores
+for cpu in range(1,allcores):
+	cmd = 'echo 1 > /sys/devices/system/cpu/cpu'+str(cpu)+'/online'
+	os.system(cmd);
+

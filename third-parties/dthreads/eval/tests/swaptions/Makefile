@@ -3,7 +3,7 @@ include ../defines.mk
 TEST_NAME = swaptions
 TEST_FILES = CumNormalInv MaxFunction RanUnif icdf HJM_SimPath_Forward_Blocking HJM HJM_Swaption_Blocking HJM_Securities nr_routines
 #TEST_ARGS = -ns 128 -sm 50000 -nt $(NCORES)
-TEST_ARGS = -ns 128 -sm 50000 -nt 24
+TEST_ARGS = -ns 128 -sm 50000 -nt $(NTHREADS)
 
 CFLAGS = -DENABLE_THREADS -fstrict-aliasing -fkeep-inline-functions
 LIBS = -lstdc++ -lm
