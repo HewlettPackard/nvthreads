@@ -1,0 +1,8 @@
+1. compile libLSH.so
+> make
+
+2. build LSHtest
+> ./lsh_make
+
+3. run a sample LSHtest
+> ./run_lsh
