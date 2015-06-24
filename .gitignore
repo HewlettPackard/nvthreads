@@ -135,3 +135,4 @@ output.txt
 libnvthread.so
 third-parties/dthreads/test/src/libdthread.so
 *.so
+kmeans-nvthread
