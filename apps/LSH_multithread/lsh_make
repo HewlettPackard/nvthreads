@@ -1,0 +1,3 @@
+#this is for building LSHtest
+
+g++ -std=c++11 LSHtest.o -o LSHtest -DREAL_FLOAT -O3 -g -L/usr/lib -llapack -L. -lboost_system -L. -lboost_thread -L. -lblaze -lLSH
