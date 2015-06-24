@@ -14,30 +14,19 @@ for cpu in range(1,allcores):
 	os.system(cmd);
 
 cores = 12
+all_configs = ['dthread']
+btype = 'phoenix'
+if btype == 'phoenix':
+	all_benchmarks = ['kmeans', 'reverse_index', 'string_match', 'word_count', 'histogram', 'linear_regression', 'matrix_multiply', 'pca']
+elif btype == 'parsec':
+	all_benchmarks = ['blackscholes', 'canneal', 'dedup', 'ferret', 'streamcluster', 'swaptions']
+elif btype == 'all':
+	all_benchmarks = ['kmeans', 'reverse_index', 'string_match', 'word_count', 'histogram', 'linear_regression', 'matrix_multiply', 'pca', 'blackscholes', 'canneal', 'dedup', 'ferret', 'streamcluster', 'swaptions']
 
-all_benchmarks = os.listdir('tests')
-all_benchmarks.remove('Makefile')
-all_benchmarks.remove('kmeans')
-all_benchmarks.remove('reverse_index')
-all_benchmarks.remove('string_match')
-all_benchmarks.remove('word_count')
-all_benchmarks.remove('histogram')
-all_benchmarks.remove('linear_regression')
-all_benchmarks.remove('matrix_multiply')
-all_benchmarks.remove('pca')
-#all_benchmarks.remove('blackscholes')
-#all_benchmarks.remove('canneal')
-#all_benchmarks.remove('dedup')
-#all_benchmarks.remove('ferret')
-#all_benchmarks.remove('streamcluster')
-#all_benchmarks.remove('swaptions')
-#all_benchmarks.remove('nv')
-#all_benchmarks.remove('defines.mk')
-#all_benchmarks.remove('.svn')
 all_benchmarks.sort()
 #all_benchmarks.append('dedup')
 #all_benchmarks.append('ferret')
-all_configs = ['pthread', 'dthread']
+#all_configs = ['pthread', 'dthread']
 runs = 3
 
 for b in all_benchmarks:
