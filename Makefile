@@ -1,7 +1,7 @@
 LOGSRC_DIR = /home/terry/workspace/nvthreads/src
 LOGINC_DIR = /home/terry/workspace/nvthreads/include
-INC_DIR = include
-SRC_DIR = source
+INC_DIR = /home/terry/workspace/nvthreads/third-parties/dthreads/src/include
+SRC_DIR = /home/terry/workspace/nvthreads/third-parties/dthreads/src/source
 
 SRCS = $(SRC_DIR)/libdthread.cpp $(SRC_DIR)/xrun.cpp $(SRC_DIR)/xthread.cpp $(SRC_DIR)/xmemory.cpp $(SRC_DIR)/prof.cpp $(SRC_DIR)/real.cpp 
 DEPS = $(SRCS) $(INC_DIR)/xpersist.h $(INC_DIR)/xdefines.h $(INC_DIR)/xglobals.h $(INC_DIR)/xpersist.h $(INC_DIR)/xplock.h $(INC_DIR)/xrun.h $(INC_DIR)/warpheap.h $(INC_DIR)/xadaptheap.h $(INC_DIR)/xoneheap.h
@@ -9,7 +9,7 @@ DEPS = $(SRCS) $(INC_DIR)/xpersist.h $(INC_DIR)/xdefines.h $(INC_DIR)/xglobals.h
 INCLUDE_DIRS = -I$(INC_DIR) -I$(INC_DIR)/heaplayers -I$(INC_DIR)/heaplayers/util -I/home/terry/workspace/nvthreads/include
 
 #TARGETS = libdthread.so libdthread32.so
-TARGETS = libdthread.so
+TARGETS = libnvthread.so
 
 
 all: $(TARGETS)
@@ -29,10 +29,10 @@ CFLAGS64 = -g -m64 -msse2 -O3 -DNDEBUG -shared -fPIC -DLAZY_COMMIT -DLOCK_OWNERS
 
 LIBS = -ldl -lpthread
 
-libdthread32.so: $(SRCS) $(DEPS) Makefile
+libnvthread32.so: $(SRCS) $(DEPS) Makefile
 	$(CXX) $(CFLAGS32) $(INCLUDE_DIRS) $(SRCS) -o $@ $(LIBS)
 
-libdthread.so: $(SRCS) $(DEPS) Makefile
+libnvthread.so: $(SRCS) $(DEPS) Makefile
 	$(CXX) $(CFLAGS64) $(INCLUDE_DIRS) $(SRCS) -o $@ $(LIBS)
 
 

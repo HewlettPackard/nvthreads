@@ -20,6 +20,8 @@
 #include "heaplayers/mmapheap.h"
 #include "heaplayers/util/cpuinfo.h"
 
+#include "/home/terry/workspace/nvthreads/include/logger.h"
+
 extern "C" {
 // The type of a pthread function.
 typedef void * threadFunction(void *);
@@ -76,6 +78,9 @@ public:
 	static inline void setId(int id) {
 		_tid = id;
 	}
+
+    /* Memory log shared */
+    static MemoryLog _localMemoryLog; 
 
 private:
 

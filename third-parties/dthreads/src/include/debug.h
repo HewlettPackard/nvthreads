@@ -28,6 +28,12 @@
 #include <stdio.h>
 #include <assert.h>
 
+#ifdef TRACING
+    #define TRACE(...) fprintf(stderr, "%20s:%-4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")    
+#else
+    #define TRACE(_fmt, ...)
+#endif
+
 #ifdef DEBUG
     #define DEBUG(...) fprintf(stderr, "%20s:%-4d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n")
 #else

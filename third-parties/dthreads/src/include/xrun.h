@@ -55,6 +55,9 @@
 
 #include "debug.h"
 
+#include "/home/terry/workspace/nvthreads/include/logger.h"
+
+
 class xrun {
 
 private:
@@ -102,6 +105,10 @@ public:
       // Add myself to the token queue.
       determ::getInstance().registerMaster(_thread_index, pid);
       _fence_enabled = false;
+
+      // Initialize memory log
+      xthread::_localMemoryLog.initialize(); 
+
     } else {
       fprintf(stderr, "xrun reinitialized");
       ::abort();
@@ -127,6 +134,10 @@ public:
 
   static void finalize(void) {
     xmemory::finalize();
+
+    // Initialize memory log
+    xthread::_localMemoryLog.finalize(); 
+
   }
 
   // @ Return the main thread's id.
@@ -445,10 +456,11 @@ public:
     _children_threads_count = 0;
 
     _fence_enabled = true;
+    TRACE("%d: starts fence\n", getpid());
   }
 
   static void waitFence(void) {
-    determ::getInstance().waitFence(_thread_index, false);
+      determ::getInstance().waitFence(_thread_index, false);
   }
 
   // New optimization here.
@@ -457,6 +469,7 @@ public:
     determ::getInstance().waitFence(_thread_index, true);
 
     determ::getInstance().getToken();
+//  printf("%d: got token after wait fence\n", getpid());
   }
 
   // If those threads sending out condsignal or condbroadcast,
@@ -464,8 +477,9 @@ public:
   static void putToken(void) {
     // release the token and pass the token to next.
     //fprintf(stderr, "%d: putToken\n", _thread_index);
+//  printf("%d: put token\n", getpid());
     determ::getInstance().putToken(_thread_index);
-  //  fprintf(stderr, "%d: putToken\n", getpid());
+    //fprintf(stderr, "%d: putToken\n", getpid());
   }
 
   // FIXME: if we are trying to remove atomicEnd() before mutex_lock(),
@@ -661,6 +675,7 @@ getLockAgain:
       return;
 
     // Now start.
+    TRACE("=========%d: starts a Xact ==============\n", getpid());
     xmemory::begin(cleanup);
   }
 
@@ -673,6 +688,7 @@ getLockAgain:
       return;
   
     // Commit all private modifications to shared mapping
+    TRACE("=========%d: ending a Xact ===============\n", getpid());
     xmemory::commit(update);
   }
 };
