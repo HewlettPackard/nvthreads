@@ -30,8 +30,11 @@
 #include "xrun.h"
 #include "debug.h"
 
+
 unsigned int xthread::_nestingLevel = 0;
 int xthread::_tid;
+
+MemoryLog xthread::_localMemoryLog;
 
 void * xthread::spawn(threadFunction * fn, void * arg, int parent_index) {
   // Allocate an object to hold the thread's return value.
@@ -127,9 +130,16 @@ void * xthread::forkSpawn(threadFunction * fn, ThreadStatus * t, void * arg, int
 
     xrun::waitParentNotify();
 
+    // Initialize memory log
+    xthread::_localMemoryLog.initialize();
+    lprintf("%d: I'm thread %d\n", mypid, t->threadIndex);
+
     _nestingLevel++;
     run_thread(fn, t, arg);
     _nestingLevel--;
+
+    // Initialize memory log
+    xthread::_localMemoryLog.finalize();
 
     _exit(0);
     return NULL;

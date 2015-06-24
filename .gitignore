@@ -132,3 +132,6 @@ third-parties/dthreads/eval/tests/matrix_multiply/matrix_file_A.txt
 third-parties/dthreads/eval/tests/matrix_multiply/matrix_file_B.txt
 third-parties/dthreads/src/libdthread.so
 output.txt
+libnvthread.so
+third-parties/dthreads/test/src/libdthread.so
+*.so
