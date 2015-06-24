@@ -1,6 +1,7 @@
 DTHREADS_HOME=../../..
+NVTHREADS_HOME=/home/terry/workspace/nvthreads
 
-NCORES ?= 24
+#NCORES ?= 24
 NTHREADS ?=12
 
 #CC = gcc -m32 -march=core2 -mtune=core2
@@ -75,6 +76,37 @@ $(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
 eval-dthread: $(TEST_NAME)-dthread
 	time ./$(TEST_NAME)-dthread $(TEST_ARGS)
 #	time ./$(TEST_NAME)-dthread $(TEST_ARGS) &> /dev/null
+
+
+
+############ nvthread builders ############
+NVTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
+#DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
+NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/libnvthread.so -ldl
+
+NVTHREAD_OBJS = $(addprefix obj/, $(addsuffix -nvthread.o, $(TEST_FILES)))
+
+obj/%-nvthread.o: %-pthread.c
+	$(CC) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
+
+obj/%-nvthread.o: %.c
+	$(CC) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
+
+obj/%-nvthread.o: %-pthread.cpp
+	$(CC) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
+
+obj/%-nvthread.o: %.cpp
+	$(CXX) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
+
+### FIXME, put the 
+$(TEST_NAME)-nvthread: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/libnvthread.so
+	$(CC) $(NVTHREAD_CFLAGS) -o $@ $(NVTHREAD_OBJS) $(NVTHREAD_LIBS)
+
+eval-nvthread: $(TEST_NAME)-nvthread
+	time ./$(TEST_NAME)-nvthread $(TEST_ARGS)
+#	time ./$(TEST_NAME)-dthread $(TEST_ARGS) &> /dev/null
+
+
 
 ############ coredet generic defines ############
 

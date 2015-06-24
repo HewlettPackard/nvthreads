@@ -60,7 +60,7 @@ void initialize() {
 void finalize() {
 	DEBUG("finalizing libdthread");
 	initialized = false;
-	//xrun::finalize();
+    xrun::finalize();
 	fprintf(stderr, "\nStatistics information:\n");
 	PRINT_TIMER(serial);
 	PRINT_COUNTER(commit);
