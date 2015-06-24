@@ -321,6 +321,7 @@ public:
     ThreadEntry * entry = &_entries[threadindex];
 
     lock();
+    TRACE("%d: waiting fence\n", getpid()); 
 
     // Check whether all threads has passed previous arrival phase.
     if(_maxthreads <= _coresNumb && _is_arrival_phase != 1) {
@@ -389,6 +390,7 @@ public:
       sched_yield();
       __asm__ __volatile__ ("mfence");
     }
+    TRACE("%d: got token after fence\n", getpid());
     DEBUG("%d: Got token after waitFence", _tokenpos->threadindex);
     PRINT_SCHEDULE("%d: Got token after waitFence", _tokenpos->threadindex);
     START_TIMER(serial);
@@ -400,6 +402,7 @@ public:
     STOP_TIMER(serial);
 
 //    fprintf(stderr, "%d : putToken \n", threadindex);
+    TRACE("%d: putToken\n", getpid());
     lock();
 
     // Sanity check, whether I have to right to call putToken.
