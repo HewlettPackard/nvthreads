@@ -10,7 +10,7 @@ const char CSV_DELIM = ',';
 typedef std::vector<double> vec_d;
 typedef std::vector<vec_d> vec2_d;
 
-static inline void loadbar(unsigned int x, unsigned int n, unsigned int w = 50) {
+void loadbar(unsigned int x, unsigned int n, unsigned int w = 50) {
     if ( (x != n) && (x % (n/100+1) != 0) ) return;
 
     float ratio  =  x/(float)n;
@@ -64,7 +64,9 @@ void dump_data(vec2_d *data, const char* path, const char delim) {
 	data_file.close();
 }
 
-void dump_rand_data(int n, int d, double ctr, double rng, const char* path, const char delim) {
+void dump_rand_data(int n, int d, double ctr, double rng, const char* path, const char delim, int seed) {
+	srand(seed);
+
 	std::ofstream data_file;
 
 	data_file.open(path);
@@ -87,8 +89,8 @@ void dump_rand_data(int n, int d, double ctr, double rng, const char* path, cons
 int main(int argc, char* argv[]) {
 	std::cout << "\n";
 
-	if(argc != 6) {
-		std::cout << "Invalid parameters, usage: <rows> <columns> <offset> <range> <output-file>\n";
+	if(argc != 7) {
+		std::cout << "Invalid parameters, usage: <rows> <columns> <offset> <range> <seed> <output-file>\n";
 		return 1;
 	}
 
@@ -96,28 +98,13 @@ int main(int argc, char* argv[]) {
 	int d = std::stoi(argv[2]); // number of columns
 	double ctr = std::stod(argv[3]); // where the random data should be centered
 	double rng = std::stod(argv[4]); // the range of the data -> ctr +- rng
+	int seed = std::stoi(argv[5]);
 
-	char *path = argv[5]; // the output-path
-
-	/*std::cout << "Allocating memory...\n";
-
-	vec2_d *v = construct_vec2_d(n, d);
-
-	std::cout << "Done!\n\n";
-	std::cout << "Generating random double-data...\n";
-
-	fill_random(v, ctr, rng);
-
-	std::cout << "Done!\n\n";
-	std::cout << "Dumping to csv-file... \n";
-
-	dump_data(v, path, CSV_DELIM);
-
-	std::cout << "Done!\n\n";*/
+	char *path = argv[6]; // the output-path
 
 	std::cout << "Generating random double-data and dumping to file...\n";
 
-	dump_rand_data(n, d, ctr, rng, path, CSV_DELIM);
+	dump_rand_data(n, d, ctr, rng, path, CSV_DELIM, seed);
 
 	std::cout << "Done!\n";
 }
