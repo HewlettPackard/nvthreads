@@ -1,11 +1,3 @@
-//============================================================================
-// Name        : kmeans.cpp
-// Author      : 
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
-
 #include <pthread.h>
 #include <iostream>
 #include <sstream>
@@ -14,6 +6,8 @@
 #include <cmath>
 #include <limits>
 #include <execinfo.h>
+#include <chrono>
+#include <stack>
 
 using namespace std;
 
@@ -22,8 +16,15 @@ typedef vector<vec_i> vec2_i;
 typedef vector<double> vec_d;
 typedef vector<vec_d> vec2_d;
 
-//const bool USE_LOCAL_LBLS = false;
 const double POS_INF = numeric_limits<double>::infinity();
+
+enum SyncMethod {
+	AFTER_T_EXIT,		// local during computation, sync in main-thread
+	ON_T_EXIT, 			// local during computation, sync WITHOUT locks before _exit
+	ON_T_EXIT_LOCKED,	// local during computation, sync WITH locks before _exit
+	IMM,				// global during computation WITHOUT locks
+	IMM_LOCKED			// global during computation WITH locks
+};
 
 /* ==== CONSTRUCTOR-FUNCTIONS ==== */
 
@@ -56,8 +57,11 @@ vec2_d* construct_vec2_d(int x, int y) {
 struct t_data {
 	int thread_id;
 
-	bool use_local_lbls;
+	SyncMethod sync_method;
+
+	/*bool use_local_lbls;
 	bool use_locks;
+	bool use_postsync;*/
 
 	vec2_d *x;
 
@@ -83,6 +87,81 @@ struct t_data {
 	vec_i *c_count;
 };
 
+/* ==== LOGGING ==== */
+
+const int LOG_NONE = 100;
+const int LOG_ERR = 10;
+const int LOG_TIME = 5;
+const int LOG_ALL = 0;
+
+int min_level = 0;
+
+void log_set_min(int level) {
+	min_level = level;
+}
+
+void log(int level, string msg) {
+	if(level >= min_level)
+		cout << msg << flush;
+}
+
+void log(int level, int msg) {
+	if(level >= min_level)
+		cout << msg << flush;
+}
+
+void log(int level, long msg) {
+	if(level >= min_level)
+		cout << msg << flush;
+}
+
+void log(int level, double msg) {
+	if(level >= min_level)
+		cout << msg << flush;
+}
+
+void log_e(int level, string msg) {
+	if(level >= min_level)
+		cerr << msg << flush;
+}
+
+void log_e(int level, int msg) {
+	if(level >= min_level)
+		cerr << msg << flush;
+}
+
+void log_e(int level, long msg) {
+	if(level >= min_level)
+		cerr << msg << flush;
+}
+
+void log_e(int level, double msg) {
+	if(level >= min_level)
+		cerr << msg << flush;
+}
+
+/* ==== CLOCK ==== */
+
+stack<chrono::high_resolution_clock::time_point> times_start;
+stack<chrono::high_resolution_clock::time_point> times_end;
+
+void clock_start() {
+	times_start.push(chrono::high_resolution_clock::now());
+}
+
+void clock_stop() {
+	times_end.push(chrono::high_resolution_clock::now());
+}
+
+long clock_get_duration() {
+	long duration = chrono::duration_cast<chrono::milliseconds>(times_end.top() - times_start.top()).count();
+
+	times_start.pop();
+	times_end.pop();
+
+	return duration;
+}
+
 /* ==== FUNCTIONS FOR DATA-LOADING AND -SAVING ==== */
 
 vector<double> parse_line(const string &line, char delim) {
@@ -98,7 +177,7 @@ vector<double> parse_line(const string &line, char delim) {
 	return res;
 }
 
-vec2_d load_data(const char* path, const char delim) {
+vec2_d load_data(string path, const char delim) {
 	ifstream data_file;
 	string line;
 
@@ -113,14 +192,11 @@ vec2_d load_data(const char* path, const char delim) {
 
 		data_file.close();
 	}
-	else {
-		cout << "Unable to open file :(\n\n";
-	}
 
 	return res;
 }
 
-void dump_data(vec_i data, const char* path, const char delim) {
+void dump_data(vec_i data, string path, const char delim) {
 	ofstream data_file;
 
 	data_file.open(path);
@@ -134,7 +210,7 @@ void dump_data(vec_i data, const char* path, const char delim) {
 	data_file.close();
 }
 
-void dump_data(vec2_d data, const char* path, const char delim) {
+void dump_data(vec2_d data, string path, const char delim) {
 	ofstream data_file;
 
 	data_file.open(path);
@@ -193,8 +269,6 @@ void calc_norms(double *x, int x_sz, int v_sz, double* a) {
 	for(int i = 0; i < x_sz; i++) {
 		for(int j = 0; j < v_sz; j++)
 			*(a + i) += *(x + i * v_sz + j) * *(x + i * v_sz + j);
-
-
 	}
 }
 
@@ -267,15 +341,15 @@ void kmeans(vec2_d *x, vec_d *x_norms,
 	int lbl_sz = (*lbls).size();
 
 	if(x_sz != lbl_sz || x_sz != n_sz || lbl_sz != n_sz) {
-		cout << "Invalid arguments: number of elements in x, number of norms and number of labels are not equal\n";
+		log_e(LOG_ERR, "Invalid arguments: number of elements in x, number of norms and number of labels are not equal\n");
 		return;
 	}
 	if(x_sz < 1) {
-		cout << "Invalid arguments: too few elements in x, specify at least 1\n";
+		log_e(LOG_ERR, "Invalid arguments: too few elements in x, specify at least 1\n");
 		return;
 	}
 	if(c_sz > x_sz) {
-		cout << "Invalid arguments: number of centers is larger than number of elements in x\n";
+		log_e(LOG_ERR, "Invalid arguments: number of centers is larger than number of elements in x\n");
 		return;
 	}
 
@@ -430,17 +504,19 @@ void *kmeans_worker(void *p_data) {
 			}
 		}
 
-		if((*data).use_local_lbls) {
+		if((*data).sync_method == SyncMethod::AFTER_T_EXIT
+				|| (*data).sync_method == SyncMethod::ON_T_EXIT
+				|| (*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
 			(*(*data).lbls_loc)[i] = inew;
 		}
-		else if((*data).use_locks){
+		else if((*data).sync_method == SyncMethod::IMM_LOCKED){
 			pthread_mutex_lock(&mutex_lbls);
 
 			(*(*data).lbls)[i] = inew;
 
-			pthread_mutex_lock(&mutex_lbls);
+			pthread_mutex_unlock(&mutex_lbls);
 		}
-		else {
+		else { // SyncMethod::IMM
 			(*(*data).lbls)[i] = inew;
 		}
 
@@ -451,15 +527,30 @@ void *kmeans_worker(void *p_data) {
 		}
 	}
 
+	if((*data).sync_method == SyncMethod::ON_T_EXIT) {
+		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
+			(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
+	}
+	else if((*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
+		pthread_mutex_lock(&mutex_lbls);
+
+		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
+					(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
+
+		pthread_mutex_unlock(&mutex_lbls);
+	}
+
 	pthread_exit(NULL);
 }
 
 void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
-		vec2_d *centers, int iterations, vec_i *lbls, bool use_local_lbls, bool use_locks) {
+		vec2_d *centers, int iterations, vec_i *lbls, SyncMethod sync_method) {//bool use_local_lbls, bool use_locks) {
 	if(NUM_THREADS == -1) {
 		kmeans(x, x_norms, centers, iterations, lbls);
 	}
 	else {
+		clock_start();
+
 		pthread_t threads[NUM_THREADS];
 
 		// init barriers and mutexes
@@ -498,8 +589,10 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 			d.thread_id = i;
 
-			d.use_local_lbls = use_local_lbls;
-			d.use_locks = use_locks;
+			d.sync_method = sync_method;
+
+			//d.use_local_lbls = use_local_lbls;
+			//d.use_locks = use_locks;
 
 			d.x = x;
 			d.x_start = bal_x[i][0];
@@ -526,7 +619,15 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 			data[i] = d;
 		}
 
-		for(; iterations > 0; iterations--) {
+		clock_stop();
+
+		log(LOG_TIME, " Thread-initialization done in ");
+		log(LOG_TIME, clock_get_duration());
+		log(LOG_TIME, " ms.\n");
+
+		for(int _it = 0; _it < iterations; _it++) {
+			clock_start();
+
 			// reset sum and counters
 			for(int i = 0; i < c_sz; i++) {
 				for(int j = 0; j < v_sz; j++) {
@@ -555,8 +656,8 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 			for(int t = 0; t < NUM_THREADS; t++) {
 				pthread_join(threads[t], NULL);
 
-				// merge labels of this thread
-				if(use_local_lbls) {
+				// merge labels of this thread if AFTER_T_EXIT-syncing is enabled
+				if(sync_method == SyncMethod::AFTER_T_EXIT) {
 					for(int i = data[t].x_start; i < data[t].x_start + data[t].x_length; i++) {
 						(*lbls)[i] = (*(data[t]).lbls_loc)[i];
 					}
@@ -585,81 +686,195 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 					(*centers)[i][j] = c_sum[i][j] / c_count[i];
 				}
 			}
+
+			clock_stop();
+
+			log(LOG_TIME, " ");
+			log(LOG_TIME, _it);
+			log(LOG_TIME, "\t ");
+			log(LOG_TIME, clock_get_duration());
+			log(LOG_TIME, " ms\n");
 		}
 	}
 }
 
+const int MIN_ARGC = 7;
+
+const int P_PNAME = 0;
+const int P_F_X = 1;
+const int P_F_C = 2;
+const int P_N_TH = 3;
+const int P_N_IT = 4;
+const int P_O_SYNCM = 5;
+const int P_O_LOG = 6;
+const int P_F_LBLS = 7;
+
+const int MAX_ARGC = MIN_ARGC + 1;
+
 int main(int argc, char* argv[]) {
-	cout << "\n";
-	cout << "----------------------------------------------------\n";
-	cout << "    K-MEANS, Multithreaded (Helge Bruegner 2015)    \n";
-	cout << "----------------------------------------------------\n\n";
+	log_set_min(LOG_ALL);
 
-	if(argc < 7 || argc > 8) {
-		cout << "Invalid arguments! Usage:\n";
-		cout << "kmeans <x-input-file> <centers-input-file> "
-				<< "<threads> <iterations> <use_loc_lbls> <use_lbl_lock> "
-				<< "[<mapping-output-file>]\n";
-
-		cout << "\n";
+	if(argc < MIN_ARGC || argc > MAX_ARGC) {
+		log_e(LOG_ALL, "\nInvalid arguments! Usage:\n");
+		log_e(LOG_ALL, argv[P_PNAME]);
+		log_e(LOG_ALL, " <x-input-file> <centers-input-file> "
+				"<threads> <iterations> <sync-mode> <log-mode> "
+				"[<mapping-output-file>]\n\n"
+				" Allowed sync-modes:\n"
+				"  0 - Sync in main-thread\n"
+				"  1 - Sync on thread-exit without locks\n"
+				"  2 - ... with locks\n"
+				"  3 - Immediately after the label is calculated without locks\n"
+				"  4 - ... with locks\n"
+				" \n"
+				" Allowed log-modes:\n"
+				"  0 - All\n"
+				"  1 - Time and Err-only\n"
+				"  2 - Err-only\n"
+				"  3 - None\n"
+				"\n");
 
 		return 1;
 	}
 
-	cout << "Start reading the file [" << argv[1] << "]... " << flush;
-	vec2_d x = load_data(argv[1], ',');
+	int o_logm = stoi(argv[P_O_LOG]);
 
-	cout << "Done!\n";
+	switch(o_logm) {
+		case 0: log_set_min(LOG_ALL); break;
+		case 1: log_set_min(LOG_TIME); break;
+		case 2: log_set_min(LOG_ERR); break;
+		case 3: log_set_min(LOG_NONE); break;
+		default: log_set_min(LOG_ALL);
+	}
 
-	cout << "Start reading the file [" << argv[2] << "]... " << flush;
-	vec2_d centers = load_data(argv[2], ',');
+	log(LOG_ALL, "\n"
+			"----------------------------------------------------\n"
+			"    K-MEANS, Multithreaded (Helge Bruegner 2015)    \n"
+			"----------------------------------------------------\n\n");
 
-	cout << "Done!\n";
+	string f_x(argv[P_F_X]);
+	string f_c(argv[P_F_C]);
+	int n_threads = stoi(argv[P_N_TH]);
+	int n_iterations = stoi(argv[P_N_IT]);
+	SyncMethod o_syncm = (SyncMethod)stoi(argv[P_O_SYNCM]);
 
-	cout << "Calculating the norms and generating initial labels... " << flush;
+	log(LOG_ALL, "Start reading the file \"");
+	log(LOG_ALL, f_x);
+	log(LOG_ALL, "\"... ");
+
+	clock_start();
+
+	vec2_d x = load_data(f_x, ',');
+
+	clock_stop();
+
+	log(LOG_TIME, " X-File loaded in ");
+	log(LOG_TIME, clock_get_duration());
+	log(LOG_TIME, " ms. ");
+
+	log(LOG_ALL, "Done!");
+	log(LOG_TIME, "\n");
+
+	log(LOG_ALL, "Start reading the file \"");
+	log(LOG_ALL, f_c);
+	log(LOG_ALL, "\"... ");
+
+	clock_start();
+
+	vec2_d centers = load_data(f_c, ',');
+
+	clock_stop();
+
+	log(LOG_TIME, " Centers-File loaded in ");
+	log(LOG_TIME, clock_get_duration());
+	log(LOG_TIME, " ms. ");
+
+	log(LOG_ALL, "Done!");
+	log(LOG_TIME, "\n");
+
+	clock_start();
+
+	log(LOG_ALL, "Calculating the norms and generating initial labels... ");
 
 	vec_d norms = calc_norm(&x);
 	vec_i lbls = generate_lbls(x.size(), -1);
 
-	cout << "Done!\n\n";
+	clock_stop();
 
-	cout << " Executing k-means with the following configuration:\n";
-	cout << "        X-File = \"" << argv[1] << "\" (" << x.size() << " lines)\n";
-	cout << "  Centers-File = \"" << argv[2] << "\" (" << centers.size() << " lines)\n";
-	cout << "       Threads = "  << argv[3] << "\n";
-	cout << "    Iterations = "  << argv[4] << "\n";
-	cout << "    Dimensions = "  << x[0].size() << "\n";
-	cout << " Use Loc. Lbls = "  << argv[5] << "\n";
-	cout << " Use Lbl.-Lock = "  << argv[6] << "\n\n";
+	log(LOG_TIME, " Calculated norms and generated labels in ");
+	log(LOG_TIME, clock_get_duration());
+	log(LOG_TIME, " ms. ");
 
-	cout << "Running... " << flush;
-;	spawn_threads(stoi(argv[3]), &x, &norms, &centers, stoi(argv[4]), &lbls,
-			stob(argv[5], "true", "false"), stob(argv[6], "true", "false"));
+	log(LOG_ALL, "Done!\n");
+	log(LOG_TIME, "\n");
+	log(LOG_ALL, " Executing k-means with the following configuration:\n"
+			"        X-File = \"");
+	log(LOG_ALL, f_x);
+	log(LOG_ALL, "\" (");
+	log(LOG_ALL, (int)x.size());
+	log(LOG_ALL, " lines)\n"
+			"  Centers-File = \"");
+	log(LOG_ALL, f_c);
+	log(LOG_ALL, "\" (");
+	log(LOG_ALL, (double)centers.size());
+	log(LOG_ALL, " lines)\n");
+	log(LOG_ALL, "       Threads = ");
+	log(LOG_ALL, n_threads);
+	log(LOG_ALL, "\n");
+	log(LOG_ALL, "    Iterations = ");
+	log(LOG_ALL, (int)n_iterations);
+	log(LOG_ALL, "\n");
+	log(LOG_ALL, "    Dimensions = ");
+	log(LOG_ALL, (int)x[0].size());
+	log(LOG_ALL, "\n");
+	log(LOG_ALL, "   Sync-Method = ");
+	log(LOG_ALL, o_syncm);
+	log(LOG_ALL, "\n\n");
 
-	cout << "Done!\n\n";
+	log(LOG_ALL, "Running... ");
 
-	if(argc == 8) {
-		cout << "Dump labeling to the file [" << argv[8] << "]..." << flush;
+	clock_start();
 
-		dump_data(lbls, argv[8], ',');
+	spawn_threads(n_threads, &x, &norms, &centers, n_iterations, &lbls, o_syncm);
 
-		cout << "Done!\n";
+	clock_stop();
+
+	log(LOG_TIME, " Executed the algorithm in ");
+	log(LOG_TIME, clock_get_duration());
+	log(LOG_TIME, " ms. ");
+
+	log(LOG_ALL, "Done!\n");
+	log(LOG_TIME, "\n");
+
+	if(argc == MIN_ARGC + 1) {
+		string f_lbls(argv[P_F_LBLS]);
+
+		log(LOG_ALL, "Dump labeling to the file [");
+		log(LOG_ALL, f_lbls);
+		log(LOG_ALL, "]...");
+
+		dump_data(lbls, f_lbls, ',');
+
+		log(LOG_ALL, "Done!\n");
 	}
 	else {
-		cout << "Skipped dumping to file. Printing centers:\n";
+		log(LOG_ALL, "Skipped dumping to file. Printing centers:\n");
 
 		for(int i = 0; i < centers.size(); i++) {
-			cout << "[" << i << "](";
+			log(LOG_ALL, "[");
+			log(LOG_ALL, (int)i);
+			log(LOG_ALL, "](");
 
 			for(int j = 0; j < centers[i].size(); j++) {
-				cout << centers[i][j] << (j == centers[i].size() - 1 ? "" : ",");
+				log(LOG_ALL, centers[i][j]);
+				log(LOG_ALL, (j == centers[i].size() - 1 ? "" : ","));
 			}
 
-			cout << ")\n";
+			log(LOG_ALL, ")\n");
 		}
 	}
 
-	cout << "\n";
+	log(LOG_ALL, "\n");
 
 	return 0;
 }
