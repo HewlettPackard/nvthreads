@@ -40,11 +40,11 @@ int main(int argc, char ** argv){
     for (j = 0; j < nblocks; j++) {
         printf("\n--------Page %d: ", j);
         for (i = 0; i < block_size; i++) {
-            if ( i < 4 ) {
+            if ( i < sizeof(void*) ) {
                 printf("%c", ptr[j*block_size] & 0xffU);                
-                if ( i == 3 ) {
-                    printf("--------\n");
-                }
+            }
+            if ( i == sizeof(void *) ) {
+                printf("--------\n");
             }
             
             if ( i % 50 == 0 && i > 0 ) {

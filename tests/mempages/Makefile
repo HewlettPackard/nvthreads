@@ -1,21 +1,35 @@
 CC = g++
-CFLAGS = -g
+CFLAGS = -g -std=gnu++11 
 PLIB = -lpthread
-DLIB = ../../libnvthread.so
+NVLIB = /home/terry/workspace/nvthreads/libnvthread.so
+DLIB = /home/terry/workspace/nvthreads/third-parties/dthreads/src/libdthread.so
 
+#nvthread
+LOG_INC_DIR = /home/terry/workspace/nvthreads/include
+NV_INC_DIR = /home/terry/workspace/nvthreads/api/include
+NV_SRC_DIR = /home/terry/workspace/nvthreads/api/src
 
-all:	checkpages dtests ptests
+NVINCLUDE_DIRS = -I$(NV_INC_DIR) -I$(LOG_INC_DIR)
+NVSRCS = $(NV_SRC_DIR)/nvrecovery.cpp 
+
+all:	checkpages dtests nvtests
+
 
 checkpages:	
 	$(CC) $(CFLAGS) checkpages.c -o checkpages.o
-
+	$(CC) $(CFLAGS) readmemlog.c -o readmemlog.o
 ptests:
 	$(CC) $(CFLAGS) test1.c -o ptest1.o $(PLIB)
 	$(CC) $(CFLAGS) test2.c -o ptest2.o $(PLIB)
 
+nvtests:
+	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test1.c -o nvtest1.o -rdynamic $(NVLIB)
+	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test2.c -o nvtest2.o -rdynamic $(NVLIB)
+
 dtests:
-	$(CC) $(CFLAGS) test1.c	-rdynamic $(DLIB) -o dtest1.o
-	$(CC) $(CFLAGS) test2.c -rdynamic $(DLIB) -o dtest2.o
+	$(CC) $(CFLAGS)  test1.c -o dtest1.o -rdynamic $(NVLIB)
+	$(CC) $(CFLAGS)  test2.c -o dtest2.o -rdynamic $(NVLIB)
+
 
 clean:
-	rm *.o MemLog*
+	rm *.o MemLog* varmap* _crashed _running
