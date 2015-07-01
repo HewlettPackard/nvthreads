@@ -20,7 +20,9 @@
 #include "heaplayers/mmapheap.h"
 #include "heaplayers/util/cpuinfo.h"
 
-#include "/home/terry/workspace/nvthreads/include/logger.h"
+#include "logger.h"
+#include "nvm.h"
+#include "nvrecovery.h"
 
 extern "C" {
 // The type of a pthread function.
@@ -79,8 +81,14 @@ public:
 		_tid = id;
 	}
 
-    /* Memory log shared */
+    /* Memory log */
     static MemoryLog _localMemoryLog; 
+    
+    /* Variable map */
+    static nvmemory _localNvmLog;
+    
+    /* Recover interface */
+    static nvrecovery _localNvRecovery;
 
 private:
 
