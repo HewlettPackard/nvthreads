@@ -16,6 +16,7 @@ src/eval/datasets/parsec-3.0/pkgs/apps/facesim/inputs/input_native.tar
 src/eval/datasets
 src/eval/tests/ferret/ImageMagick-6.9.1-4
 *.o
+*.d
 src/eval/tests/blackscholes/blackscholes-dthread
 src/eval/tests/blackscholes/blackscholes-pthread
 src/eval/tests/canneal/canneal-dthread
