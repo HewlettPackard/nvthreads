@@ -39,7 +39,7 @@ extern "C"
 {
     bool _isCrashed(void);
     bool isCrashed(void);
-    void* nvrecover(void *dest, size_t size, char *name);
+    unsigned long nvrecover(void *dest, size_t size, char *name);
     void* nvmalloc(size_t size, char *name);
 }
 
@@ -54,12 +54,15 @@ public:
 //      lprintf("Destructing an instance of nvmemory\n");
     }
 
+    bool _main_thread;
     bool _initialized;
+    bool _logging_enabled;
     LOG_DEST log_dest;
     char running_filename[FILENAME_MAX];
     int running_fd;
     char crash_filename[FILENAME_MAX];
     int crash_fd;
+    char log_path_prefix[FILENAME_MAX];
 
     // Store a list of file names for memory pages
     std::vector<std::string> *mempage_file_vector;
@@ -71,38 +74,71 @@ public:
     std::map<std::string, unsigned long> *varmap; 
 
 
-    void initialize(void) {
-        lprintf("----------initializing nvrecovery class--------------\n"); 
-        if ( !_initialized ) {
+    void initialize(bool main_thread){
+        _main_thread = main_thread;
+        
+#ifdef NVLOGGING
+        _logging_enabled = true;
+#else
+        _logging_enabled = false;
+#endif
+
+        if ( !_logging_enabled ) {
+            return;
+        }
+
+        lprintf("----------initializing nvrecovery class--------------\n");
+        if (!_initialized){
             // TODO: Read from config
-            log_dest = DISK;
-
-            sprintf(running_filename, "_running");
-            sprintf(crash_filename, "_crashed");
-
+//          log_dest = MemoryLog::log_dest;
+            log_dest = DRAM_TMPFS;
             // Read the configuration file to decide where to log the
             // <variable, address> mapping
-
             mempage_file_vector = new std::vector<std::string>;
             varmap = new std::map<std::string, unsigned long>;
-            varmap_file_vector = new std::vector<std::string>;
-            if ( !_isCrashed() ) {
-                running_fd = create_flag_file(running_filename);
+            varmap_file_vector = new std::vector<std::string>; 
+
+            if (log_dest == DISK){
+                sprintf(log_path_prefix, "./");
+            } else if (log_dest == DRAM_TMPFS){
+                sprintf(log_path_prefix, "/mnt/tmpfs/");
             }
+
+            if ( _main_thread ) {
+                sprintf(running_filename, "_running");
+                sprintf(crash_filename, "_crashed");
+
+                if (_isCrashed()){
+                    // Recover the variable and address mapping
+                    createRecoverHashMap(); 
+                }
+                else{
+                    running_fd = create_flag_file(running_filename);
+                }
+                
+            }
+
             _initialized = true;
         }
     }
 
     void finalize(void) {
+        if ( !_logging_enabled ) {
+            return;
+        }
+
         lprintf("----------finalizing nvrecovery class--------------\n");
         _initialized = false;
-        close(running_fd);
-        close(crash_fd);
-        unlink(running_filename);
-        unlink(crash_filename);
-        delete mempage_file_vector;
-        delete varmap_file_vector;
-        delete varmap;    
+        if ( _main_thread ) {
+            lprintf("Main thread removing crash flag files\n");
+//          close(running_fd);
+//          close(crash_fd);
+            unlink(running_filename);
+            unlink(crash_filename);
+        }
+//      delete mempage_file_vector;
+//      delete varmap_file_vector;
+//      delete varmap;
     }
 
     // Flag file indicates the crash status of the application
@@ -126,9 +162,6 @@ public:
             lprintf("Your program crashed before.  Please recover your progress using libnvthread API\n");
             rv = true;
             crash_fd = create_flag_file(crash_filename);
-
-            // Recover the variable and address mapping
-            createRecoverHashMap();
         } else {
             lprintf("Your program did not crash before.  Continue normal execution\n");
             rv = false;
@@ -141,7 +174,7 @@ public:
         DIR *dir;
         struct dirent *ent;
         lprintf("looking for file with pattern: %s\n", pattern);
-        if ( (dir = opendir("./")) != NULL ) {
+        if ( (dir = opendir(log_path_prefix)) != NULL ) {
             while ((ent = readdir(dir)) != NULL) {
                 std::string *str = new std::string(ent->d_name);
                 std::size_t found = str->find(pattern);
@@ -159,20 +192,6 @@ public:
         }
     }
 
-    void dumpVarMap(void) {
-        if ( varmap->size() ) {
-            lprintf("walking varmap\n");
-            lprintf("size of varmap: %zd\n", varmap->size());
-            for (std::map<std::string, unsigned long>::iterator it = varmap->begin(); it != varmap->end(); it++) {
-                lprintf("%s, 0x%08lx\n", it->first.c_str(), it->second);
-            }
-            lprintf("walked varmap\n");
-        }
-        else{
-            lprintf("No variables found, skip dumping variables\n");
-        }
-    }
-
     // Build the variable address hash map for later query
     void buildVarMap(void) {
         for (std::vector<std::string>::iterator it = varmap_file_vector->begin(); it != varmap_file_vector->end(); ++it) {
@@ -180,8 +199,8 @@ public:
             char *name;
             char *addr;
             std::string line;
-            strcpy(fn, (*it).c_str());
-
+            sprintf(fn, "%s%s", log_path_prefix, (*it).c_str());
+    
             std::ifstream ifs(fn);
             while (getline(ifs, line)) {
                 name = strtok((char *)line.c_str(), ":");
@@ -214,9 +233,9 @@ public:
             char *ptr;
 
             // Get memlog file name
-//          lprintf("Memlog: %s\n", (*it).c_str());
-            strcpy(fn, (*it).c_str());
-            
+            sprintf(fn, "%s%s", log_path_prefix, (*it).c_str());
+//          lprintf("Memlog: %s\n", fn);
+
             // Set pointer to the start of a memory page    
             fd = open(fn, O_RDONLY);
             if ( fd == -1 ) {
@@ -275,19 +294,31 @@ public:
         return addr;
     }
 
-    void* nvrecover(void *dest, size_t size, char *name) {
+    unsigned long nvrecover(void *dest, size_t size, char *name) {
         lprintf("Hint: 0x%p, size: %zu, name: %s\n", dest, size, name);
         // Find the address of the variable in varmap log
         unsigned long addr = recoverVarAddr(dest, size, name);
-        void *ptr = NULL;
         if ( !addr ) {
             lprintf("Error, can't find variable named %s\n", name);
-            return NULL;
+            return 0;
         }
 
         // Find the data by address in memory pages
+//      printf("Recovered addr 0x%08lx %d\n", addr, *(int *)dest);
+        return addr;
+    }
 
-        return ptr;
+    void dumpVarMap(void) {
+        if ( varmap->size() ) {
+            lprintf("walking varmap\n");
+            lprintf("size of varmap: %zd\n", varmap->size());
+            for (std::map<std::string, unsigned long>::iterator it = varmap->begin(); it != varmap->end(); it++) {
+                lprintf("%s, 0x%08lx\n", it->first.c_str(), it->second);
+            }
+            lprintf("walked varmap\n");
+        } else {
+            lprintf("No variables found, skip dumping variables\n");
+        }
     }
 
 };

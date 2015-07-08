@@ -28,6 +28,8 @@ class nvmemory{
 public:
     LOG_DEST varlog_dest;
     bool _first_entry;
+    bool _logging_enabled;
+
     int threadID;
 
     /* For file mapped varmap log */
@@ -45,16 +47,31 @@ public:
     }
 
     void initialize(void){
+#ifdef NVLOGGING
+        _logging_enabled = true;
+#else
+        _logging_enabled = false;
+#endif
+
+        if ( !_logging_enabled ) {
+            return;
+        }
+
         lprintf("----------initializing nvmemory class--------------\n");
         threadID = getpid();
+        varlog_dest = DRAM_TMPFS;
+//      varlog_dest = DISK;
         OpenVarMap();
-        varlog_dest = DISK;
         _first_entry = true;
-//      lprintf("Inialized VarMap for nvmalloc\n");
     }
 
     void finalize(void){
-        lprintf("----------finalizing nvmemory class--------------\n"); 
+
+        if ( !_logging_enabled ) {
+            return;
+        }
+
+        lprintf("----------finalizing nvmemory class--------------\n");
         CloseVarMap();
     }
 
@@ -62,80 +79,80 @@ public:
         if ( varlog_dest == DISK ) {
             OpenDiskVarMap();
         }
+        else if ( varlog_dest == DRAM_TMPFS ) {
+            OpenDramTmpfsVarMap();
+        }
     }
 
     void OpenDiskVarMap(void) {
         // Create a temp file for logging mapping between variable and address
-
-#if 0
-        sprintf(_varmap_filename, "varmap_%d_XXXXXX", threadID);
-        _varmap_fd = mkstemp(_varmap_filename);
-        if ( _varmap_fd == -1 ) {
-            fprintf(stderr, "Error creating file %s for variable address mapping\n", _varmap_filename);
-            abort();
-        }
-        _varmap_offset = 0;
-
-        // Adjust the file size
-        if ( ftruncate(_varmap_fd, MapSizeOfLog) ) {
-            fprintf(stderr, "Error truncating var map log file");
-            abort();
-        }
-        // Map the temp file to process memory space
-        _varmap_ptr = (void *)mmap(NULL, MapSizeOfLog, PROT_READ | PROT_WRITE, MAP_SHARED, _varmap_fd, _varmap_offset);
-#endif
         sprintf(_varmap_filename, "varmap_%d", threadID);         
         _varmap_fptr = fopen(_varmap_filename, "w");
         if ( !_varmap_fptr ) {
             lprintf("Error creating file %s for variable address mapping\n", _varmap_filename);
+            abort();
         }
         else{
             lprintf("Craeted file %s for variable address mapping\n", _varmap_filename); 
+        }        
+    }
+
+    void OpenDramTmpfsVarMap(void){
+        // Create a temp file for logging mapping between variable and address
+        sprintf(_varmap_filename, "/mnt/tmpfs/varmap_%d_XXXXXX", threadID);
+        _varmap_fd = mkstemp(_varmap_filename);
+        if ( _varmap_fd == -1 ) {
+            fprintf(stderr, "%d: Error creating %s\n", getpid(), _varmap_filename);
+            abort(); 
+        }
+
+        _varmap_offset = 0; 
+        /*
+        // Adjust the file size
+        if ( ftruncate(_varmap_fd, nvmemory::MapSizeOfLog) ) {
+            fprintf(stderr, "Error truncating varmap log file");
+            abort();
         }
         
+        // Map the temp file to process memory space
+        _varmap_ptr = (void *)mmap(NULL, nvmemory::MapSizeOfLog,
+                                   PROT_READ | PROT_WRITE, MAP_SHARED, _varmap_fd, _varmap_offset); 
+        */
     }
 
     void CloseVarMap(void){
-        if ( varlog_dest == DISK ) {
-            CloseDiskVarMap();
-        }
+        lprintf("Closing %s\n", _varmap_filename);
+        close(_varmap_fd);
+//      fclose(_varmap_fptr);
+        unlink(_varmap_filename);
         lprintf("Closed VarMap handle\n");
     }
     
-    void CloseDiskVarMap(void){
-        close(_varmap_fd);
-        fclose(_varmap_fptr);
-        unlink(_varmap_filename);
-    }
-
     void AppendVarMapLog(void *start, size_t size, char *name){
+        if ( !_logging_enabled ) {
+            return;
+        }
+
+        // Append record to the end of the varmap log
+        char tmp[strlen(name)+ sizeof(unsigned long)];
         varmap_entry::varmap_t varmap;
         varmap.addr = (unsigned long)start;
         varmap.name = name;
-        
-        if ( varlog_dest == DISK) {
-            LogToDisk(&varmap);
-        }
-    }
-    
-    void LogToDisk(varmap_entry::varmap_t *varmap){
-#if 0 
-        lprintf("before log varmap, ptr: %p, offset: %lu\n", _varmap_ptr, _varmap_offset);
-        memcpy((char *)_varmap_ptr + _varmap_offset, &(varmap->addr), sizeof(unsigned long));
-        LogAtomic::add((int)sizeof(void *), &_varmap_offset); 
-        memcpy((char *)_varmap_ptr + _varmap_offset, varmap->name, sizeof(varmap->name));
-        LogAtomic::add((int)sizeof(varmap->name), &_varmap_offset); 
-        lprintf("after log varmap, ptr: %p, offset: %lu\n", _varmap_ptr, _varmap_offset);
-#endif
+        sprintf(tmp, "%s:%lx\n", varmap.name, varmap.addr);
+
         if ( _first_entry ) {
-            fprintf(_varmap_fptr, "%s:%lx\n", varmap->name, varmap->addr);
             _first_entry = false;
         }
-        else {
-//          fprintf(_varmap_fptr, ",%s:%lx", varmap->name, varmap->addr);
-            fprintf(_varmap_fptr, "%s:%lx\n", varmap->name, varmap->addr);
-        }
 
+        // Write log to varmap file
+        if( write(_varmap_fd, tmp, strlen(tmp)) == -1){
+            fprintf(stderr, "Error writing log to varmap file: %s\n", _varmap_filename);
+            abort();
+        }
+        _varmap_offset = _varmap_offset + strlen(tmp); 
+
+        lprintf("Added variable address map record: %s\n", tmp);
     }
+
 };
 #endif
