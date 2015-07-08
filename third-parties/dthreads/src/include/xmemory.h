@@ -54,8 +54,10 @@
 #include "objectheader.h"
 #include "internalheap.h"
 
-#include "/home/terry/workspace/nvthreads/include/logger.h"
 #include "xthread.h"
+
+#include "logger.h"
+#include "nvm.h"
 
 // Encapsulates all memory spaces (globals & heap).
 
@@ -76,6 +78,11 @@ private:
     xmemory(void) { }
 
 public:
+
+    // Memory Log
+    static nvmemory *_localNvmLog;
+    static MemoryLog *_localMemoryLog;
+    static nvrecovery *_localNvRecovery; 
 
     static void initialize(void) {
         DEBUG("initializing xmemory");
@@ -106,6 +113,29 @@ public:
 
         // Calculate the sub-heapid by the global thread index.
         _heapid = id % xdefines::NUM_HEAPS;
+    }
+
+    static void setThreadVarMapLog(nvmemory *NvmLog){
+        _localNvmLog = NvmLog;
+    }
+
+    static void setThreadMemoryLog(MemoryLog *MemoryLog) {
+        _localMemoryLog = MemoryLog;
+    }
+    static void setThreadRecovery(nvrecovery *NvRecovery){
+        _localNvRecovery = NvRecovery;
+    }
+
+    static inline void *nvmalloc(size_t sz, char *name){
+        void *ptr = _pheap.malloc(_heapid, sz);
+        if ( !ptr ) {
+            lprintf("nvmalloc failed!\n");
+            abort();
+        }
+        lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvmLog->_varmap_filename);
+        _localNvmLog->AppendVarMapLog(ptr, sz, name);
+        _localMemoryLog->AppendMemoryLog(ptr);
+        return ptr;
     }
 
     static inline void* malloc(size_t sz) {
@@ -208,7 +238,8 @@ public:
         void *addr = siginfo->si_addr; // address of access
 
         /* Record memory writes */
-        lprintf("%d: Page fault addr: %p\n", getpid(), addr);
+        lprintf("Page fault addr: %p\n", addr);
+//      printf("%d: Page fault addr: %p\n", getpid(), addr);
         xthread::_localMemoryLog.AppendMemoryLog(addr);
 
         // Check if this was a SEGV that we are supposed to trap.
