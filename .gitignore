@@ -137,3 +137,15 @@ libnvthread.so
 third-parties/dthreads/test/src/libdthread.so
 *.so
 kmeans-nvthread
+third-parties/dthreads/eval/tests/blackscholes/blackscholes-nvthread
+third-parties/dthreads/eval/tests/canneal/canneal-nvthread
+third-parties/dthreads/eval/tests/dedup/dedup-nvthread
+third-parties/dthreads/eval/tests/histogram/histogram-nvthread
+third-parties/dthreads/eval/tests/linear_regression/linear_regression-nvthread
+third-parties/dthreads/eval/tests/matrix_multiply/matrix_multiply-nvthread
+third-parties/dthreads/eval/tests/pca/pca-nvthread
+third-parties/dthreads/eval/tests/reverse_index/reverse_index-nvthread
+third-parties/dthreads/eval/tests/streamcluster/streamcluster-nvthread
+third-parties/dthreads/eval/tests/string_match/string_match-nvthread
+third-parties/dthreads/eval/tests/swaptions/swaptions-nvthread
+third-parties/dthreads/eval/tests/word_count/word_count-nvthread
