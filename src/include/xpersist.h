@@ -479,7 +479,7 @@ public:
 
         // Then add current page to dirty list.
         _dirtiedPagesList.insert(std::pair<int, void *>(pageNo, curr));
-printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirtiedPagesList);
+//printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirtiedPagesList);
         return;
     }
 
@@ -537,9 +537,9 @@ printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirti
         long long *mydest = (long long *)dest;
 
         for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
-//    printf("%d out of %d\n", i, xdefines::PageSize);
             if ( mylocal[i] != mytwin[i] ) {
                 commitWord((char *)&mylocal[i], (char *)&mytwin[i], (char *)&mydest[i]);
+//              printf("writePageDiffs: %d out of %d\n", i, (int)(xdefines::PageSize/sizeof(long long)));
                 //if(mytwin[i] != mydest[i] && mylocal[i] != mydest[i])
                 //fprintf(stderr, "%d: RACE at %p from %x to %x (dest %x). pageno %d\n", getpid(), &mylocal[i], mytwin[i], mylocal[i], mydest[i], pageno);
             }
@@ -721,7 +721,7 @@ printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirti
     }
 
     // Commit local modifications to shared mapping
-    inline void checkandcommit(bool update) {
+    inline void checkandcommit(bool update, MemoryLog *localMemoryLog) {
         struct shareinfo *shareinfo = NULL;
         struct xpageinfo *pageinfo = NULL;
         int pageNo;
@@ -754,10 +754,6 @@ printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirti
 
             TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
-            // Write out memory page log if the page has not been flushed yet
-            if ( !pageinfo->isLogged ) {
-                printf("pid %d Logging page %d with addr %p\n", getpid(), pageNo, pageinfo->pageStart);
-            }
 #ifdef LAZY_COMMIT
             // update is true before entering into the critical sections.
             // do the least upates if possible.
@@ -875,7 +871,17 @@ printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirti
                 // Update the version number.
                 _persistentVersions[pageNo]++;
             }
-//    lprintf("%d: commits pageNo %d (saved in shared mapped file), should remove log here\n", getpid(), pageNo);
+
+            // Write out memory page log if the page has not been flushed yet
+//          printf("pid %d page %d with addr %p: ", getpid(), pageNo, pageinfo->pageStart);
+            if ( !pageinfo->isLogged ) {
+//              printf("Logging to file %s\n", localMemoryLog->_mempages_filename);
+                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+                pageinfo->isLogged = true;
+            } else {
+                printf("Error: relogging an already logged page\n");
+                abort();
+            }
         }
     }
 
