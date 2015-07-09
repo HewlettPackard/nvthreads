@@ -19,7 +19,7 @@ PROGS = $(addprefix $(TEST_NAME)-, $(CONFIGS))
 default: all
 all: $(PROGS)
 clean:
-	rm -f $(PROGS) obj/*
+	rm -f $(PROGS) obj/* *.out
 
 eval: $(addprefix eval-, $(CONFIGS))
 
@@ -43,7 +43,7 @@ obj/%-pthread.o: %.cpp
 	$(CXX) $(PTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 $(TEST_NAME)-pthread: $(PTHREAD_OBJS)
-	$(CC) $(PTHREAD_CFLAGS) -o $@ $(PTHREAD_OBJS) $(PTHREAD_LIBS)
+	$(CC) $(PTHREAD_CFLAGS) -o $@.out $(PTHREAD_OBJS) $(PTHREAD_LIBS)
 
 eval-pthread: $(TEST_NAME)-pthread
 	time -f "real %e" ./$(TEST_NAME)-pthread.out $(TEST_ARGS)
@@ -69,11 +69,11 @@ obj/%-dthread.o: %.cpp
 	$(CXX) $(DTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 ### FIXME, put the 
-$(TEST_NAME)-dthread.out: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
-	$(CC) $(DTHREAD_CFLAGS) -o $@ $(DTHREAD_OBJS) $(DTHREAD_LIBS)
+$(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
+	$(CC) $(DTHREAD_CFLAGS) -o $@.out $(DTHREAD_OBJS) $(DTHREAD_LIBS)
 
-eval-dthread: $(TEST_NAME)-dthread.out
-	time -f "real %e" ./$(TEST_NAME)-dthread.o $(TEST_ARGS)
+eval-dthread: $(TEST_NAME)-dthread
+	time -f "real %e" ./$(TEST_NAME)-dthread.out $(TEST_ARGS)
 
 
 
@@ -97,11 +97,11 @@ obj/%-nvthread.o: %.cpp
 	$(CXX) $(NVTHREAD_CFLAGS) -c $< $(NVTHREADS_HOME)/src $(NVTHREADS_HOME)/api/src -o $@ -I$(HOME)/include -I$(NVTHREADS_HOME)/include -I$(NVTHREADS_HOME)/api/include
 
 ### FIXME, put the 
-$(TEST_NAME)-nvthread.out: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/src/libnvthread.so
-	$(CC) $(NVTHREAD_CFLAGS) -o $@ $(NVTHREAD_OBJS) $(NVTHREAD_LIBS)
+$(TEST_NAME)-nvthread: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/src/libnvthread.so
+	$(CC) $(NVTHREAD_CFLAGS) -o $@.out $(NVTHREAD_OBJS) $(NVTHREAD_LIBS)
 
-eval-nvthread: $(TEST_NAME)-nvthread.out
-	time -f "real %e" ./$(TEST_NAME)-nvthread.o $(TEST_ARGS)
+eval-nvthread: $(TEST_NAME)-nvthread
+	time -f "real %e" ./$(TEST_NAME)-nvthread.out $(TEST_ARGS)
 
 
 ############ coredet generic defines ############

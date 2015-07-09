@@ -1,3 +1,5 @@
+*matrix_file_A.txt
+*matrix_file_B.txt
 *-pthread
 *-dthread
 *-nvthread
