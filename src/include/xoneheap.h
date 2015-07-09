@@ -58,8 +58,8 @@ public:
   }
 #endif
   
-  void checkandcommit(bool update) {
-    getHeap()->checkandcommit(update);
+  void checkandcommit(bool update, MemoryLog *localMemoryLog) {
+    getHeap()->checkandcommit(update, localMemoryLog);
   }
 
   void * getend(void) {

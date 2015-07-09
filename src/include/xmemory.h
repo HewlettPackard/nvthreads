@@ -207,8 +207,8 @@ public:
     }
 
     static inline void commit(bool update) {
-        _pheap.checkandcommit(update);
-        _globals.checkandcommit(update);
+        _pheap.checkandcommit(update, _localMemoryLog);
+        _globals.checkandcommit(update, _localMemoryLog);
     }
 
 #ifdef LAZY_COMMIT
@@ -242,7 +242,7 @@ public:
         void *addr = siginfo->si_addr; // address of access
 
         /* Record memory writes */
-//      lprintf("Page fault addr: %p\n", addr);
+//      printf("Page fault at: %p\n", addr);
 //      _localMemoryLog->AppendMemoryLog(addr);
 
         // Check if this was a SEGV that we are supposed to trap.
