@@ -38,9 +38,7 @@ typedef struct timeinfo {
 
 void start(struct timeinfo *ti);
 double stop(struct timeinfo * begin, struct timeinfo * end);
-static unsigned long elapse2ms(double elapsed){
-    return (unsigned long)elapsed;
-}
+unsigned long elapse2ms(double elapsed);
 
 #define TIMER(x) size_t x##_total; timeinfo_t x##_start
 #define COUNTER(x) volatile size_t x##_count;
