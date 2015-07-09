@@ -10,7 +10,6 @@ struct xpageinfo {
 	void * pageStart;
 	bool isUpdated;
 	bool isShared;
-    bool isLogged;
 	bool release;
 };
 
