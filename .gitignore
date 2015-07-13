@@ -1,7 +1,14 @@
+*matrix_file_A.txt
+*matrix_file_B.txt
+*-pthread
+*-dthread
+*-nvthread
+*.out
 src/nv/dthread_atlasp2
 src/nv/dthread_ordering
 src/nv/pthread_atlasp2
 src/nv/pthread_ordering
+eval/datasets
 src/eval/datasets/parsec-3.0-input-native.tar.gz
 src/eval/datasets/parsec-3.0/ext/splash2x/apps/barnes/inputs/input_native.tar
 src/eval/datasets/parsec-3.0/ext/splash2x/apps/fmm/inputs/input_native.tar
@@ -151,3 +158,5 @@ third-parties/dthreads/eval/tests/swaptions/swaptions-nvthread
 third-parties/dthreads/eval/tests/word_count/word_count-nvthread
 
 *.swp
+*_running
+*_crashed

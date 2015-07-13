@@ -1,4 +1,4 @@
-DTHREADS_HOME=../../..
+DTHREADS_HOME=/home/terry/workspace/nvthreads/third-parties/dthreads
 NVTHREADS_HOME=/home/terry/workspace/nvthreads
 
 #NCORES ?= 24
@@ -8,10 +8,10 @@ NTHREADS ?=12
 #CXX = g++ -m32 -march=core2 -mtune=core2
 CC = gcc -march=core2 -mtune=core2
 CXX = g++ -march=core2 -mtune=core2
-CFLAGS += -O5
+CFLAGS += -O5 -g
 
 #CONFIGS = pthread dthread dmp_o dmp_b
-CONFIGS = pthread dthread 
+CONFIGS = pthread dthread nvthread
 PROGS = $(addprefix $(TEST_NAME)-, $(CONFIGS))
 
 .PHONY: default all clean
@@ -46,8 +46,7 @@ $(TEST_NAME)-pthread: $(PTHREAD_OBJS)
 	$(CC) $(PTHREAD_CFLAGS) -o $@ $(PTHREAD_OBJS) $(PTHREAD_LIBS)
 
 eval-pthread: $(TEST_NAME)-pthread
-	time ./$(TEST_NAME)-pthread $(TEST_ARGS)
-	#time ./$(TEST_NAME)-pthread $(TEST_ARGS) &> /dev/null
+	time -f "real %e" ./$(TEST_NAME)-pthread $(TEST_ARGS)
 
 ############ dthread builders ############
 
@@ -74,15 +73,14 @@ $(TEST_NAME)-dthread: $(DTHREAD_OBJS) $(DTHREADS_HOME)/src/libdthread.so
 	$(CC) $(DTHREAD_CFLAGS) -o $@ $(DTHREAD_OBJS) $(DTHREAD_LIBS)
 
 eval-dthread: $(TEST_NAME)-dthread
-	time ./$(TEST_NAME)-dthread $(TEST_ARGS)
-#	time ./$(TEST_NAME)-dthread $(TEST_ARGS) &> /dev/null
+	time -f "real %e" ./$(TEST_NAME)-dthread $(TEST_ARGS)
 
 
 
 ############ nvthread builders ############
 NVTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
 #DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
-NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/libnvthread.so -ldl
+NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/src/libnvthread.so -ldl
 
 NVTHREAD_OBJS = $(addprefix obj/, $(addsuffix -nvthread.o, $(TEST_FILES)))
 
@@ -96,16 +94,14 @@ obj/%-nvthread.o: %-pthread.cpp
 	$(CC) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 obj/%-nvthread.o: %.cpp
-	$(CXX) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
+	$(CXX) $(NVTHREAD_CFLAGS) -c $< $(NVTHREADS_HOME)/src $(NVTHREADS_HOME)/api/src -o $@ -I$(HOME)/include -I$(NVTHREADS_HOME)/include -I$(NVTHREADS_HOME)/api/include
 
 ### FIXME, put the 
-$(TEST_NAME)-nvthread: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/libnvthread.so
+$(TEST_NAME)-nvthread: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/src/libnvthread.so
 	$(CC) $(NVTHREAD_CFLAGS) -o $@ $(NVTHREAD_OBJS) $(NVTHREAD_LIBS)
 
 eval-nvthread: $(TEST_NAME)-nvthread
-	time ./$(TEST_NAME)-nvthread $(TEST_ARGS)
-#	time ./$(TEST_NAME)-dthread $(TEST_ARGS) &> /dev/null
-
+	time -f "real %e" ./$(TEST_NAME)-nvthread $(TEST_ARGS)
 
 
 ############ coredet generic defines ############

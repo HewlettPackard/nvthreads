@@ -1,0 +1,14 @@
+./tests/blackscholes/blackscholes-pthread
+./tests/canneal/canneal-pthread
+./tests/kmeans/kmeans-pthread
+./tests/ferret/ferret-pthread
+./tests/matrix_multiply/matrix_multiply-pthread
+./tests/pca/pca-pthread
+./tests/histogram/histogram-pthread
+./tests/string_match/string_match-pthread
+./tests/reverse_index/reverse_index-pthread
+./tests/dedup/dedup-pthread
+./tests/streamcluster/streamcluster-pthread
+./tests/word_count/word_count-pthread
+./tests/swaptions/swaptions-pthread
+./tests/linear_regression/linear_regression-pthread

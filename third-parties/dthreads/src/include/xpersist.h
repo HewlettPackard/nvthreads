@@ -58,8 +58,6 @@
 
 #include "xpageentry.h"
 
-#include "/home/terry/workspace/nvthreads/include/logger.h"
-
 #if defined(sun)
 extern "C" int madvise(caddr_t addr, size_t len, int advice);
 #endif
@@ -87,7 +85,6 @@ public:
     : _startaddr(startaddr),
       _startsize(startsize) 
   {
-
     // Check predefined globals size is large enough or not. 
     if (_startsize > 0) {
       if (_startsize > size()) {
@@ -104,7 +101,6 @@ public:
       fprintf(stderr, "Failed to make persistent file.\n");
       ::abort();
     }
-    DEBUG("_backingFd: %d, %s\n", _backingFd, _backingFname);
 
     // Set the files to the sizes of the desired object.
     if (ftruncate(_backingFd, size())) {
@@ -223,7 +219,6 @@ public:
 
     // Clean the ownership.
     _dirtiedPagesList.clear();
-   
   }
 
   void finalize() {
@@ -343,7 +338,6 @@ public:
   inline bool inRange(void * addr) {
     if (((size_t) addr >= (size_t) base()) && ((size_t) addr
         < (size_t) base() + size())) {
-//      printf("base(): 0x%zx\n", base());
       return true;
     } else {
       return false;
@@ -481,7 +475,7 @@ public:
     
     // Then add current page to dirty list. 
     _dirtiedPagesList.insert (std::pair<int, void *>(pageNo, curr));
-
+    
     return;
   }
   
@@ -500,7 +494,6 @@ public:
   inline void commitWord(char * src, char * twin, char * dest) {
     for(int i = 0; i < sizeof(long long); i++) {
       if(src[i] != twin[i]) {
-      TRACE("%d: Write %d-th byte.  src: %p, twin: %p, dest: %p\n", getpid(), i, src[i], twin[i], dest[i]);
         dest[i] = src[i];
       }
     }
@@ -539,7 +532,6 @@ public:
       long long * mydest = (long long *)dest;
 
       for(int i = 0; i < xdefines::PageSize/sizeof(long long); i++) {
-//    printf("%d out of %d\n", i, xdefines::PageSize);
         if(mylocal[i] != mytwin[i]) {
           commitWord((char *)&mylocal[i], (char *)&mytwin[i], (char *)&mydest[i]);
           //if(mytwin[i] != mydest[i] && mylocal[i] != mydest[i])
@@ -740,6 +732,7 @@ public:
     }
 
     _trans++;
+
     // Check all pages in the dirty list
     for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
       bool isModified = false;
@@ -755,8 +748,6 @@ public:
       if (shareinfo->users > 1 && shareinfo->bitmapIndex == 0) {
         createTwinPage(pageNo);
       }
-
-      TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
   #ifdef LAZY_COMMIT
       // update is true before entering into the critical sections.
@@ -821,8 +812,6 @@ public:
       //  to be committed to the shared mapping.
       if (update) {
         if(pageinfo->version != _persistentVersions[pageNo]) {
-            TRACE("%d: updating pageNo %d\n", getpid(), pageNo);
-
           unsigned long * twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
           assert(shareinfo->bitmapIndex != 0);
           assert(xbitmap::getInstance().getVersion(shareinfo->bitmapIndex) != _persistentVersions[pageNo]);
@@ -839,12 +828,9 @@ public:
           isModified = true;
         }
       } else {
-          TRACE("%d: writing pageNo %d\n", getpid(), pageNo); 
-
         if(!pageinfo->isUpdated) {
             if(pageinfo->version == _persistentVersions[pageNo]) {
-                TRACE("%d: memcpy pageNo %d\n", getpid(), pageNo);
-                memcpy(share, local, xdefines::PageSize);
+              memcpy(share, local, xdefines::PageSize);
             }
             else {
               unsigned long * twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
@@ -854,9 +840,6 @@ public:
               INC_COUNTER(slowpage);
               // Use the slower page commit, comparing to "twin".
               writePageDiffs(local, twin, share, pageNo);
-
-              TRACE("%d: writePageDiffs %d\n", getpid(), pageNo); 
-
             }
             
             isModified = true;
@@ -878,7 +861,6 @@ public:
         // Update the version number.
         _persistentVersions[pageNo]++;
       }
-//    lprintf("%d: commits pageNo %d (saved in shared mapped file), should remove log here\n", getpid(), pageNo);
     }
   }
 
@@ -896,7 +878,6 @@ public:
       // Since some page frame has been updated in check phase, 
       // Now we don't need to work on these pages anymore.
       if(!pageinfo->isUpdated) {
-        TRACE("%d: updating pageNo: %d\n", getpid(), pageNo);
         updatePage(pageinfo->pageStart, 1, pageinfo->release);
       }
     }
