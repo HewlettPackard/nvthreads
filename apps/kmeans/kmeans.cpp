@@ -368,7 +368,9 @@ void kmeans(vec2_d *x, vec_d *x_norms,
 	int ctr;
 	int n;
 
-	for(; iterations > 0; iterations--) {
+	for(int _it = 0; _it < iterations; _it++) {
+		clock_start();
+
 		// Iterate over centers, calculate c_norms
 		if(!skip_c_norms) {
 			for(int i = 0; i < c_sz; i++) {
@@ -450,6 +452,15 @@ void kmeans(vec2_d *x, vec_d *x_norms,
 
 			c_norms[i] = sqrt(c_norms[i]);
 		}
+
+		 clock_stop();
+
+                 log(LOG_TIME, " ");
+                 log(LOG_TIME, _it);
+                 log(LOG_TIME, "\t ");
+                 log(LOG_TIME, clock_get_duration());
+                 log(LOG_TIME, " ms\n");
+
 	}
 }
 
