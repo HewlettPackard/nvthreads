@@ -20,10 +20,6 @@
 #include "heaplayers/mmapheap.h"
 #include "heaplayers/util/cpuinfo.h"
 
-#include "logger.h"
-#include "nvm.h"
-#include "nvrecovery.h"
-
 extern "C" {
 // The type of a pthread function.
 typedef void * threadFunction(void *);
@@ -80,15 +76,6 @@ public:
 	static inline void setId(int id) {
 		_tid = id;
 	}
-
-    /* Memory log */
-    static MemoryLog _localMemoryLog; 
-    
-    /* Variable map */
-    static nvmemory _localNvmLog;
-    
-    /* Recover interface */
-    static nvrecovery _localNvRecovery;
 
 private:
 
