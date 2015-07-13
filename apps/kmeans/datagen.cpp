@@ -4,8 +4,14 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <math.h>
 
 const char CSV_DELIM = ',';
+
+const int LOADBAR_SIZE = 50;
+
+typedef std::vector<int> vec_i;
+typedef std::vector<vec_i> vec2_i;
 
 typedef std::vector<double> vec_d;
 typedef std::vector<vec_d> vec2_d;
@@ -26,7 +32,7 @@ vec2_d* construct_vec2_d(int x, int y) {
 	vec2_d *res = new vec2_d(x);
 
 	for(int i = 0; i < x; i++) {
-		loadbar(i, x, 50);
+		loadbar(i, x, LOADBAR_SIZE);
 
 		for(int j = 0; j < y; j++) {
 			(*res)[i] = vec_d(y);
@@ -38,7 +44,7 @@ vec2_d* construct_vec2_d(int x, int y) {
 
 void fill_random(vec2_d *data, double ctr, double rng) {
 	for(int i = 0; i < (*data).size(); i++) {
-		loadbar(i, (*data).size(), 50);
+		loadbar(i, (*data).size(), LOADBAR_SIZE);
 
 		for(int j = 0; j < (*data)[0].size(); j++) {
 			(*data)[i][j] = (double)((std::rand() - RAND_MAX / 2) * rng * 2)/(double)RAND_MAX + ctr;
@@ -53,7 +59,7 @@ void dump_data(vec2_d *data, const char* path, const char delim) {
 
 	if(data_file.is_open()) {
 		for(int i = 0; i < (*data).size(); i++) {
-			loadbar(i, (*data).size(), 50);
+			loadbar(i, (*data).size(), LOADBAR_SIZE);
 
 			for(int j = 0; j < (*data)[0].size(); j++) {
 				data_file << (*data)[i][j] << (j == (*data)[i].size() - 1 ? '\n' : delim);
@@ -64,20 +70,43 @@ void dump_data(vec2_d *data, const char* path, const char delim) {
 	data_file.close();
 }
 
-void dump_rand_data(int n, int d, double ctr, double rng, const char* path, const char delim, int seed) {
+void dump_rand_data_i(int n, int d, int ctr, int rng, const char* path, const char delim, int seed) {
+	srand(seed);
+	
+	std::ofstream data_file;
+	
+	data_file.open(path);
+	
+	if(data_file.is_open()) {
+		for(int i = 0; i < n; i++) {
+			loadbar(i, n, LOADBAR_SIZE);
+			
+			for(int j = 0; j < d; j++) {
+				data_file
+					<< round((((std::rand() - RAND_MAX / 2.0) * rng * 2.0)/(double)RAND_MAX + ctr))
+					<< (j == d - 1 ? '\n' : delim);
+			}
+		}
+	}
+}
+
+void dump_rand_data_d(int n, int d, double ctr, double rng, const char* path, const char delim, int seed) {
 	srand(seed);
 
 	std::ofstream data_file;
 
 	data_file.open(path);
 
+	double mult = (rng * 2.0) / (RAND_MAX + ctr);
+	double offs = (RAND_MAX * rng) / (RAND_MAX + ctr);
+
 	if(data_file.is_open()) {
 		for(int i = 0; i < n; i++) {
 			loadbar(i, n, 50);
 
 			for(int j = 0; j < d; j++) {
-				data_file
-					<< ((double)((std::rand() - RAND_MAX / 2) * rng * 2)/(double)RAND_MAX + ctr)
+				data_file << ((double)std::rand() * mult - offs)
+					//<< ((double)((std::rand() - RAND_MAX / 2.0) * rng * 2.0)/(double)RAND_MAX + ctr)
 					<< (j == d - 1 ? '\n' : delim);
 			}
 		}
@@ -89,22 +118,54 @@ void dump_rand_data(int n, int d, double ctr, double rng, const char* path, cons
 int main(int argc, char* argv[]) {
 	std::cout << "\n";
 
-	if(argc != 7) {
-		std::cout << "Invalid parameters, usage: <rows> <columns> <offset> <range> <seed> <output-file>\n";
+	if(argc != 8) {
+		std::cout << "Invalid parameters, usage: <int|double> <rows> <columns> <offset> <range> <seed> <output-file>\n";
 		return 1;
 	}
+	
+	int param = 0;
+	bool is_int = true; // false -> is_double
+	
+	std::string str_int("int");
+	std::string str_dbl("double");
 
-	int n = std::stoi(argv[1]); // number of rows
-	int d = std::stoi(argv[2]); // number of columns
-	double ctr = std::stod(argv[3]); // where the random data should be centered
-	double rng = std::stod(argv[4]); // the range of the data -> ctr +- rng
-	int seed = std::stoi(argv[5]);
+	std::string type(argv[++param]);
 
-	char *path = argv[6]; // the output-path
+	if(str_int.compare(type) == 0)
+		is_int = true;
+	else if(str_dbl.compare(type) == 0)
+		is_int = false;
+	else {
+		std::cout << "Invalid type-parameter: write 'int' or 'double'";
+		return 2;
+	}
 
-	std::cout << "Generating random double-data and dumping to file...\n";
+	int ctr_i;
+	int rng_i;
+	double ctr_d;
+	double rng_d;
+	
+	int n = std::stoi(argv[++param]); // number of rows
+	int d = std::stoi(argv[++param]); // number of columns
+	
+	if(is_int) {
+		ctr_i = std::stoi(argv[++param]);
+		rng_i = std::stoi(argv[++param]);
+	}
+	else {
+		ctr_d = std::stod(argv[++param]); // where the random data should be centered
+		rng_d = std::stod(argv[++param]); // the range of the data -> ctr +- rng
+	}
 
-	dump_rand_data(n, d, ctr, rng, path, CSV_DELIM, seed);
+	int seed = std::stoi(argv[++param]);
+	char *path = argv[++param]; // the output-path
+
+	std::cout << "Generating random " << type  << "-data and dumping to file...\n";
+
+	if(is_int)
+		dump_rand_data_i(n, d, ctr_i, rng_i, path, CSV_DELIM, seed);
+	else
+		dump_rand_data_d(n, d, ctr_d, rng_d, path, CSV_DELIM, seed);
 
 	std::cout << "Done!\n";
 }
