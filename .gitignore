@@ -23,6 +23,7 @@ src/eval/datasets/parsec-3.0/pkgs/apps/facesim/inputs/input_native.tar
 src/eval/datasets
 src/eval/tests/ferret/ImageMagick-6.9.1-4
 *.o
+*.d
 src/eval/tests/blackscholes/blackscholes-dthread
 src/eval/tests/blackscholes/blackscholes-pthread
 src/eval/tests/canneal/canneal-dthread
@@ -155,5 +156,7 @@ third-parties/dthreads/eval/tests/streamcluster/streamcluster-nvthread
 third-parties/dthreads/eval/tests/string_match/string_match-nvthread
 third-parties/dthreads/eval/tests/swaptions/swaptions-nvthread
 third-parties/dthreads/eval/tests/word_count/word_count-nvthread
+
+*.swp
 *_running
 *_crashed
