@@ -3,7 +3,7 @@
 -- 1. Intro --------------------------------------------------------------------------------------------
 
 Run Make to build the datagenerator ('datagen') and the (multithreaded) kmeans: 'kmeans-mt-pt' for the pthreads-library, 'kmeans-mt-dt' for dthreads.
-Make sure that you built dthreads first! The libdthreads.so should be located in the directory (TBD).
+Make sure that you built dthreads first! The libdthread.so should be located in the directory third-parties/dthreads/lib, which is guaranteed if you execute Make in the dthreads/src-directory.
 
 To get information about the usage of datagen and kmeans-mt-(pt/dt) run them without parameters.
 
