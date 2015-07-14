@@ -1,0 +1,13 @@
+Step 1: run "make" to make mdb or mdb_nvm version
+Step 2: run make to make libleveldb in directory ./leveldb
+Step 3: In this directory, run g++ -I ./leveldb/include -c testutil.cc
+Step 4: In this directoru, run g++ -I ./leveldb/include -c db_bench_mdb.cc
+Step 5: g++ -pthread db_bench_mdb.o testutil.o -L ./.. -L ./leveldb -static -lmdb -lleveldb
+
+Note: There is no particular reason for the libraries to be linked statically other than convenience.
+Make sure that the otimization level and debugging is set properly in makefile(s) before running make on mdb and leveldb
+
+List of sub-benchmarks and description is provided in db_bench_mdb.cc. To run a subset of them:
+./a.out --benchmarks="fillrandsync,writewdsdsd"
+
+
