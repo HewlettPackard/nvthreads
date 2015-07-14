@@ -1,0 +1,11 @@
+Changes were made to adapt the hashtable to use persistent memory.
+
+The logic has changed. If the program finds an existing persistent
+hashtable, it will use it and insert a certain number of elements
+to start with. Additionally, not all the elements are removed in
+a given pass.
+
+Do not build old_tester since the appropriate persistent memory
+modifications haven't been done for that part of the code.
+
+The tester can be built from the makefile in the Atlas root directory.
