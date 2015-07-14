@@ -94,7 +94,7 @@ obj/%-nvthread.o: %-pthread.cpp
 	$(CC) $(NVTHREAD_CFLAGS) -c $< -o $@ -I$(HOME)/include
 
 obj/%-nvthread.o: %.cpp
-	$(CXX) $(NVTHREAD_CFLAGS) -c $< $(NVTHREADS_HOME)/src $(NVTHREADS_HOME)/api/src -o $@ -I$(HOME)/include -I$(NVTHREADS_HOME)/include -I$(NVTHREADS_HOME)/api/include
+	$(CXX) $(NVTHREAD_CFLAGS) -c $< $(NVTHREADS_HOME)/src $(NVTHREADS_HOME)/src/source -o $@ -I$(HOME)/include -I$(NVTHREADS_HOME)/src/include
 
 ### FIXME, put the 
 $(TEST_NAME)-nvthread: $(NVTHREAD_OBJS) $(NVTHREADS_HOME)/src/libnvthread.so

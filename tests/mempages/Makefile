@@ -1,16 +1,16 @@
+NVTHREAD_HOME=../../
 CC = g++
 CFLAGS = -g -std=gnu++11 
 PLIB = -lpthread
-NVLIB = /home/terry/workspace/nvthreads/libnvthread.so
-DLIB = /home/terry/workspace/nvthreads/third-parties/dthreads/src/libdthread.so
+NVLIB = $(NVTHREAD_HOME)/src/libnvthread.so
+DLIB = $(NVTHREAD_HOME)/third-parties/dthreads/src/libdthread.so
 
 #nvthread
-LOG_INC_DIR = /home/terry/workspace/nvthreads/include
-NV_INC_DIR = /home/terry/workspace/nvthreads/api/include
-NV_SRC_DIR = /home/terry/workspace/nvthreads/api/src
+INC_DIR = $(NVTHREAD_HOME)/src/include
+SRC_DIR = $(NVTHREAD_HOME)/src/source
 
-NVINCLUDE_DIRS = -I$(NV_INC_DIR) -I$(LOG_INC_DIR)
-NVSRCS = $(NV_SRC_DIR)/nvrecovery.cpp 
+NVINCLUDE_DIRS = -I$(INC_DIR)
+NVSRCS = $(SRC_DIR)/nvrecovery.cpp 
 
 all:	checkpages dtests nvtests forloop recover_int
 
@@ -23,8 +23,8 @@ ptests:
 	$(CC) $(CFLAGS) test2.c -o ptest2.o $(PLIB)
 
 dtests:
-	$(CC) $(CFLAGS)  test1.c -o dtest1.o -rdynamic $(NVLIB)
-	$(CC) $(CFLAGS)  test2.c -o dtest2.o -rdynamic $(NVLIB)
+	$(CC) $(CFLAGS)  test1.c -o dtest1.o -rdynamic $(DLIB)
+	$(CC) $(CFLAGS)  test2.c -o dtest2.o -rdynamic $(DLIB)
 
 forloop:
 	$(CC) $(CFLAGS) $(NVINCLUDE_DIRS) $(NVSRC) forloop.c -o forloop.o -rdynamic $(NVLIB)

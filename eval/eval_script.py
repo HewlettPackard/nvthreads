@@ -18,7 +18,7 @@ allcores = mp.cpu_count()
 cores = 12
 all_configs = ['pthread', 'dthread', 'nvthread']
 #all_configs = ['pthread']
-btype = 'phoenix'
+btype = 'parsec'
 if btype == 'phoenix':
 	all_benchmarks = ['kmeans', 'reverse_index', 'string_match', 'word_count', 'histogram', 'linear_regression', 'matrix_multiply', 'pca']
 elif btype == 'parsec':
@@ -64,6 +64,7 @@ for benchmark in benchmarks:
 		data[benchmark][config] = []
 		n = 0
 		while n < runs:
+			print '------------'+benchmark+'-'+config+'. run '+str(n)+'-----------------'
 			stdout = []
 			os.chdir('tests/'+benchmark)
 			#cmd = ['make ', 'eval-'+str(config), ' NCORES=', str(cores)]
@@ -72,7 +73,11 @@ for benchmark in benchmarks:
 			start_time = os.times()[4]
 			#proc = subprocess32.Popen(cmd, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT, shell=True)				
 			#proc = subprocess32.Popen(cmd, shell=True)				
-			os.system(cmd);
+			rv = os.system(cmd);
+			if rv != 0:
+				print 'Error, rerun'
+				os.chdir('../..')
+				continue
             #detect timeout
 			#try:
 				#proc.wait(timeout = clock_timeout)
