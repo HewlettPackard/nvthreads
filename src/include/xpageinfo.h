@@ -6,6 +6,7 @@ struct xpageinfo {
 
 	int version;
 	
+    int diriedBy;	
 	// Used to save start address for this page. 
 	void * pageStart;
 	bool isUpdated;

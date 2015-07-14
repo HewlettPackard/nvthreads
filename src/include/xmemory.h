@@ -242,7 +242,7 @@ public:
         void *addr = siginfo->si_addr; // address of access
 
         /* Record memory writes */
-//      printf("Page fault at: %p\n", addr);
+        printf("%d: Page fault at: %p\n", getpid(), addr);
 //      _localMemoryLog->AppendMemoryLog(addr);
 
         // Check if this was a SEGV that we are supposed to trap.

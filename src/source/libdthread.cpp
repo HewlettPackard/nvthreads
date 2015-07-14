@@ -174,6 +174,8 @@ extern "C"
     }
 
     void pthread_exit(void *value_ptr) {
+        printf("%d: pthread exits\n", getpid()); 
+
         if ( initialized ) {
             xrun::threadDeregister();
         }
@@ -223,9 +225,11 @@ extern "C"
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
+        printf("%d: pthread locking\n", getpid()); 
         if ( initialized ) {
             xrun::mutex_lock(mutex);
         }
+        printf("%d: pthread locked\n", getpid());
         return 0;
     }
 
@@ -235,9 +239,11 @@ extern "C"
     }
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
+        printf("%d: pthread unlocking\n", getpid()); 
         if ( initialized ) {
             xrun::mutex_unlock(mutex);
         }
+        printf("%d: pthread unlocked\n", getpid());
         return 0;
     }
 
@@ -274,14 +280,17 @@ extern "C"
         if ( initialized ) {
             *tid = (pthread_t)xrun::spawn(fn, arg);
         }
+        printf("%d: pthread create done\n", getpid());
         return 0;
     }
 
     int pthread_join(pthread_t tid, void **val) {
         //assert(initialized);
+        printf("%d: pthread joining\n", getpid());
         if ( initialized ) {
             xrun::join((void *)tid, val);
         }
+        printf("%d: pthread join done\n", getpid());
         return 0;
     }
 

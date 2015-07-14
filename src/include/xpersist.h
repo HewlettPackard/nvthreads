@@ -472,6 +472,7 @@ public:
         curr->pageStart = (void *)pageStart;
         curr->isUpdated = 0;
         curr->isLogged = 0;
+        curr->diriedBy = getpid();
 #ifndef LAZY_COMMIT
         curr->release = true;
 #endif
@@ -480,6 +481,7 @@ public:
         // Then add current page to dirty list.
         _dirtiedPagesList.insert(std::pair<int, void *>(pageNo, curr));
 //printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirtiedPagesList);
+//      dumpDirtiedPages();
         return;
     }
 
@@ -720,6 +722,20 @@ public:
         return ((void *)((intptr_t)base() + pageNo * xdefines::PageSize));
     }
 
+    void dumpDirtiedPages(void){
+        struct xpageinfo *pageinfo = NULL;
+        int pageNo;
+        int cnt = 0;
+        printf("-----------%d dump dirtied pages-------------\n", getpid());
+        for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
+            pageinfo = (struct xpageinfo *)i->second;
+            pageNo = pageinfo->pageNo;
+            printf("%d: pid %d, page %d with addr %p dirtied by %d\n", cnt, getpid(), pageNo, pageinfo->pageStart, pageinfo->diriedBy);
+            cnt++;
+        }
+        printf("-----------%d end of dirtied pages--------------\n\n", getpid());
+    }
+
     // Commit local modifications to shared mapping
     inline void checkandcommit(bool update, MemoryLog *localMemoryLog) {
         struct shareinfo *shareinfo = NULL;
@@ -875,11 +891,11 @@ public:
             // Write out memory page log if the page has not been flushed yet
 //          printf("pid %d page %d with addr %p: ", getpid(), pageNo, pageinfo->pageStart);
             if ( !pageinfo->isLogged ) {
-//              printf("Logging to file %s\n", localMemoryLog->_mempages_filename);
+//              printf("%d: commit page for addr %p, dirtied by %d\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
                 localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
                 pageinfo->isLogged = true;
             } else {
-                printf("Error: relogging an already logged page\n");
+//              printf("Error: relogging an already logged page\n");
                 abort();
             }
         }
