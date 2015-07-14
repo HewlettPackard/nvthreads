@@ -1,0 +1,12 @@
+*.tar
+*.tar.gz
+*.log
+*.zip
+bin/
+config/
+log/
+man/
+pkgs/libs/
+pkgs/netapps/
+pkgs/tools/
+toolkit/
