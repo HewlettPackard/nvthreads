@@ -1,8 +1,11 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = ocean_cp
 OBJS = main.o jacobcalc.o jacobcalc2.o laplacalc.o \
 	slave1.o slave2.o multi.o linkup.o subblock.o 
 CFLAGS = -O2 -w  
 LDFLAGS = -lpthread -lm 
+NVLDFLAGS =  -lm -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -lm -rdynamic $(DTHREAD_LIB) -ldl
 MACROS = ../../../null_macros/c.m4.null.pthread
 M4 = m4 -s -Ulen -Uindex
 
@@ -17,6 +20,8 @@ endif
 
 $(TARGET): $(OBJS)
 	gcc $(OBJS) -o $(TARGET) $(LDFLAGS)
+	gcc $(OBJS) -o $(TARGET)-nvthread $(NVLDFLAGS)
+	gcc $(OBJS) -o $(TARGET)-dthread $(DLDFLAGS)
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -24,7 +29,7 @@ install:
 	cp -f run.sh $(PREFIX)/bin/run.sh
 
 clean:
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 
 .SUFFIXES:
 .SUFFIXES:	.o .c .C .h .H

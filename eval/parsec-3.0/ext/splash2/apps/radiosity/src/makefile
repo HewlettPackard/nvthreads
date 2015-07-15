@@ -1,3 +1,4 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = radiosity
 
 OBJS = rad_main.o patchman.o elemman.o taskman.o modelman.o smallobj.o\
@@ -13,6 +14,8 @@ LIBFPE = -lfpe
 MACROS = ../../../null_macros/c.m4.null.pthread
 CCOPTS = -I -float -I/usr/include $(CFLAGS)
 LDFLAGS = -g -w -lpthread -lm 
+NVLDFLAGS = -g -w -lm -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -g -w -lm -rdynamic $(DTHREAD_LIB) -ldl
 CFLAGS = $(CINCLUDE) -g 
 CINCLUDE = -I$(GLIBDIR) -I./glibps -I/usr/local/include
 
@@ -31,6 +34,8 @@ $(TARGET): $(OBJS)
 	make -C glibdumb	
 	make -C glibps	
 	gcc $(CFLAGS) $(OBJS) $(LOADLIBES) -o $(TARGET) $(LDFLAGS) 
+	gcc $(CFLAGS) $(OBJS) $(LOADLIBES) -o $(TARGET)-nvthread $(NVLDFLAGS) 
+	gcc $(CFLAGS) $(OBJS) $(LOADLIBES) -o $(TARGET)-dthread $(DLDFLAGS) 
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -40,7 +45,7 @@ install:
 clean:
 	make -C glibdumb clean	
 	make -C glibps	clean
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 
 .SUFFIXES:
 .SUFFIXES:	.o .c .C .h .H

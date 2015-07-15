@@ -1,9 +1,12 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = water_nsquared
 
 OBJS = water.o mdmain.o syscons.o kineti.o bndry.o cnstnt.o initia.o \
        interf.o intraf.o cshift.o poteng.o predcor.o
 CFLAGS = -O2 -w  
 LDFLAGS = -lm -pthread 
+NVLDFLAGS = -lm -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -lm -rdynamic $(DTHREAD_LIB) -ldl
 MACROS = ../../../null_macros/c.m4.null.pthread
 
 x = *
@@ -31,6 +34,8 @@ endif
 
 $(TARGET): $(OBJS)
 	gcc $(OBJS) $(CFLAGS) -o $(TARGET) $(LDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-nvthread $(NVLDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-dthread $(DLDFLAGS)
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -38,7 +43,7 @@ install:
 	cp -f run.sh $(PREFIX)/bin/run.sh
 
 clean:
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 
 cnstnt.c: cnstnt.C water.h wwpot.h cnst.h frcnst.h fileio.h parameters.h
 water.c: water.C parameters.h mdvar.h water.h wwpot.h cnst.h mddata.h \

@@ -1,9 +1,12 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = raytrace
 
 OBJS = bbox.o cr.o env.o fbuf.o geo.o huprn.o husetup.o hutv.o isect.o \
 	main.o matrix.o memory.o poly.o raystack.o shade.o sph.o trace.o \
 	tri.o workpool.o
 LDFLAGS = -lpthread -lm
+NVLDFLAGS = -lm -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -lm -rdynamic $(DTHREAD_LIB) -ldl
 MACROS = ../../../null_macros/c.m4.null.pthread
 CFLAGS =  -O2 -w 
 
@@ -18,6 +21,8 @@ endif
 
 $(TARGET): $(OBJS)
 	gcc $(OBJS) $(CFLAGS) -o $(TARGET) $(LDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-nvthread $(NVLDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-dthread $(DLDFLAGS)
 
 
 install:
@@ -26,7 +31,7 @@ install:
 	cp -f run.sh $(PREFIX)/bin/run.sh
 
 clean:
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 
 
 M4 = -m4 -Uindex -Ulen
