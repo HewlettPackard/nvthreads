@@ -42,7 +42,6 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-
 #define LDEBUG 0
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
@@ -62,6 +61,11 @@ class LogDefines {
 public:
     enum {PageSize = 4096UL };
     enum {PAGE_SIZE_MASK = (PageSize - 1)};
+};
+
+enum DurableMethod{
+    MSYNC,
+    MFENCE
 };
 
 #define PATH_CONFIG "/home/terry/workspace/nvthreads/config/nvthread.config"
@@ -105,7 +109,7 @@ public:
 
     LOG_DEST log_dest;
     bool _logging_enabled;
-
+    
     int threadID;
 
     /* For memory pages logging */
@@ -115,7 +119,7 @@ public:
     char _mempages_filename[FILENAME_MAX];
     char *_mempages_ptr;
     unsigned long _logentry_count;
-
+    static int _DurableMethod;
     MemoryLog() {
     }
     ~MemoryLog() {
@@ -156,6 +160,7 @@ public:
 
     void ReadConfig(void) {
         log_dest = DRAM_TMPFS;
+        _DurableMethod = MSYNC;
 //      log_dest = DISK;
         return;
 
@@ -345,6 +350,29 @@ public:
         static class MemoryLog *theOneTrueObject = new(buf)MemoryLog;
         lprintf("alloc: sizeof MemoryLog: %zu\n", sizeof(*theOneTrueObject));
         return theOneTrueObject;
+    }
+
+    /* Flush cache line to main memory */
+    static inline void clflush(volatile void *__p) {
+        asm volatile("clflush %0" : "+m" (*(volatile char *)__p));
+    }
+
+    /* Make sure the log is durable (visible by the restart-code after the program crashes) */
+    static inline void MakeDurable(volatile void *vaddr){
+        if ( _DurableMethod == MSYNC ) {
+            if( msync((void*)vaddr, LogDefines::PageSize, MS_SYNC) != 0 ){
+                fprintf(stderr, "msync() failed, please handle error before moving on.\n");
+                abort();
+            }
+//          printf("%d: msync %p for %d bytes\n", getpid(), vaddr, LogDefines::PageSize);
+        } else if (_DurableMethod == MFENCE) {
+            __asm__ __volatile__("mfence");
+            clflush(vaddr);
+            __asm__ __volatile__("mfence"); // do we need this mfence?
+//          printf("%d: mfence+cflush+mfence for %p for %d bytes\n", getpid(), vaddr, LogDefines::PageSize);
+        } else {
+            fprintf(stderr, "undefined durable method: %d\n", _DurableMethod);
+        }
     }
 
     /* Dump the content of a log entry in hex format */

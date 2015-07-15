@@ -4,4 +4,5 @@
 //bool MemoryLog::_logging_enabled;
 
 void ReadConfig(void);
+int MemoryLog::_DurableMethod;
 
