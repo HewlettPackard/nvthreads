@@ -1,10 +1,13 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = barnes
 FILES = code.C code_io.C load.C grav.C getparam.C util.C \
 	code.H defs.H stdinc.H vectmath.H
 CS = code.c code_io.c load.c grav.c getparam.c util.c 
 OBJS = code.o code_io.o load.o grav.o getparam.o util.o
-CFLAGS = -O2 -w 
+CFLAGS = -O2 -w -g 
 LDFLAGS = -lm -lpthread
+NVLDFLAGS =  -lm -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -lm -rdynamic $(DTHREAD_LIB) -ldl
 MACROS = ../../../null_macros/c.m4.null.pthread
 M4 = m4 -s -Ulen -Uindex
 
@@ -19,7 +22,8 @@ endif
 
 $(TARGET): $(OBJS)
 	gcc $(OBJS) $(CFLAGS) -o $(TARGET) $(LDFLAGS)
-
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-nvthread $(NVLDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-dthread $(DLDFLAGS)
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -27,7 +31,7 @@ install:
 	cp -f run.sh $(PREFIX)/bin/run.sh
 
 clean:
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 
 .SUFFIXES:
 .SUFFIXES:	.o .c .C .h .H

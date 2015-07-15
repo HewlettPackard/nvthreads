@@ -1,9 +1,12 @@
+include $(PWD)/../../../../../defines.mk
 TARGET = volrend
 OBJS = main.o file.o option.o map.o normal.o opacity.o octree.o view.o \
        render.o adaptive.o raytrace.o
 CFLAGS = -O2 -w -DPRESHD $(CDEBUG) -Ilibtiff
 CCOPTS = -S -I -I$(SIMDIR) -I$(IDIR) -I/usr/include -DAUG $(CFLAGS)
 LDFLAGS = -O2 -w -pthread -lm -Ilibtiff -Llibtiff -ltiff
+NVLDFLAGS = -O2 -w -lm -Ilibtiff -Llibtiff -ltiff -rdynamic $(NVTHREAD_LIB) -ldl
+DLDFLAGS = -O2 -w -lm -Ilibtiff -Llibtiff -ltiff -rdynamic $(DTHREAD_LIB) -ldl
 MACROS = ../../../null_macros/c.m4.null.pthread
 mylibtiff = libtiff.a
 
@@ -24,7 +27,8 @@ $(mylibtiff):
 
 $(TARGET): $(OBJS)  
 	gcc $(OBJS) $(CFLAGS) -o $(TARGET) $(LDFLAGS)
-
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-nvthread $(NVLDFLAGS)
+	gcc $(OBJS) $(CFLAGS) -o $(TARGET)-dthread $(DLDFLAGS)
 
 install:
 	mkdir -p $(PREFIX)/bin
@@ -32,7 +36,7 @@ install:
 	cp -f run.sh $(PREFIX)/bin/run.sh
 
 clean:
-	rm -rf *.c *.h *.o $(TARGET)
+	rm -rf *.c *.h *.o $(TARGET) $(TARGET)-nvthread $(TARGET)-dthread
 	make -C libtiff clean
 
 .SUFFIXES:
