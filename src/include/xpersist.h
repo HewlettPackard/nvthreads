@@ -770,6 +770,17 @@ public:
 
             TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
+            // WAL: Write out memory page log if the page has not been flushed yet
+            if ( !pageinfo->isLogged ) {
+                printf("%d: committing page for addr %p, dirtied by %d, WAL logging\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
+                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+                localMemoryLog->MakeDurable(pageinfo->pageStart);
+                pageinfo->isLogged = true;
+            } else {
+                fprintf(stderr, "Error: relogging an already logged page\n");
+                abort();
+            }
+
 #ifdef LAZY_COMMIT
             // update is true before entering into the critical sections.
             // do the least upates if possible.
@@ -888,16 +899,6 @@ public:
                 _persistentVersions[pageNo]++;
             }
 
-            // Write out memory page log if the page has not been flushed yet
-//          printf("pid %d page %d with addr %p: ", getpid(), pageNo, pageinfo->pageStart);
-            if ( !pageinfo->isLogged ) {
-//              printf("%d: commit page for addr %p, dirtied by %d\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
-                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-                pageinfo->isLogged = true;
-            } else {
-//              printf("Error: relogging an already logged page\n");
-                abort();
-            }
         }
     }
 
