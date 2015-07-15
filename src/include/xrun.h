@@ -226,6 +226,16 @@ public:
         atomicEnd(false);
         // Remove current thread and decrease the fence
         determ::getInstance().deregisterThread(_thread_index);
+
+        // Finalize memory log
+        xmemory::_localMemoryLog->finalize();
+
+        // Finalize variable log
+        xmemory::_localNvmLog->finalize();
+
+        // Finalize varmap log
+        xmemory::_localNvRecovery->finalize(); 
+
     }
 
     static inline void closeFence(void) {
@@ -507,10 +517,10 @@ public:
     // New optimization here.
     // We will add one parallel commit phase before one can get token.
     static void waitToken(void) {
-        printf("%d: waiting on fence\n", getpid());
+//      printf("%d: waiting on fence\n", getpid());
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
-        printf("%d: got token\n", getpid());
+//      printf("%d: got token\n", getpid());
     }
 
     // If those threads sending out condsignal or condbroadcast,
@@ -518,7 +528,7 @@ public:
     static void putToken(void) {
         // release the token and pass the token to next.
         //fprintf(stderr, "%d: putToken\n", _thread_index);
-        printf("%d: put token\n", getpid());
+//      printf("%d: put token\n", getpid());
         determ::getInstance().putToken(_thread_index);
         //fprintf(stderr, "%d: putToken\n", getpid());
     }
