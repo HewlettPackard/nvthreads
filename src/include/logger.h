@@ -65,7 +65,8 @@ public:
 
 enum DurableMethod{
     MSYNC,
-    MFENCE
+    MFENCE,
+    MFENCEMSYNC
 };
 
 #define PATH_CONFIG "/home/terry/workspace/nvthreads/config/nvthread.config"
@@ -143,10 +144,10 @@ public:
     }
 
     void finalize() {
+        lprintf("----------finalizing memorylog class--------------\n");
         if ( !_logging_enabled ) {
             return;
         }
-        lprintf("----------finalizing memorylog class--------------\n");
         CloseMemoryLog();
     }
 
@@ -282,7 +283,7 @@ public:
         _mempages_offset += LogDefines::PageSize;
 
         if ( _mempages_offset >= MapSizeOfLog ) {
-//          printf("Memory mapped file %s is full, reset mempage offset (%lu) to 0\n", _mempages_filename, _mempages_offset);
+            lprintf("Memory mapped file %s is full, reset mempage offset (%lu) to 0\n", _mempages_filename, _mempages_offset);
 
             // Flush out old log
             SyncMemoryLog();
@@ -305,7 +306,6 @@ public:
     void SyncMemoryLog(void) {
 //      printf("Please flush %s to make it durable\n", _mempages_filename);
 
-        /* TODO: Make sure I'm durable after this point!! */
         close(_mempages_fd);
         unlink(_mempages_filename);
         _mempages_file_count++;
@@ -320,7 +320,8 @@ public:
     }
     void CloseDramTmpfsMemoryLog() {
         if ( _mempages_fd != -1 ) {
-            lprintf("Removing memory log %s\n", _mempages_filename);
+//          lprintf("Removing memory log %s\n", _mempages_filename);
+//          lprintf("Removing memory log %s\n", _mempages_filename);
             close(_mempages_fd);
             unlink(_mempages_filename);
         }
@@ -352,25 +353,34 @@ public:
         return theOneTrueObject;
     }
 
+    /* Flush memory page to backend storage */
+    static inline int msyncPage(volatile void *__p){
+        return msync((void *)__p, LogDefines::PageSize, MS_SYNC);
+    }
+
     /* Flush cache line to main memory */
-    static inline void clflush(volatile void *__p) {
-        asm volatile("clflush %0" : "+m" (*(volatile char *)__p));
+    static inline void mfencePage(volatile void *__p) {
+        __asm__ __volatile__("mfence");
+        asm volatile("clflush %0" : "+m"(*(volatile char *)__p));
+        __asm__ __volatile__("mfence");
     }
 
     /* Make sure the log is durable (visible by the restart-code after the program crashes) */
     static inline void MakeDurable(volatile void *vaddr){
         if ( _DurableMethod == MSYNC ) {
-            if( msync((void*)vaddr, LogDefines::PageSize, MS_SYNC) != 0 ){
+            if( msyncPage(vaddr) != 0){
                 fprintf(stderr, "msync() failed, please handle error before moving on.\n");
                 abort();
             }
 //          printf("%d: msync %p for %d bytes\n", getpid(), vaddr, LogDefines::PageSize);
         } else if (_DurableMethod == MFENCE) {
-            __asm__ __volatile__("mfence");
-            clflush(vaddr);
-            __asm__ __volatile__("mfence"); // do we need this mfence?
+            mfencePage(vaddr);    
 //          printf("%d: mfence+cflush+mfence for %p for %d bytes\n", getpid(), vaddr, LogDefines::PageSize);
-        } else {
+        } else if(_DurableMethod == MFENCEMSYNC) {
+            mfencePage(vaddr);
+            msyncPage(vaddr);
+        }
+        else {
             fprintf(stderr, "undefined durable method: %d\n", _DurableMethod);
         }
     }
