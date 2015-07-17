@@ -1,3 +1,4 @@
+include $(PARSECDIR)/defines.mk
 PREFIX = ${PARSECDIR}/pkgs/apps/ferret/inst/${PARSECPLAT}
 TARGET = ferret
 ARCH = parsec
@@ -76,6 +77,8 @@ ifdef version
   endif
 endif
 
+XLDLIBS = $(filter-out -lpthread, $(LDLIBS))
+
 benchmark_src := $(benchmark_base).c
 ifeq "$(version)" "tbb"
   benchmark_src := $(benchmark_base).cpp
@@ -118,6 +121,8 @@ $(tools_tgt): $(BINDIR)/% : $(OBJDIR)/%.o $(LIBDIR)/libcass.a
 $(benchmark_tgt): $(BINDIR)/% : $(OBJDIR)/%.o $(LIBDIR)/libcass.a $(LIBDIR)/libcassimage.a
 	@echo "   CXX '$<' ==> '$@'"
 	@$(CXX) $(CFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+	@$(CXX) $(CFLAGS) $(LDFLAGS) $^ -o $@-dthread $(XLDLIBS) $(DTHREAD_FLAGS)
+	@$(CXX) $(CFLAGS) $(LDFLAGS) $^ -o $@-nvthread $(XLDLIBS) $(NVTHREAD_FLAGS)
 
 $(image_tgt): $(BINDIR)/% : $(OBJDIR)/%.o $(LIBDIR)/libcass.a $(LIBDIR)/libcassimage.a
 	@echo "   CXX '$<' ==> '$@'"

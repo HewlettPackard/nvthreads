@@ -1,3 +1,4 @@
+include ${PARSECDIR}/defines.mk
 PREFIX=${PARSECDIR}/pkgs/apps/blackscholes/inst/${PARSECPLAT}
 
 CSRC    = $(SRC)
@@ -55,17 +56,20 @@ NCO = -DNCO=2
 endif
 
 CXXFLAGS += $(MT) $(NCO) $(FUNC) $(ERR) $(CSRC)
+CXXFLAGS_XTHREAD = $(filter-out -pthread, $(CXXFLAGS))
 
 all: $(TARGET)
 
 $(TARGET): clean $(CSRC)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBS) -o $(TARGET)
+	$(CXX) $(CXXFLAGS_XTHREAD) $(LDFLAGS) $(LIBS) -o $(TARGET)-dthread $(DTHREAD_FLAGS)
+	$(CXX) $(CXXFLAGS_XTHREAD) $(LDFLAGS) $(LIBS) -o $(TARGET)-nvthread $(NVTHREAD_FLAGS)
 
 $(M4_SRC): $(SRC)
 	$(M4) $(M4_BASE)/$(MACROS) $< > $@
 
 clean:
-	rm -f $(TARGET) $(M4_SRC)
+	rm -f $(TARGET) $(TARGET)-dthread $(TARGET)-nvthread $(M4_SRC)
 
 install:
 	mkdir -p $(PREFIX)/bin
