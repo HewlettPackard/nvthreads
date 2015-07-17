@@ -1,0 +1,8 @@
+Instructions to help you compile PARSEC 3.0 without too much pain
+
+dedup: 
+	sudo apt-get install libssl-dev 
+ferret:
+	sudo apt-get install libgsl0-dev ImageMagick
+swaptions:
+	sudo apt-get install libtbb-dev 

@@ -1,5 +1,5 @@
 # Makefile for dedup kernel
-
+include $(PARSECDIR)/defines.mk
 PREFIX=${PARSECDIR}/pkgs/kernels/dedup/inst/${PARSECPLAT}
 
 TARGET=dedup
@@ -31,7 +31,7 @@ ifdef version
   endif
 endif
 
-
+CFLAGS_XTHREAD = $(filter-out -pthread, $(CFLAGS))
 all: $(TARGET)
 
 .c.o:
@@ -39,9 +39,11 @@ all: $(TARGET)
 
 $(TARGET): $(DEDUP_OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(DEDUP_OBJ) $(LIBS)
+	$(CC) $(CFLAGS_XTHREAD) $(LDFLAGS) -o $(TARGET)-dthread $(DEDUP_OBJ) $(LIBS) $(DTHREAD_FLAGS)
+	$(CC) $(CFLAGS_XTHREAD) $(LDFLAGS) -o $(TARGET)-nvthread $(DEDUP_OBJ) $(LIBS) $(NVTHREAD_FLAGS)
 
 clean:
-	rm -f *~ *.o $(TARGET)
+	rm -f *~ *.o $(TARGET) $(TARGET)-dthread $(TARGET)-nvthread
 
 install:
 	mkdir -p $(PREFIX)/bin

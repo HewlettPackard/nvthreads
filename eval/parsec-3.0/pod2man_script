@@ -1,0 +1,17 @@
+FILES=./pkgs/libs/ssl/src/doc/apps/*.pod
+for f in $FILES
+do
+  echo "Processing $f file..."
+  sed 's/\=item\ \([0-9]\)/\=item\ C<\1>/g' $f > tmp
+  cat tmp > $f
+  rm tmp
+done
+ 
+FILES=./pkgs/libs/ssl/src/doc/ssl/*.pod
+for f in $FILES
+do
+  echo "Processing $f file..."
+  sed 's/\=item\ \([0-9]\)/\=item\ C<\1>/g' $f > tmp
+  cat tmp > $f
+  rm tmp
+done
