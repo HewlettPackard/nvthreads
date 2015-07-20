@@ -107,7 +107,7 @@ class MemoryLog {
 public:
     enum {LogEntryPerFile = 10000};
     enum {MapSizeOfLog = LogEntryPerFile * LogEntry::LogEntrySize};
-
+   
     LOG_DEST log_dest;
     bool _logging_enabled;
     
@@ -117,10 +117,19 @@ public:
     int _mempages_fd;
     int _mempages_file_count;
     unsigned long _mempages_offset;
+    unsigned long _mempages_filesize;
     char _mempages_filename[FILENAME_MAX];
     char *_mempages_ptr;
     unsigned long _logentry_count;
     static int _DurableMethod;
+    int _dirtiedPagesCount; 
+
+    /* For end of log */
+    int _eol_fd;
+    char *_eol_ptr;
+    char _eol_filename[FILENAME_MAX];
+    int _eol_size;
+
     MemoryLog() {
     }
     ~MemoryLog() {
@@ -140,7 +149,8 @@ public:
         threadID = getpid();
         _mempages_file_count = 0;
         _logentry_count = 0;
-        OpenMemoryLog();
+        _dirtiedPagesCount = 0;
+//      OpenMemoryLog();
     }
 
     void finalize() {
@@ -148,7 +158,7 @@ public:
         if ( !_logging_enabled ) {
             return;
         }
-        CloseMemoryLog();
+//      CloseMemoryLog();
     }
 
     static bool isCommentStmt(char *stmt) {
@@ -162,6 +172,7 @@ public:
     void ReadConfig(void) {
         log_dest = DRAM_TMPFS;
         _DurableMethod = MSYNC;
+        _eol_size = 4;
 //      log_dest = DISK;
         return;
 
@@ -189,7 +200,9 @@ public:
         }
     }
 
-    void OpenMemoryLog(void) {
+    void OpenMemoryLog(int dirtiedPagesCount) {
+        _dirtiedPagesCount = dirtiedPagesCount;
+        _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
         if ( log_dest == DISK ) {
             OpenDiskLog();
         } else if ( log_dest == DRAM_TMPFS ) {
@@ -220,19 +233,15 @@ public:
         _mempages_offset = 0;
 
         // Adjust the file size
-        if ( ftruncate(_mempages_fd, LogEntry::LogEntrySize * MemoryLog::LogEntryPerFile) ) {
+        if ( ftruncate(_mempages_fd, LogEntry::LogEntrySize * _dirtiedPagesCount) ) {
             fprintf(stderr, "Error truncating memory log file");
             abort();
         }
 
         // Map the temp file to process memory space
-        _mempages_ptr = (char *)mmap(NULL, LogEntry::LogEntrySize * MemoryLog::LogEntryPerFile,
+        _mempages_ptr = (char *)mmap(NULL, LogEntry::LogEntrySize *_dirtiedPagesCount,
                                      PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, _mempages_offset);
 
-    }
-
-    /* Map a anonymous memory region for logging */
-    void OpenRamLog(void) {
     }
 
     /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
@@ -247,13 +256,13 @@ public:
         _mempages_offset = 0;
 
         // Adjust the file size
-        if ( ftruncate(_mempages_fd, LogEntry::LogEntrySize * MemoryLog::LogEntryPerFile) ) {
+        if ( ftruncate(_mempages_fd, _mempages_filesize) ) {
             fprintf(stderr, "Error truncating memory log file");
             abort();
         }
 
         // Map the temp file to process memory space
-        _mempages_ptr = (char *)mmap(NULL, LogEntry::LogEntrySize * MemoryLog::LogEntryPerFile,
+        _mempages_ptr = (char *)mmap(NULL, _mempages_filesize,
                                      PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, _mempages_offset);
 //      printf("New log: %s\n", _mempages_filename);
     }
@@ -283,13 +292,14 @@ public:
         _mempages_offset += LogDefines::PageSize;
 
         if ( _mempages_offset >= MapSizeOfLog ) {
-            lprintf("Memory mapped file %s is full, reset mempage offset (%lu) to 0\n", _mempages_filename, _mempages_offset);
+            fprintf(stderr, "Memory mapped file %s is full, reset mempage offset (%lu) to 0\n", _mempages_filename, _mempages_offset);
+            abort();
 
             // Flush out old log
-            SyncMemoryLog();
+//          SyncMemoryLog();
 
             // Create a new log
-            OpenMemoryLog();
+//          OpenMemoryLog();
         }
 
 //      printf("Append log at file %s for addr %p page %lu: 0x%08lx\n", _mempages_filename, addr, _logentry_count, newLE.addr);
@@ -323,7 +333,7 @@ public:
 //          lprintf("Removing memory log %s\n", _mempages_filename);
 //          lprintf("Removing memory log %s\n", _mempages_filename);
             close(_mempages_fd);
-            unlink(_mempages_filename);
+//          unlink(_mempages_filename);
         }
     }
 
@@ -342,6 +352,49 @@ public:
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
             abort();
+        }
+        _mempages_file_count++; 
+    }
+    
+    void WriteEOLDiskLog() {
+
+    }
+
+    void WriteEOLDramTmpfsLog(){
+        sprintf(_eol_filename, "/mnt/tmpfs/MemLogDRAM_EOL_%d_%d_XXXXXXX", threadID, _mempages_file_count);
+        _eol_fd = mkstemp(_eol_filename);
+
+        if ( _eol_fd == -1 ) {
+            fprintf(stderr, "%d: Error creating %s\n", getpid(), _eol_filename);
+            abort();
+        }
+
+        // Adjust the file size 
+        if ( ftruncate(_eol_fd, _eol_size) ) {
+            fprintf(stderr, "Error truncating memory log file");
+            abort();
+        }
+        _eol_ptr = (char *)mmap(NULL, _eol_size,
+                                     PROT_READ | PROT_WRITE, MAP_SHARED, _eol_fd, 0); 
+
+        close(_eol_fd);
+    }
+
+    void WriteEOLNvramTmpfsLog() {
+
+    }
+    
+    // Write an end of log flag to file.  It has to be ordered after the actual logs.
+    void WriteEndOfLog(void){
+        if ( log_dest == DISK ) {
+            WriteEOLDiskLog();
+        } else if ( log_dest == DRAM_TMPFS ) {
+            WriteEOLDramTmpfsLog();
+        } else if ( log_dest == NVRAM_TMPFS ) {
+            WriteEOLNvramTmpfsLog();
+        } else {
+            fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
+            abort();             
         }
     }
 
@@ -366,9 +419,9 @@ public:
     }
 
     /* Make sure the log is durable (visible by the restart-code after the program crashes) */
-    static inline void MakeDurable(volatile void *vaddr){
+    static inline void MakeDurable(volatile void *vaddr, unsigned long length){
         if ( _DurableMethod == MSYNC ) {
-            if( msyncPage(vaddr) != 0){
+            if( msync((void *)vaddr, length, MS_SYNC) != 0){
                 fprintf(stderr, "msync() failed, please handle error before moving on.\n");
                 abort();
             }
