@@ -29,6 +29,8 @@
 
 #include <signal.h>
 
+#include <execinfo.h>
+
 #if !defined(_WIN32)
 #include <sys/wait.h>
 #include <sys/types.h>
@@ -82,7 +84,7 @@ public:
     // Memory Log
     static nvmemory *_localNvmLog;
     static MemoryLog *_localMemoryLog;
-    static nvrecovery *_localNvRecovery; 
+    static nvrecovery *_localNvRecovery;
 
     static void initialize(void) {
         DEBUG("initializing xmemory");
@@ -115,18 +117,18 @@ public:
         _heapid = id % xdefines::NUM_HEAPS;
     }
 
-    static void setThreadVarMapLog(nvmemory *NvmLog){
+    static void setThreadVarMapLog(nvmemory *NvmLog) {
         _localNvmLog = NvmLog;
     }
 
     static void setThreadMemoryLog(MemoryLog *MemoryLog) {
         _localMemoryLog = MemoryLog;
     }
-    static void setThreadRecovery(nvrecovery *NvRecovery){
+    static void setThreadRecovery(nvrecovery *NvRecovery) {
         _localNvRecovery = NvRecovery;
     }
 
-    static inline void *nvmalloc(size_t sz, char *name){
+    static inline void* nvmalloc(size_t sz, char *name) {
         void *ptr = _pheap.malloc(_heapid, sz);
         if ( !ptr ) {
             lprintf("nvmalloc failed!\n");
@@ -134,9 +136,9 @@ public:
         }
 
 //      if ( MemoryLog::_logging_enabled ) {
-            lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvmLog->_varmap_filename);
-            _localNvmLog->AppendVarMapLog(ptr, sz, name);
-            _localMemoryLog->AppendMemoryLog(ptr);
+        lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvmLog->_varmap_filename);
+        _localNvmLog->AppendVarMapLog(ptr, sz, name);
+        _localMemoryLog->AppendMemoryLog(ptr);
 //      }
 
         return ptr;
@@ -234,17 +236,27 @@ public:
 #endif
 
 public:
-    
-    /* Signal-related functions for tracking page accesses. */
 
+    /* Signal-related functions for tracking page accesses. */
+    static void dumpStackTrace() {
+        void *array[20];
+        size_t size;
+
+        // get void*'s for all entries on the stack
+        size = backtrace(array, 20);
+
+        // print out all the frames to stderr
+        fprintf(stderr, "stack trace\n");
+        backtrace_symbols_fd(array, size, STDERR_FILENO);
+        exit(1); 
+    }
     /// @brief Signal handler to trap SEGVs.
     static void segvHandle(int signum, siginfo_t *siginfo, void *context) {
         void *addr = siginfo->si_addr; // address of access
 
         /* Record memory writes */
-        printf("%d: Page fault at: %p\n", getpid(), addr);
-//      _localMemoryLog->AppendMemoryLog(addr);
-
+        fprintf(stderr, "%d: Page fault at: %p\n", getpid(), addr);
+        INC_COUNTER(faults);
         // Check if this was a SEGV that we are supposed to trap.
         if ( siginfo->si_code == SEGV_ACCERR ) {
             xmemory::handleWrite(addr);

@@ -75,6 +75,8 @@ void finalize() {
     PRINT_COUNTER(dirtypage);
     PRINT_COUNTER(lazypage);
     PRINT_COUNTER(shorttrans);
+    PRINT_COUNTER(faults);
+    PRINT_COUNTER(transactions);
 }
 
 extern "C"
@@ -225,11 +227,11 @@ extern "C"
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
-        printf("%d: pthread locking\n", getpid()); 
+        printf("%d: pthread locking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_lock(mutex);
         }
-        printf("%d: pthread locked\n", getpid());
+        printf("%d: pthread locked %p\n", getpid(), mutex);
         return 0;
     }
 
@@ -239,11 +241,11 @@ extern "C"
     }
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
-        printf("%d: pthread unlocking\n", getpid()); 
+//      printf("%d: pthread unlocking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_unlock(mutex);
         }
-        printf("%d: pthread unlocked\n", getpid());
+//      printf("%d: pthread unlocked %p\n", getpid(), mutex);
         return 0;
     }
 
