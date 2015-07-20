@@ -64,6 +64,8 @@ struct runtime_stats {
 	COUNTER(dirtypage);
 	COUNTER(lazypage);
 	COUNTER(shorttrans);
+    COUNTER(faults);
+    COUNTER(transactions);
 };
 
 #else
