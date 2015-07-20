@@ -744,6 +744,7 @@ public:
         unsigned long *share;
         unsigned long *local;
         int mypid = getpid();
+        bool logged = false;
 
         INC_COUNTER(commit);
 
@@ -752,6 +753,12 @@ public:
         }
 
         _trans++;
+    
+        INC_COUNTER(transactions);
+
+        // Open a new log file if we have dirtied pages
+        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
+
         // Check all pages in the dirty list
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
             bool isModified = false;
@@ -770,11 +777,12 @@ public:
 
             TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
+//          printf("%d: dirtied page No %d, addr %p, dirtied by %d\n", getpid(), pageinfo->pageNo, pageinfo->pageStart, pageinfo->diriedBy);
+
             // WAL: Write out memory page log if the page has not been flushed yet
             if ( !pageinfo->isLogged ) {
-                printf("%d: committing page for addr %p, dirtied by %d, WAL logging\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
+//              printf("%d: committing page for addr %p, dirtied by %d, WAL logging\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
                 localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-                localMemoryLog->MakeDurable(pageinfo->pageStart);
                 pageinfo->isLogged = true;
             } else {
                 fprintf(stderr, "Error: relogging an already logged page\n");
@@ -900,6 +908,19 @@ public:
             }
 
         }
+
+        // Flush logs
+        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize);
+
+        // Close logs
+        localMemoryLog->CloseMemoryLog();
+
+        // Write an end of log
+        localMemoryLog->WriteEndOfLog();
+
+        // Flush eol before moving on
+        localMemoryLog->MakeDurable(localMemoryLog->_eol_ptr, localMemoryLog->_eol_size);
+        
     }
 
     /// @brief Update every page frame from the backing file if necessary.
