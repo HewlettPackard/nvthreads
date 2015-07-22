@@ -107,25 +107,19 @@ public:
             // Add myself to the token queue.
             determ::getInstance().registerMaster(_thread_index, pid);
             _fence_enabled = false;
-
-    
-//          if ( MemoryLog::_logging_enabled ) {
-                // Read confiuration for nvthreads
-//              MemoryLog::ReadConfig();
                             
-                // Initialize recovery interface
-                xthread::_localNvRecovery.initialize(true);
-                xmemory::setThreadRecovery(&xthread::_localNvRecovery);
-                
-                // Initialize memory log
-                xthread::_localMemoryLog.initialize();
-                xmemory::setThreadMemoryLog(&xthread::_localMemoryLog);
-
-                // Initialize variable log
-                xthread::_localNvmLog.initialize();
-                xmemory::setThreadVarMapLog(&xthread::_localNvmLog);
-//          }
+            // Initialize recovery interface
+            xthread::_localNvRecovery.initialize(true);
+            xmemory::setThreadRecovery(&xthread::_localNvRecovery);
             
+            // Initialize memory log
+            xthread::_localMemoryLog.initialize();
+            xmemory::setThreadMemoryLog(&xthread::_localMemoryLog);
+
+            // Initialize variable log
+            xthread::_localNvmLog.initialize();
+            xmemory::setThreadVarMapLog(&xthread::_localNvmLog);
+    
         } else {
             fprintf(stderr, "xrun reinitialized");
             ::abort();
@@ -262,12 +256,14 @@ public:
 
     /// @brief Spawn a thread.
     static inline void* spawn(threadFunction *fn, void *arg) {
+
+#if 0
         // If system is not protected, we should open protection.
         if ( !_protection_enabled ) {
             openMemoryProtection();
             atomicBegin(true);
         }
-
+#endif
         atomicEnd(false);
 
 #ifdef LAZY_COMMIT
@@ -348,6 +344,7 @@ public:
         // Start next transaction.
         atomicBegin(true);
 
+#if 0
         // Check whether we can close protection at all.
         // If current thread is the only alive thread, then close the protection.
         if ( determ::getInstance().isSingleAliveThread() ) {
@@ -356,6 +353,7 @@ public:
             // Do some cleanup for fence.
             closeFence();
         }
+#endif
     }
 
     /// @brief Do a pthread_cancel
@@ -520,7 +518,7 @@ public:
 //      printf("%d: waiting on fence\n", getpid());
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
-//      printf("%d: got token\n", getpid());
+//      printf("%d: Yeah I'm holding the token!\n", getpid());
     }
 
     // If those threads sending out condsignal or condbroadcast,
@@ -528,8 +526,9 @@ public:
     static void putToken(void) {
         // release the token and pass the token to next.
         //fprintf(stderr, "%d: putToken\n", _thread_index);
-//      printf("%d: put token\n", getpid());
+//      printf("%d: releasing token\n", getpid());
         determ::getInstance().putToken(_thread_index);
+//      printf("%d: released token\n", getpid());
         //fprintf(stderr, "%d: putToken\n", getpid());
     }
 
