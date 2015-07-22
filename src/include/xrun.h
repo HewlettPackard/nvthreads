@@ -82,7 +82,7 @@ public:
         DEBUG("initializing xrun");
 
         _initialized = false;
-        _protection_enabled = false;
+        _protection_enabled = true;
         _children_threads_count = 0;
         _lock_count = 0;
         _token_holding = false;
