@@ -99,6 +99,9 @@ public:
 
         // Initialize the internal heap.
         InternalHeap::getInstance().initialize();
+
+        // Open protection to record dirtied pages on the heap
+        _pheap.openProtection(_pheap.getend());
     }
 
     static void finalize(void) {

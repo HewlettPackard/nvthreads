@@ -214,6 +214,11 @@ public:
                                                      TotalPageNums * sizeof(struct pagechangeinfo),
                                                      PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 #endif
+        // Open protection to record dirtied pages on globals
+        if ( !_isHeap ) {
+            openProtection(NULL);
+        }
+
     }
 
     void initialize() {
@@ -223,7 +228,6 @@ public:
 
         // Clean the ownership.
         _dirtiedPagesList.clear();
-
     }
 
     void finalize() {
