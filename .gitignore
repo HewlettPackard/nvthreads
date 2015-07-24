@@ -1,3 +1,7 @@
+apps/kmeans/kmeans-mt-dt
+apps/kmeans/kmeans-mt-nvt
+apps/kmeans/kmeans-mt-pt
+apps/kmeans/datagen
 .nfs*
 *matrix_file_A.txt
 *matrix_file_B.txt
