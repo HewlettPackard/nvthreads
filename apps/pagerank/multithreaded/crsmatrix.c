@@ -138,7 +138,11 @@ extern mcrs_err mcrs_i_set(matrix_crs_i *m, size_t x, size_t y, i_t val, mcrs_se
 	
 	if(y >= m->sz_row) { // resize row_ptr
 		if(y >= m->allocd_row) {
-			m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * (m->allocd_row += MCRS_ALLOC_BLOCK));
+			while(y >= m->allocd_row) {
+				m->allocd_row += MCRS_ALLOC_BLOCK;
+			}
+			
+			m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
 		}
 		
 		ri_old = m->sz_row;
@@ -237,7 +241,11 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
 
         if(y >= m->sz_row) { // resize row_ptr
                 if(y >= m->allocd_row) {
-                        m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * (m->allocd_row += MCRS_ALLOC_BLOCK));
+			while(y >= m->allocd_row) {
+				m->allocd_row += MCRS_ALLOC_BLOCK;
+			}
+			
+                        m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
 			logd(LOGD_L, " row_ptr reallocd to %d\n", m->allocd_row);
                 }
 
@@ -433,10 +441,12 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
         if(length <= 0)
                 return MCRS_ERR_INVALID_FILE;
 
-        buffer = calloc(length + 1, sizeof(buffer));
+        buffer = calloc(length + 1, 1);//sizeof(buffer));
 
-        if(buffer == NULL)
+        if(buffer == NULL) {
+		logd_e("Unable to allocate buffer (length=%ld)\n", length);
                 return MCRS_ERR_UNABLE_TO_ALLOC;
+	}
 
         length = fread(buffer, 1, length, f);
         buffer[++length] = '\0';
@@ -468,6 +478,8 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
                 el1 = strtok(NULL, &col);
         }
 
+	free(buffer);
+	
         return MCRS_ERR_NONE;
 }
 
