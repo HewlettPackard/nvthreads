@@ -7,25 +7,42 @@ OBJS = main.o \
        utils.o \
        logger.o
 
-CC = gcc -ggdb -std=gnu99 -O3 -pthread -lrt
-EXEC = prr
+CC = gcc -ggdb -std=gnu99 -O3
+
+PTEXEC = prr-pt
+DTEXEC = prr-dt
+NVTEXEC = prr-nvt
+
 W_FLAGS = -Wall -Wextra -pedantic
 
 FLAGS = -I . $(W_FLAGS)
 
+LINKOPT = -dynamic
+
+NVTPATH = $(LINKOPT) ../../../src/libnvthread.so
+#DTPATH = -rdynamic -libdthread -ldl
+DTPATH = $(LINKOPT) ../../../third-parties/dthreads/lib/libdthread.so
+
+LIBS = -lrt -ldl
+
 %.o : %.c
 	$(CC) $(FLAGS) -c $<
 
-main: $(OBJS)
-	@echo "Building $(EXEC)"
-	$(CC) $(OBJS) $(FLAGS) -o $(EXEC)
+all: pt dt nvt
+	
 
-tags:
-	ctags -R .
-		
+pt: $(OBJS)
+	@echo "Building $(PTEXEC)"
+	$(CC) $(OBJS) -pthread $(FLAGS) $(LIBS) -o $(PTEXEC)
+
+dt: $(OBJS)
+	@echo "Building $(DTEXEC)"
+	$(CC) $(DTPATH) $(OBJS) $(FLAGS) $(LIBS)  -o $(DTEXEC)
+
+nvt: $(OBJS)
+	@echo "Building $(NVTEXEC)"
+	$(CC) $(NVTPATH) $(OBJS) $(FLAGS) $(LIBS) -o $(NVTEXEC)
+
 clean:
 	@echo "Cleaning all!"
-	\rm -rf tags *.o *.out *.txt *.~ $(EXEC) test
-
-test: test.c
-	gcc -Wall -Wextra -std=c99 test.c -o test
+	\rm -rf tags *.o *.out *.txt *.~ $(PTEXEC) $(DTEXEC) $(NVTEXEC)
