@@ -54,6 +54,7 @@ Inputs: http://parsec.cs.princeton.edu/download.htm
 -dedup
 	-Makefile:
 -ferret
+	required for 64-bit machine: http://www.imagemagick.org/script/advanced-unix-installation.php
 	-Makefile:
 -streamcluster
 	-Makefile:
