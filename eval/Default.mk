@@ -1,4 +1,4 @@
-NVTHREADS_HOME=../../..
+NVTHREADS_HOME=$(PWD)/../../../
 DTHREADS_HOME=$(NVTHREADS_HOME)/third-parties/dthreads
 
 #NCORES ?= 24
@@ -52,7 +52,12 @@ eval-pthread: $(TEST_NAME)-pthread
 
 DTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
 #DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
-DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread.so -ldl
+ifneq (, $(findstring -m32, $(CFLAGS)))
+	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread32.so -ldl
+else
+	DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthread.so -ldl
+endif
+
 
 DTHREAD_OBJS = $(addprefix obj/, $(addsuffix -dthread.o, $(TEST_FILES)))
 
@@ -80,7 +85,11 @@ eval-dthread: $(TEST_NAME)-dthread
 ############ nvthread builders ############
 NVTHREAD_CFLAGS = $(CFLAGS) -DNDEBUG
 #DTHREAD_LIBS += $(LIBS) -rdynamic $(DTHREADS_HOME)/src/libdthreads64.so -ldl
-NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/src/libnvthread.so -ldl
+ifneq (, $(findstring -m32, $(CFLAGS)))
+	NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/src/libnvthread32.so -ldl
+else
+	NVTHREAD_LIBS += $(LIBS) -rdynamic $(NVTHREADS_HOME)/src/libnvthread.so -ldl
+endif
 
 NVTHREAD_OBJS = $(addprefix obj/, $(addsuffix -nvthread.o, $(TEST_FILES)))
 
