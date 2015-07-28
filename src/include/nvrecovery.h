@@ -106,6 +106,7 @@ public:
         _logging_enabled = false;
 #endif
 
+        return;
         if ( !_logging_enabled ) {
             return;
         }
@@ -124,7 +125,7 @@ public:
             if (log_dest == DISK){
                 sprintf(log_path_prefix, "./");
             } else if (log_dest == DRAM_TMPFS){
-                sprintf(log_path_prefix, "/mnt/tmpfs/");
+                sprintf(log_path_prefix, "/mnt/ramdisk/");
             }
 
             if ( _main_thread ) {

@@ -70,8 +70,8 @@ public:
     getHeap()->stats();
   }
 
-  void openProtection(void *end) {
-    getHeap()->openProtection(end);
+  void openProtection(void *end, MemoryLog *localMemoryLog) {
+    getHeap()->openProtection(end, localMemoryLog);
   }
   void closeProtection(void) {
     getHeap()->closeProtection();

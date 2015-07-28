@@ -123,7 +123,7 @@ public:
 
     void OpenDramTmpfsVarMap(void){
         // Create a temp file for logging mapping between variable and address
-        sprintf(_varmap_filename, "/mnt/tmpfs/varmap_%d_XXXXXX", threadID);
+        sprintf(_varmap_filename, "/mnt/ramdisk/varmap_%d_XXXXXX", threadID);
         _varmap_fd = mkstemp(_varmap_filename);
         if ( _varmap_fd == -1 ) {
             fprintf(stderr, "%d: Error creating %s\n", getpid(), _varmap_filename);

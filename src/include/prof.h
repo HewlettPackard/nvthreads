@@ -38,8 +38,8 @@ typedef struct timeinfo {
 
 void start(struct timeinfo *ti);
 double stop(struct timeinfo * begin, struct timeinfo * end);
-static unsigned long elapse2ms(double elapsed){
-    return (unsigned long)elapsed;
+static unsigned long long elapse2ms(double elapsed){
+    return (unsigned long long)elapsed;
 }
 
 #define TIMER(x) size_t x##_total; timeinfo_t x##_start
@@ -51,21 +51,29 @@ static unsigned long elapse2ms(double elapsed){
 
 #define INC_COUNTER(x) global_data->stats.x##_count++
 #define DEC_COUNTER(x) global_data->stats.x##_count--
-#define PRINT_COUNTER(x) fprintf(stderr, " " #x " count: %lu\n", global_data->stats.x##_count);
+#define ADD_COUNTER(x, y) global_data->stats.x##_count += y
+#define PRINT_COUNTER(x) fprintf(stderr, " " #x " count: %lu\n", global_data->stats.x##_count)
+#define PRINT_LOG_COUNTER(x) fprintf(stderr, " logging: %lf ms\n", (double)(global_data->stats.x##_count * 1000) / CLOCKS_PER_SEC)
+#define PRINT_LOGGER_TIMER(x) fprintf(stderr, " " #x " time: %.4fms\n", (double)global_data->stats.x##_total)
 
 struct runtime_stats {
 	//size_t alloc_count;
 	//size_t cleanup_size;
 	TIMER(serial);
+    TIMER(logging);
+    COUNTER(logtimer);  // * 1000 / CLOCKS_PER_SEC
 	COUNTER(commit);
 	COUNTER(twinpage);
 	COUNTER(suspectpage);
 	COUNTER(slowpage);
-	COUNTER(dirtypage);
+	COUNTER(dirtypage_modified);
+    COUNTER(dirtypage_owned);
 	COUNTER(lazypage);
 	COUNTER(shorttrans);
     COUNTER(faults);
     COUNTER(transactions);
+    COUNTER(dirtypage_inserted);
+    COUNTER(loggedpages);
 };
 
 #else
@@ -79,6 +87,10 @@ struct runtime_stats {};
 #define INC_COUNTER(x)
 #define DEC_COUNTER(x)
 #define PRINT_COUNTER(x)
+#define ADD_COUNTER(x, y) 
+#define PRINT_COUNTER(x) 
+#define PRINT_LOG_COUNTER(x) 
+#define PRINT_LOGGER_TIMER(x)
 
 #endif
 #endif

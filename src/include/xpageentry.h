@@ -45,9 +45,10 @@
  * for one process only, memory can be allocated from private heap.
  */
 class xpageentry {
-	enum {
-		PAGE_ENTRY_NUM = 800000
-	};
+//  enum {
+//      PAGE_ENTRY_NUM = 800000
+//  };
+    unsigned long long PAGE_ENTRY_NUM;
 public:
 	xpageentry() {
 		_start = NULL;
@@ -67,6 +68,7 @@ public:
 		int i = 0;
 		unsigned long pagestart;
 
+        PAGE_ENTRY_NUM = 0xffffff;
 		// We don't need to allocate all pages, only the difference between newnum and oldnum.
 		start = mmap(NULL, PAGE_ENTRY_NUM * sizeof(xpageinfo), PROT_READ
 				| PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -91,23 +93,30 @@ public:
 		} else {
 			// There is no enough entry now, re-allocate new entries now.
 			fprintf(stderr,
-					"NO enough page entry, now _cur %x, _total %x!!!\n", _cur,
+					"NO enough page entry, now _cur %llux, _total %llux!!!\n", _cur,
 					_total);
 			::abort();
 		}
 		return entry;
 	}
 
-	void cleanup(void) {
+    void cleanup(void) {
 		_cur = 0;
 	}
 
+    unsigned long long getCur(void) {
+        return _cur;
+    }
+
+    unsigned long long getPAGE_ENTRY_NUM(void){
+        return PAGE_ENTRY_NUM;
+    }
 private:
 	// How many entries in total.
-	int _total;
+    unsigned long long _total;
 
 	// Current index of entry that need to be allocated.
-	int _cur;
+	unsigned long long _cur;
 
 	struct xpageinfo * _start;
 };
