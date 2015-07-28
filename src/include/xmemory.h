@@ -100,8 +100,8 @@ public:
         // Initialize the internal heap.
         InternalHeap::getInstance().initialize();
 
-        // Open protection to record dirtied pages on the heap
-        _pheap.openProtection(_pheap.getend());
+        // Open protection to record dirtied pages on the heap (this cause bug!)       
+//      printf("initialized xmemory\n");
     }
 
     static void finalize(void) {
@@ -175,14 +175,17 @@ public:
 
     static void openProtection(void) {
         DEBUG("%d: open protection\n", getpid());
-        _globals.openProtection(NULL);
-        _pheap.openProtection(_pheap.getend());
+//      printf("opening protection\n");
+        _globals.openProtection(NULL, _localMemoryLog);
+        _pheap.openProtection(_pheap.getend(), _localMemoryLog);
+//      printf("opened protection\n");
     }
 
     static void closeProtection(void) {
         DEBUG("%d: close protection\n", getpid());
         _globals.closeProtection();
         _pheap.closeProtection();
+//      printf("closed protection\n");
     }
 
     static inline void begin(bool cleanup) {
@@ -258,8 +261,7 @@ public:
         void *addr = siginfo->si_addr; // address of access
 
         /* Record memory writes */
-        fprintf(stderr, "%d: Page fault at: %p\n", getpid(), addr);
-        INC_COUNTER(faults);
+//      fprintf(stderr, "%d: Page fault at: %p\n", getpid(), addr);
         // Check if this was a SEGV that we are supposed to trap.
         if ( siginfo->si_code == SEGV_ACCERR ) {
             xmemory::handleWrite(addr);
