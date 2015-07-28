@@ -193,7 +193,7 @@ int main(int argc, char** argv)
 	
 	if(argc != P_MIN)
         {
-                logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads(ignored)> [<outputfile>]\n");
+                logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads> <n_lines> [<outputfile>]\n");
                 return 1;
         }
 
