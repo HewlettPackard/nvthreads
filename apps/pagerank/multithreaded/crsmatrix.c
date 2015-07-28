@@ -375,24 +375,6 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 	
 	mcrs_err e;
 	
-	/*char *buffer = 0;
-	long length = 0;
-
-	fseek(f, 0, SEEK_END);
-	length = ftell(f);
-	rewind(f);
-	
-	if(length <= 0)
-		return MCRS_ERR_INVALID_FILE;
-	
-	buffer = calloc(length + 1, sizeof(buffer));
-	
-	if(buffer == NULL)
-		return MCRS_ERR_UNABLE_TO_ALLOC;
-	
-	length = fread(buffer, 1, length, f);
-	buffer[++length] = '\0';*/
-	
 	char *line;
 	size_t *n;
 	ssize_t sz;
@@ -402,12 +384,6 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 	int i1 = 0;
 	int i2 = 0;
 	
-	//el1 = strtok(buffer, &col);
-
-	//if(el1 == NULL)
-	//	return MCRS_ERR_INVALID_FILE;
-	
-	//while(el1) {
 	while((sz = getline(line, n, f)) != -1) {
 		el1 = strtok(line, &col);
 		el2 = strtok(NULL, &row);
@@ -422,8 +398,6 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 			logd_e(" An error occured while setting i1(row)=%d i2(col)=%d: %d\n", i1, i2, e);
 			return e;
 		}
-	
-		//el1 = strtok(NULL, &col);
 	}
 
 	return MCRS_ERR_NONE;
@@ -431,6 +405,52 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 
 extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, const char row) {
 	FILE *f = fopen(path, "rb");
+
+        if(!f) {
+                return MCRS_ERR_UNABLE_TO_OPEN_FILE;
+	}
+
+        mcrs_err e;
+
+        char *line = malloc(sizeof(char) * 200);
+        size_t *n;
+        ssize_t sz;
+
+        char *el1 = 0;
+        char *el2 = 0;
+        int i1 = 0;
+        int i2 = 0;
+
+	size_t count = 0;
+
+        //while((sz = getline(&line, n, f)) != -1) {
+	while(fgets(line, 200, f) != NULL) {
+                el1 = strtok(line, &col);
+                el2 = strtok(NULL, &row);
+
+                if(el2 == NULL)
+                        return MCRS_ERR_INVALID_FILE;
+
+                i1 = atof(el1);
+                i2 = atof(el2);
+
+                if((e = mcrs_f_set(m, i2, i1, 1, MCRS_ADD)) != MCRS_ERR_NONE) {
+                        logd_e(" An error occured while setting i1(row)=%d i2(col)=%d: %d\n", i1, i2, e);
+                        return e;
+                }
+		
+		count++;
+        }
+
+	if(count > 0) {
+		free(line);
+	        return MCRS_ERR_NONE;
+	}
+	else {
+		return MCRS_ERR_INVALID_FILE;
+	}
+	
+	/*FILE *f = fopen(path, "rb");
 
         if(!f)
                 return MCRS_ERR_UNABLE_TO_OPEN_FILE;
@@ -486,7 +506,7 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
 
 	free(buffer);
 	
-        return MCRS_ERR_NONE;
+        return MCRS_ERR_NONE;*/
 }
 
 //extern i_t mcrs_i_get(

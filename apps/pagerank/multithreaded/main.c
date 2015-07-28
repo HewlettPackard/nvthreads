@@ -52,7 +52,6 @@ const int P_FOUT = 5;
 
 int main(int argc, char** argv)
 {
-	printf("%d\n", MCRS_ERR_NO_SEQ_ACCESS);
 	mcrs_err e;
 	
 	logd_set_level(LOGD_H);
