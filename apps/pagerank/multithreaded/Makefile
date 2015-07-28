@@ -19,9 +19,9 @@ FLAGS = -I . $(W_FLAGS)
 
 LINKOPT = -dynamic
 
-NVTPATH = $(LINKOPT) ../../../src/libnvthread.so
+NVTPATH = $(LINKOPT) $(PWD)/../../../src/libnvthread.so
 #DTPATH = -rdynamic -libdthread -ldl
-DTPATH = $(LINKOPT) ../../../third-parties/dthreads/lib/libdthread.so
+DTPATH = $(LINKOPT) $(PWD)/../../../third-parties/dthreads/src/libdthread.so
 
 LIBS = -lrt -ldl
 
