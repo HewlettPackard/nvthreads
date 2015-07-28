@@ -19,17 +19,17 @@ extern mcrs_err mcrs_i_init(matrix_crs_i *m, i_t empty) {
 		return MCRS_ERR_UNABLE_TO_ALLOC;
 }
 
-extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty) {
+extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t init_val_sz) {
 	m->allocd_row = 0;
-	m->allocd_col = 0;
+	m->allocd_col = init_val_sz;
 	m->empty = empty;
 	m->n_row = 0;
 	m->n_col = 0;
 	m->sz_row = 0;
 	m->sz_col = 0;
 	
-	m->values = malloc(sizeof m->values);
-	m->col_ind = malloc(sizeof m->col_ind);
+	m->values = malloc(sizeof(m->values) * init_val_sz);
+	m->col_ind = malloc(sizeof(m->col_ind) * init_val_sz);
 	m->row_ptr = malloc(sizeof m->row_ptr);
 	
 	if(m->values && m->col_ind && m->row_ptr)
@@ -246,7 +246,7 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
 			}
 			
                         m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
-			logd(LOGD_L, " row_ptr reallocd to %d\n", m->allocd_row);
+			logd(LOGD_H, " row_ptr reallocd to %d\n", m->allocd_row);
                 }
 
                 ri_old = m->sz_row;
@@ -296,7 +296,7 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
                         m->col_ind = realloc(m->col_ind, sizeof(m->col_ind) * (m->allocd_col += MCRS_ALLOC_BLOCK));
                         m->values = realloc(m->values, sizeof(m->values) * (m->allocd_col));
 			
-			logd(LOGD_L, " col_ind, values reallocd to %d\n", m->allocd_col);
+			logd(LOGD_H, " col_ind, values reallocd to %d\n", m->allocd_col);
                 }
 
                 if(m->col_ind == NULL) {
@@ -375,7 +375,7 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 	
 	mcrs_err e;
 	
-	char *buffer = 0;
+	/*char *buffer = 0;
 	long length = 0;
 
 	fseek(f, 0, SEEK_END);
@@ -391,19 +391,25 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 		return MCRS_ERR_UNABLE_TO_ALLOC;
 	
 	length = fread(buffer, 1, length, f);
-	buffer[++length] = '\0';
+	buffer[++length] = '\0';*/
+	
+	char *line;
+	size_t *n;
+	ssize_t sz;
 	
 	char *el1 = 0;
 	char *el2 = 0;
 	int i1 = 0;
 	int i2 = 0;
 	
-	el1 = strtok(buffer, &col);
+	//el1 = strtok(buffer, &col);
 
-	if(el1 == NULL)
-		return MCRS_ERR_INVALID_FILE;
+	//if(el1 == NULL)
+	//	return MCRS_ERR_INVALID_FILE;
 	
-	while(el1) {
+	//while(el1) {
+	while((sz = getline(line, n, f)) != -1) {
+		el1 = strtok(line, &col);
 		el2 = strtok(NULL, &row);
 		
 		if(el2 == NULL)
@@ -417,7 +423,7 @@ extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, c
 			return e;
 		}
 	
-		el1 = strtok(NULL, &col);
+		//el1 = strtok(NULL, &col);
 	}
 
 	return MCRS_ERR_NONE;

@@ -33,15 +33,15 @@ all: pt dt nvt
 
 pt: $(OBJS)
 	@echo "Building $(PTEXEC)"
-	$(CC) $(OBJS) -pthread $(FLAGS) $(LIBS) -o $(PTEXEC)
+	$(CC) $(OBJS) $(FLAGS) $(LIBS) -lpthread -o $(PTEXEC)
 
 dt: $(OBJS)
 	@echo "Building $(DTEXEC)"
-	$(CC) $(DTPATH) $(OBJS) $(FLAGS) $(LIBS)  -o $(DTEXEC)
+	$(CC) $(OBJS) $(FLAGS) $(LIBS) $(DTPATH) -o $(DTEXEC)
 
 nvt: $(OBJS)
 	@echo "Building $(NVTEXEC)"
-	$(CC) $(NVTPATH) $(OBJS) $(FLAGS) $(LIBS) -o $(NVTEXEC)
+	$(CC) $(OBJS) $(FLAGS) $(LIBS) $(NVTPATH) -o $(NVTEXEC)
 
 clean:
 	@echo "Cleaning all!"

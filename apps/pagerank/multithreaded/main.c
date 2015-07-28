@@ -42,15 +42,17 @@ size_t g_n_threads;
 
 const double DAMPING_FACTOR = 0.1;
 
-const int P_MIN = 5;
+const int P_MIN = 6;
 
 const int P_FIN = 1;
 const int P_NIT = 2;
 const int P_NTHD = 3;
-const int P_FOUT = 4;
+const int P_INITNL = 4;
+const int P_FOUT = 5;
 
 int main(int argc, char** argv)
 {
+	printf("%d\n", MCRS_ERR_NO_SEQ_ACCESS);
 	mcrs_err e;
 	
 	logd_set_level(LOGD_H);
@@ -73,7 +75,7 @@ int main(int argc, char** argv)
 		logd(LOGD_L, "Testing file load with file '%s'...", argv[1]);
 		
 		matrix_crs_f *m = malloc(sizeof(matrix_crs_f));
-		mcrs_f_init(m, 0);
+		mcrs_f_init(m, 0, 0);
 	
 		if((e = mcrs_f_load(m, argv[1], ',', '\n')) != MCRS_ERR_NONE) {
 			logd_e("ERROR: %d\n", e);
@@ -199,6 +201,7 @@ int main(int argc, char** argv)
 	char *fin = argv[P_FIN];
         const int iterations = atoi(argv[P_NIT]);
         size_t n_threads = atoi(argv[P_NTHD]);
+	size_t n_vals = atoi(argv[P_INITNL]);
 
         int save_res = 0;
         char *fout;
@@ -218,11 +221,11 @@ int main(int argc, char** argv)
 	l_time_t time;
 
 	// get initial time
-	logd(LOGD_H, "Start loading adj. matrix from file... ");
+	logd(LOGD_H, "Start loading adj. matrix from file... \n");
 	timer_start(tmr);
 
 	matrix_crs_f *adjm = malloc(sizeof(matrix_crs_f));
-	mcrs_f_init(adjm, 0.0);
+	mcrs_f_init(adjm, 0.0, n_vals);
 
 	//matrix_i *adjm = (matrix_i*)malloc(sizeof(matrix_i));
 	//matrix_i_init_set(adjm, 1, 0);
@@ -234,10 +237,12 @@ int main(int argc, char** argv)
 		return 2;
 	}
 
+	logd(LOGD_H, "(Done loading)\n");
+
 	// time matrix load
 	time = timer_total_ms(tmr);
 
-	logd(LOGD_H, " done in %ld ms.\n", time);
+	logd(LOGD_H, "finished in %ld ms.\n", time);
 	mcrs_f_display(LOGD_M, adjm);
 	logd(LOGD_M, "\n");
 
