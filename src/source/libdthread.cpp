@@ -48,7 +48,6 @@ runtime_data_t *global_data;
 static bool initialized = false;
 
 void initialize() {
-//__attribute__((constructor, weak))void initialize(void){
     DEBUG("intializing libdthread");
 
     init_real_functions();
@@ -67,16 +66,21 @@ void finalize() {
     initialized = false;
     xrun::finalize();
     fprintf(stderr, "\nStatistics information:\n");
+    PRINT_LOG_COUNTER(logtimer);
     PRINT_TIMER(serial);
+    PRINT_TIMER(logging);
     PRINT_COUNTER(commit);
+    PRINT_COUNTER(transactions);
+    PRINT_COUNTER(loggedpages);
+    PRINT_COUNTER(dirtypage_modified);
+    PRINT_COUNTER(dirtypage_owned);
+    PRINT_COUNTER(dirtypage_inserted);
+    PRINT_COUNTER(faults);
     PRINT_COUNTER(twinpage);
     PRINT_COUNTER(suspectpage);
     PRINT_COUNTER(slowpage);
-    PRINT_COUNTER(dirtypage);
     PRINT_COUNTER(lazypage);
     PRINT_COUNTER(shorttrans);
-    PRINT_COUNTER(faults);
-    PRINT_COUNTER(transactions);
 }
 
 extern "C"
@@ -176,7 +180,7 @@ extern "C"
     }
 
     void pthread_exit(void *value_ptr) {
-        printf("%d: pthread exits\n", getpid()); 
+//      printf("%d: pthread exits\n", getpid());
 
         if ( initialized ) {
             xrun::threadDeregister();
@@ -227,11 +231,11 @@ extern "C"
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
-        printf("%d: pthread locking %p\n", getpid(), mutex);
+//      printf("%d: pthread locking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_lock(mutex);
         }
-        printf("%d: pthread locked %p\n", getpid(), mutex);
+//      printf("%d: pthread locked %p\n", getpid(), mutex);
         return 0;
     }
 
@@ -282,17 +286,17 @@ extern "C"
         if ( initialized ) {
             *tid = (pthread_t)xrun::spawn(fn, arg);
         }
-        printf("%d: pthread create done\n", getpid());
+//      printf("%d: pthread create done\n", getpid());
         return 0;
     }
 
     int pthread_join(pthread_t tid, void **val) {
         //assert(initialized);
-        printf("%d: pthread joining\n", getpid());
+//      printf("%d: pthread joining\n", getpid());
         if ( initialized ) {
             xrun::join((void *)tid, val);
         }
-        printf("%d: pthread join done\n", getpid());
+//      printf("%d: pthread join done\n", getpid());
         return 0;
     }
 
@@ -398,5 +402,4 @@ extern "C"
         return WRAP(mmap)(addr, length, prot, newflags, fd, offset);
     }
 #endif
-
 }
