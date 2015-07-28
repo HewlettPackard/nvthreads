@@ -214,11 +214,10 @@ public:
                                                      TotalPageNums * sizeof(struct pagechangeinfo),
                                                      PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 #endif
-        // Open protection to record dirtied pages on globals
+        // Protect globals
         if ( !_isHeap ) {
-            openProtection(NULL);
+//          printf("created globals!\n");
         }
-
     }
 
     void initialize() {
@@ -275,6 +274,13 @@ public:
         void *area;
         size_t offset = (intptr_t)start - (intptr_t)base();
 
+//      if ( _isHeap ) {
+//          printf("%d: removing protection for heap!\n", getpid());
+//      } else {
+//          printf("%d: removing protection for globals!\n", getpid());
+//      }
+//      printf("%d: start %p, size: %zu\n", getpid(), start, size);
+
         // Map to writable share area.
         area = mmap(start, size, PROT_READ | PROT_WRITE, MAP_SHARED
                     | MAP_FIXED, _backingFd, offset);
@@ -286,7 +292,13 @@ public:
         return (area);
     }
 
-    void openProtection(void *end) {
+    void openProtection(void *end, MemoryLog *localMemoryLog) {
+//      if ( _isHeap ) {
+//          printf("%d: protecting heap!\n", getpid());
+//      }
+//      else{
+//          printf("%d: protecting globals!\n", getpid());
+//      }
 #ifdef LAZY_COMMIT
         // We will set the used area as R/W, while those un-used area will be set to PROT_NONE.
         // For globals, all pages are set to SHARED in the beginning.
@@ -330,6 +342,19 @@ public:
         writeProtect(base(), size());
         _isProtected = true;
 #endif
+
+        
+        // Log memory heap and globals if we're the parent and the only threads before moving.
+        // This ensures all updates in the serial phases are logged.
+        /*
+        localMemoryLog->WriteLogBeforeProtection(base(), size(), _isHeap);
+        if ( _isHeap ) {
+            printf("Heap : base: %p, size: %zu, %lu bytes, %s\n", base(), size(), localMemoryLog->_mempages_filesize, localMemoryLog->_mempages_filename);
+        } else {
+            printf("Global : base: %p, size: %zu, %lu bytes, %s\n", base(), size(), localMemoryLog->_mempages_filesize, localMemoryLog->_mempages_filename);
+        }
+        */
+
         _trans = 0;
     }
 
@@ -434,6 +459,7 @@ public:
         unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + xdefines::PageSize * pageNo);
         struct xpageinfo *curr = NULL;
 
+
 #ifdef LAZY_COMMIT
         // Check the access type of this page.
         int accessType = _pageInfo[pageNo];
@@ -467,6 +493,10 @@ public:
         mprotectWrite(pageStart, pageNo);
 #endif
 
+        if ( xpageentry::getInstance().getCur() % 100000 == 0  && xpageentry::getInstance().getCur() > 0) {
+            printf("%d: cur: %llu\n", getpid(), xpageentry::getInstance().getCur());
+        }
+
         // Now one more user are using this page.
         xatomic::increment((unsigned long *)&_pageUsers[pageNo]);
 
@@ -481,6 +511,9 @@ public:
         curr->release = true;
 #endif
         curr->version = _persistentVersions[pageNo];
+
+        INC_COUNTER(faults);
+        INC_COUNTER(dirtypage_inserted);
 
         // Then add current page to dirty list.
         _dirtiedPagesList.insert(std::pair<int, void *>(pageNo, curr));
@@ -672,7 +705,7 @@ public:
 #ifdef GET_CHARACTERISTICS
         recordPageChanges(pageNo);
 #endif
-        INC_COUNTER(dirtypage);
+        INC_COUNTER(dirtypage_owned);
         INC_COUNTER(lazypage);
         // Commit its previous version.
         memcpy(share, addr, xdefines::PageSize);
@@ -759,9 +792,32 @@ public:
         _trans++;
     
         INC_COUNTER(transactions);
-
+        
         // Open a new log file if we have dirtied pages
+//      printf("-----%d-----\n", getpid());
+        clock_t start_time = clock(), diff;
+        START_TIMER(logging);
         localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
+        for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
+            pageinfo = (struct xpageinfo *)i->second;
+            localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+        }
+        // Write an end of log
+        localMemoryLog->WriteEndOfLog();
+
+        // Flush log
+        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
+
+        // Close log
+        localMemoryLog->CloseMemoryLog();
+
+        // Flush eol before moving on
+//      localMemoryLog->MakeDurable(localMemoryLog->_eol_ptr, localMemoryLog->_eol_size);
+
+        STOP_TIMER(logging); 
+
+        diff = clock() - start_time;;
+        ADD_COUNTER(logtimer, (double)diff);
 
         // Check all pages in the dirty list
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
@@ -781,18 +837,8 @@ public:
 
             TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
-//          printf("%d: dirtied page No %d, addr %p, dirtied by %d\n", getpid(), pageinfo->pageNo, pageinfo->pageStart, pageinfo->diriedBy);
-
-            // WAL: Write out memory page log if the page has not been flushed yet
-            if ( !pageinfo->isLogged ) {
-//              printf("%d: committing page for addr %p, dirtied by %d, WAL logging\n", getpid(), pageinfo->pageStart, pageinfo->diriedBy);
-                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-                pageinfo->isLogged = true;
-            } else {
-                fprintf(stderr, "Error: relogging an already logged page\n");
-                abort();
-            }
-
+//          printf("%d: commits local modification to shared mapping, xact %d, pageNo %d, pageAddr: %p\n", getpid(), _trans, pageNo,pageinfo->pageStart);
+        
 #ifdef LAZY_COMMIT
             // update is true before entering into the critical sections.
             // do the least upates if possible.
@@ -905,7 +951,7 @@ public:
                 // Now there is one less user on this page.
                 shareinfo->users--;
 
-                INC_COUNTER(dirtypage);
+                INC_COUNTER(dirtypage_modified);
 
                 // Update the version number.
                 _persistentVersions[pageNo]++;
@@ -913,18 +959,7 @@ public:
 
         }
 
-        // Flush logs
-        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize);
 
-        // Close logs
-        localMemoryLog->CloseMemoryLog();
-
-        // Write an end of log
-        localMemoryLog->WriteEndOfLog();
-
-        // Flush eol before moving on
-        localMemoryLog->MakeDurable(localMemoryLog->_eol_ptr, localMemoryLog->_eol_size);
-        
     }
 
     /// @brief Update every page frame from the backing file if necessary.

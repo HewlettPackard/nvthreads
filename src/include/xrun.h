@@ -82,7 +82,7 @@ public:
         DEBUG("initializing xrun");
 
         _initialized = false;
-        _protection_enabled = true;
+        _protection_enabled = false;
         _children_threads_count = 0;
         _lock_count = 0;
         _token_holding = false;
@@ -130,9 +130,10 @@ public:
     // When there is only one thread in the system, memory is not
     // protected to avoid the memory protection overhead.
     static void openMemoryProtection(void) {
+//      printf("%d: trying openMemoryProtection()\n", getpid());
         if ( _protection_enabled )
             return;
-
+//      printf("%d: done openMemoryProtection()\n", getpid());
         xmemory::openProtection();
         _protection_enabled = true;
     }
@@ -257,13 +258,11 @@ public:
     /// @brief Spawn a thread.
     static inline void* spawn(threadFunction *fn, void *arg) {
 
-#if 0
         // If system is not protected, we should open protection.
         if ( !_protection_enabled ) {
             openMemoryProtection();
             atomicBegin(true);
         }
-#endif
         atomicEnd(false);
 
 #ifdef LAZY_COMMIT
@@ -344,16 +343,14 @@ public:
         // Start next transaction.
         atomicBegin(true);
 
-#if 0
         // Check whether we can close protection at all.
         // If current thread is the only alive thread, then close the protection.
         if ( determ::getInstance().isSingleAliveThread() ) {
-            closeMemoryProtection();
+//          closeMemoryProtection();
 
             // Do some cleanup for fence.
             closeFence();
         }
-#endif
     }
 
     /// @brief Do a pthread_cancel
