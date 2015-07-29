@@ -9,36 +9,8 @@
 #include <crsmatrix.h>
 #include <crsmatrixop.h>
 #include <algorithm.h>
-#include <minunit.h>
 #include <utils.h>
-#include <tests.h>
 
-static char* all_tests()
-{
-	mu_run_test(test_compare_floats);
-
-	mu_run_test(test_vector_normalize);
-	mu_run_test(test_vector_copy);
-	mu_run_test(test_vector_sort);
-
-	mu_run_test(test_matrix_multiply);
-	mu_run_test(test_matrix_transpose);
-	mu_run_test(test_matrix_solve);
-
-	mu_run_test(test_matrix_multi);
-	mu_run_test(test_matrix_vector_multiply);
-	
-	mu_run_test(test_matrix_compress);
-
-	mu_run_test(test_gen_web_matrix);
-	mu_run_test(test_calculate_links);
-	mu_run_test(test_calculate_probability);
-	mu_run_test(test_full_algorithm);
-
-	return 0;
-}
-
-size_t g_n_threads;
 
 const double DAMPING_FACTOR = 0.1;
 
@@ -56,141 +28,6 @@ int main(int argc, char** argv)
 	
 	logd_set_level(LOGD_H);
 
-	char* result = all_tests();
-	if (result != 0)
-	{
-		logd(LOGD_L, "%s\n", result);
-	}
-	else
-	{
-		logd(LOGD_L, "ALL TESTS PASSED\n");
-	}
-	logd(LOGD_L, "Tests run: %d\n", tests_run);
-	
-	if(argc == 2) {
-		logd_set_level(LOGD_ALL);
-		
-		logd(LOGD_L, "TEST CRS-MATRIX\n");
-		logd(LOGD_L, "Testing file load with file '%s'...", argv[1]);
-		
-		matrix_crs_f *m = malloc(sizeof(matrix_crs_f));
-		mcrs_f_init(m, 0, 0);
-	
-		if((e = mcrs_f_load(m, argv[1], ',', '\n')) != MCRS_ERR_NONE) {
-			logd_e("ERROR: %d\n", e);
-			
-			return 1;
-		}
-		
-		mcrs_f_display(LOGD_L, m);
-				
-		logd(LOGD_L, " Done!\n");
-		logd(LOGD_L, " n_row=%d n_col=%d\n sz_row(row_ptr)=%d sz_col(col_ind,values)=%d\n allocd_row=%d allocd_col=%d\n\n", m->n_row, m->n_col, m->sz_row, m->sz_col, m->allocd_row, m->allocd_col);
-
-		mcrs_f_display(LOGD_L, m);
-
-		vector_i *linkv = malloc(sizeof(vector_i));
-		vector_i_init_set(linkv, m->n_row, 0);		
-		int empty;
-		
-		logd(LOGD_L, " Generating linkv...");
-		
-		gen_link_vector_crs(linkv, &empty, m);
-		
-		logd(LOGD_L, " Done!\n");
-		
-		vector_i_display(LOGD_L, linkv);
-	
-		logd(LOGD_L, " Generating Google-matrix...");
-		
-		gen_google_matrix_crs(m, linkv, 0.1);
-		
-		logd(LOGD_L, " Done!\n");
-		
-		mcrs_f_display(LOGD_L, m);
-
-		logd(LOGD_L, " Converting to matrix...");
-		
-		matrix_f *gm = malloc(sizeof(matrix_f));
-		matrix_f_init_set(gm, m->n_row, 0.0);
-		
-		matrix_f_from_mcrs_f(gm, m);
-		
-		logd(LOGD_L, " Done!\n");
-		
-		matrix_f_display(LOGD_L, gm);		
-		
-		logd(LOGD_L, " Testing multiplication...");
-		
-		vector_f *v1 = malloc(sizeof(vector_f));
-		vector_f *v2 = malloc(sizeof(vector_f));
-		vector_f_init_set(v1, m->n_row, 1.0 / m->n_row);
-		vector_f_init_set(v2, m->n_row, 0.0);
-		
-		//vector_f *tmp;
-		
-		if((e = mcrs_gmatrix_mult_vector_f(v2, m, v1)) != MCRS_ERR_NONE) {
-			logd_e("ERROR: %d\n", e);
-			return 1;
-		}
-		
-		logd(LOGD_L, " Done!\n");
-		
-		logd(LOGD_L, "INIT-VECTOR\n");
-		vector_f_display(LOGD_L, v1);
-		
-		logd(LOGD_L, "\n");
-		
-		logd(LOGD_L, "RESULT-VECTOR\n");
-		vector_f_display(LOGD_L, v2);
-	
-		logd(LOGD_L, " Saving result...");
-		
-		vector_f_save("result", v2);
-	
-		return 0;
-	}
-	
-	if(argc == 3) {
-		logd(LOGD_L, "TEST STD-MATRIX\n");
-		logd(LOGD_L, " Loading file... %s...\n", argv[1]);
-		
-		matrix_i *adjm = malloc(sizeof(matrix_i));
-		matrix_i_init_set(adjm, 1, 0);
-		
-		matrix_i_load(argv[1], adjm, ',', '\n');
-		
-		logd(LOGD_L, " Done!\n");
-		
-		matrix_i_display(LOGD_L, adjm);
-		
-		logd(LOGD_L, " Generating linkv...");
-		
-		vector_i *linkv = malloc(sizeof(vector_i));
-		vector_i_init_set(linkv, adjm->size, 0);
-		
-		gen_link_vector(linkv, adjm);
-		
-		logd(LOGD_L, " Done!\n");
-		
-		vector_i_display(LOGD_L, linkv);
-		
-		logd(LOGD_L, " Generating Google-matrix...\n");
-		
-		matrix_f *gm = malloc(sizeof(matrix_f));
-		matrix_f_init_set(gm, adjm->size, 0.0);
-	
-		gen_google_matrix_i(gm, adjm, linkv, 0.1);
-	
-		matrix_f_transpose(gm);
-			
-		logd(LOGD_L, " Done!\n");
-		
-		matrix_f_display(LOGD_L, gm);
-		
-		return 0;
-	}
-	
 	if(argc != P_MIN)
         {
                 logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads> <n_lines> [<outputfile>]\n");
@@ -211,7 +48,6 @@ int main(int argc, char** argv)
 
         assert(n_threads > 0);
 
-        g_n_threads = n_threads;
         srand(time(0));
 
 	// allocate one timer

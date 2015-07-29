@@ -1,3 +1,4 @@
+massif.out.*
 apps/pagerank/multithreaded/dthreads*
 apps/pagerank/multithreaded/prr-pt
 apps/pagerank/multithreaded/prr-dt

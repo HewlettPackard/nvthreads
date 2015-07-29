@@ -65,8 +65,6 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		data[i].rstart = assigned;
 		data[i].rend = (assigned + length);
 		
-		//printf(" THD %d start=%d end=%d\n", i, assigned, assigned + length);
-		
 		assigned += length;
 	}
 	
@@ -90,8 +88,6 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 			}
 		}
 		
-		//printf(" THDs SPWND\n");
-	
 		mcrs_err* e;
 		
 		for(i = 0; i < n_threads; i++) {
@@ -114,8 +110,12 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		if((*e) != MCRS_ERR_NONE) {
 			return (*e);
 		}
+	}
+	
+	for(i = 0; i < n_threads; i++) {
+                vector_f_free(data[i].loc);
 		
-		//printf(" THDs JOINED\n");
+		free(data[i].loc);
 	}
 	
 	return MCRS_ERR_NONE;
