@@ -4,31 +4,24 @@ pthread_mutex_t m_merge;
 pthread_mutex_t m_log;
 
 void *mcrs_gmatrix_worker(void* param) {
-        thd_data_t* data = (thd_data_t*)param;
+	thd_data_t* data = (thd_data_t*)param;
 
-	//printf(" THD %d started!\n", data->thread_id);
+	data->e = mcrs_gmatrix_mult_vector_f_rng(data->loc, data->m, data->v, data->rstart, data->rend, 1);
 
-        printf("allocating sz %zu\n", sizeof(mcrs_err));
-        mcrs_err *e = malloc(sizeof(mcrs_err));
-	
-	(*e) = mcrs_gmatrix_mult_vector_f_rng(data->loc, data->m, data->v, data->rstart, data->rend, 1);
-
-	//printf(" THD %d return err %d\n", data->thread_id, (*e));
-	
 	pthread_mutex_lock(&m_log);
 	logd(data->lvl, "%d:%lu ", data->thread_id, timer_total_ms(data->tmr));
 	pthread_mutex_unlock(&m_log);
 	
 	size_t i;
-	
+
 	pthread_mutex_lock(&m_merge);
 	for(i = 0; i < data->m->sz_row; i++) {
 		data->out->elements[i] += data->loc->elements[i];
 		data->loc->elements[i] = 0.0;
 	}
 	pthread_mutex_unlock(&m_merge);
-
-        pthread_exit((void*)e);
+	
+	pthread_exit(NULL);
 }
 
 extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, const matrix_crs_f *m, const vector_f *v, const size_t n_threads, const size_t n_iterations) {
@@ -49,13 +42,15 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 	
 	for(i = 0; i < n_threads; i++) {
 		data[i].thread_id = i;
+		data[i].e = MCRS_ERR_NONE;
 		
 		data[i].lvl = lvl;
 		data[i].tmr = tmr;
 		
 		data[i].out = out;
-        printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
-        data[i].loc = malloc(sizeof(vector_f) * sz);
+        	
+		printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
+	        data[i].loc = malloc(sizeof(vector_f) * sz);
 		
 		vector_f_init(data[i].loc, sz);
 		
@@ -90,10 +85,10 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 			}
 		}
 		
-		mcrs_err* e;
+		//mcrs_err* e;
 		
 		for(i = 0; i < n_threads; i++) {
-			if(pthread_join(threads[i], (void**)&e)) {
+			if(pthread_join(threads[i], NULL)) {
 				logd_e("ERR JOINING THREADS\n");
 				return MCRS_ERR_FAILED_JOINING_THREADS;
 			}
@@ -109,9 +104,9 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		
 		logd(lvl, "%d\t%ld\tms\n", n, time);
 		
-		if((*e) != MCRS_ERR_NONE) {
-			return (*e);
-		}
+		//if((*e) != MCRS_ERR_NONE) {
+		//	return (*e);
+		//}
 	}
 	
 	for(i = 0; i < n_threads; i++) {
@@ -155,7 +150,7 @@ mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, co
 		ri_n = ((i + 1) < sz ? m->row_ptr[i + 1] : m->sz_col);
 
 		if(i == bl_nxt) {
-			logd(LOGD_L, " %d\t of %d\tdone...\n", bl_nxt, sz);
+			logd(LOGD_ALL, " TX:%d\t of %d\tdone...\n", bl_nxt, sz);
 			bl_nxt += bl;
 		}
 
