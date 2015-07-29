@@ -106,8 +106,8 @@ public:
     }
 
     if (*_remaining < sz) {
-      fprintf(stderr, "OUTOFMEMORY: remaining[%ld], sz[%ld] thread[%d], try to change PROTECTEDHEAP_SIZE in xdefine.h to a bigger value\n", *_remaining, sz, (int) pthread_self());
-      fprintf(stderr, "Try to change PROTECTEDHEAP_SIZE in xdefine.h to a bigger value\n");
+      fprintf(stderr, "%d: OUTOFMEMORY: remaining[%ld], sz[%ld] thread[%d], try to change PROTECTEDHEAP_SIZE in xdefine.h to a bigger value\n", getpid(), *_remaining, sz, (int) pthread_self());
+      fprintf(stderr, "%d: Try to change PROTECTEDHEAP_SIZE in xdefine.h to a bigger value\n", getpid());
       exit(-1);
     }
     void * p = (void *)*_position;
@@ -115,6 +115,8 @@ public:
     // Increment the bump pointer and drop the amount of memory.
     *_remaining -= sz;
     *_position += sz;
+
+    printf("%d: allocated %zu bytes, remaining: %zu bytes\n", getpid(), sz, *_remaining);
 
     void * newptr = (void*)*_position;
     //__asm__ __volatile__ ("mfence": : :"memory");
