@@ -25,6 +25,7 @@ ptests:
 dtests:
 	$(CC) $(CFLAGS)  test1.c -o dtest1.o -rdynamic $(DLIB)
 	$(CC) $(CFLAGS)  test2.c -o dtest2.o -rdynamic $(DLIB)
+	$(CC) $(CFLAGS)  test3.c -o dtest3.o -rdynamic $(DLIB)
 
 forloop:
 	$(CC) $(CFLAGS) $(NVINCLUDE_DIRS) $(NVSRC) forloop.c -o forloop.o -rdynamic $(NVLIB)
@@ -32,6 +33,7 @@ forloop:
 nvtests:
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test1.c -o nvtest1.o -rdynamic $(NVLIB)
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test2.c -o nvtest2.o -rdynamic $(NVLIB)
+	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test3.c -o nvtest3.o -rdynamic $(NVLIB)
 
 recover_int:
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) recover_int.c -o recover_int.o -rdynamic $(NVLIB)
