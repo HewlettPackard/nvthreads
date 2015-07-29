@@ -330,43 +330,6 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
         return MCRS_ERR_NONE;
 }
 
-extern mcrs_err mcrs_i_from_matrix_i(matrix_crs_i *dst, const matrix_i *src) {
-	mcrs_err e;
-	
-	for(size_t i = 0; i < src->size; i++)
-		for(size_t j = 0; j < src->size; j++)
-			if((e = mcrs_i_set(dst, i, j, src->elements[i][j], MCRS_SET)) != MCRS_ERR_NONE)
-				return e;
-				
-	return MCRS_ERR_NONE;
-}
-
-extern mcrs_err matrix_f_from_mcrs_i(matrix_f *dst, const matrix_crs_i *src) {
-	int sz = (src->n_col > src->n_row) ? src->n_col : src->n_row;
-	
-	matrix_f_init_set(dst, sz, (float)src->empty);
-	
-	int i, j;
-	for(i = 0; i < sz; i++)
-		for(j = 0; j < sz; j++)
-			dst->elements[i][j] = (float)mcrs_i_get(src, i, j);
-	
-	return MCRS_ERR_NONE;
-}
-
-extern mcrs_err matrix_f_from_mcrs_f(matrix_f *dst, const matrix_crs_f *src) {
-	int sz = (src->n_col > src->n_row) ? src->n_col : src->n_row;
-
-        matrix_f_init_set(dst, sz, (float)src->empty);
-
-        int i, j;
-        for(i = 0; i < sz; i++)
-                for(j = 0; j < sz; j++)
-                        dst->elements[i][j] = (float)mcrs_f_get(src, i, j);
-
-        return MCRS_ERR_NONE;
-}
-
 extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, const char row) {
 	FILE *f = fopen(path, "rb");
 	
@@ -442,71 +405,6 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
 		count++;
         }
 
-	if(count > 0) {
-		free(line);
-	        return MCRS_ERR_NONE;
-	}
-	else {
-		return MCRS_ERR_INVALID_FILE;
-	}
-	
-	/*FILE *f = fopen(path, "rb");
-
-        if(!f)
-                return MCRS_ERR_UNABLE_TO_OPEN_FILE;
-
-        mcrs_err e;
-
-        char *buffer = 0;
-        long length = 0;
-
-        fseek(f, 0, SEEK_END);
-        length = ftell(f);
-        rewind(f);
-
-        if(length <= 0)
-                return MCRS_ERR_INVALID_FILE;
-
-        buffer = calloc(length + 1, 1);//sizeof(buffer));
-
-        if(buffer == NULL) {
-		logd_e("Unable to allocate buffer (length=%ld)\n", length);
-                return MCRS_ERR_UNABLE_TO_ALLOC;
-	}
-
-        length = fread(buffer, 1, length, f);
-        buffer[++length] = '\0';
-
-        char *el1 = 0;
-        char *el2 = 0;
-        int i1 = 0;
-        int i2 = 0;
-
-        el1 = strtok(buffer, &col);
-
-        if(el1 == NULL)
-                return MCRS_ERR_INVALID_FILE;
-
-        while(el1) {
-                el2 = strtok(NULL, &row);
-
-                if(el2 == NULL)
-                        return MCRS_ERR_INVALID_FILE;
-
-                i1 = atof(el1);
-                i2 = atof(el2);
-
-                if((e = mcrs_f_set(m, i2, i1, 1.0, MCRS_ADD)) != MCRS_ERR_NONE) {
-                        logd_e(" An error occured while setting i1(row)=%d i2(col)=%d: %d\n", i1, i2, e);
-                        return e;
-                }
-
-                el1 = strtok(NULL, &col);
-        }
-
-	free(buffer);
-	
-        return MCRS_ERR_NONE;*/
+	free(line);
+	return MCRS_ERR_NONE;
 }
-
-//extern i_t mcrs_i_get(

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #include <types.h>
-#include <matrix.h>
+#include <logger.h>
 
 static const size_t MCRS_ALLOC_BLOCK = 1000000;
 
@@ -76,12 +76,6 @@ extern f_t mcrs_f_get(const matrix_crs_f *m, size_t x, size_t y);
 
 extern mcrs_err mcrs_i_set(matrix_crs_i *m, size_t x, size_t y, i_t val, mcrs_set_mode md);
 extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_set_mode md);
-
-extern mcrs_err mcrs_i_from_matrix_i(matrix_crs_i *dst, const matrix_i *src);//, size_t xoffs, size_t xlength, size_t yoffs, size_t ylength);
-//extern mcrs_err mcrs_f_from_matrix_f(matrix_crs_f *dst, const matrix_f *src, size_t xoffs, size_t xlength, size_t yoffs, size_t ylength);
-
-extern mcrs_err matrix_f_from_mcrs_i(matrix_f *dst, const matrix_crs_i *src);
-extern mcrs_err matrix_f_from_mcrs_f(matrix_f *dst, const matrix_crs_f *src);
 
 extern mcrs_err mcrs_i_load(matrix_crs_i *m, const char *path, const char col, const char row);
 extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, const char row);

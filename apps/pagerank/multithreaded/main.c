@@ -5,11 +5,8 @@
 
 #include <logger.h>
 #include <vector.h>
-#include <matrix.h>
 #include <crsmatrix.h>
-#include <crsmatrixop.h>
 #include <algorithm.h>
-#include <utils.h>
 
 const double DAMPING_FACTOR = 0.1;
 
@@ -78,8 +75,6 @@ int main(int argc, char** argv) {
 	time = timer_total_ms(tmr);
 
 	logd(LOGD_H, "finished in %ld ms.\n", time);
-	mcrs_f_display(LOGD_M, adjm);
-	logd(LOGD_M, "\n");
 
 	// reset timer
 	timer_start(tmr);
@@ -96,8 +91,6 @@ int main(int argc, char** argv) {
 	time = timer_total_ms(tmr);
 
 	logd(LOGD_H, "Link vector generated in %ld ms.\n", time);
-	vector_i_display(LOGD_M, linkv);
-	logd(LOGD_M, "\n");
 
 	// reset timer
 	timer_start(tmr);
@@ -113,8 +106,6 @@ int main(int argc, char** argv) {
 	logd(LOGD_H, "Google matrix generated in %ld ms.\n", time);
 	logd(LOGD_H, " n_row=%lu n_col=%lu sz_row=%lu sz_col=%lu empty=%lu\n", 
 		adjm->n_row, adjm->n_col, adjm->sz_row, adjm->sz_col, adjm->empty);
-	mcrs_f_display(LOGD_M, adjm);
-	logd(LOGD_M, "\n");
 
 	// reset timer
 	timer_start(tmr);
@@ -140,8 +131,6 @@ int main(int argc, char** argv) {
 	time = timer_total_ms(tmr);
 
 	logd(LOGD_H, "Initial result vector generated in %ld ms.\n", time);
-	vector_f_display(LOGD_M, init);
-	logd(LOGD_M, "\n");
 
     	printf("allocating %zu bytes\n", sizeof(vector_f)); 
 	
@@ -156,27 +145,13 @@ int main(int argc, char** argv) {
 
 	logd(LOGD_H, "Start multiplying...\n");
 
-	//for(int i = 0; i < iterations; i++) {
-		//matrix_f_multiply_vector_f(res, gm, init);
-		if((e = mcrs_gmatrix_mult_vector_f_mt(LOGD_H, res, adjm, init, n_threads, iterations)) != MCRS_ERR_NONE) {
-			logd_e("ERROR while multiplying (CODE %d). Aborting.\n", e);
-			return 4;
-		}
-	
-		//if((i + 1) % (iterations / ct) == 0 || i == 0) {	
-		//	logd(LOGD_M, "Result vector:\n", i + 1);
-		//	vector_f_display(LOGD_M, res);
-		//}
+	if((e = mcrs_gmatrix_mult_vector_f_mt(LOGD_H, res, adjm, init, n_threads, iterations)) != MCRS_ERR_NONE) {
+		logd_e("ERROR while multiplying (CODE %d). Aborting.\n", e);
+		return 4;
+	}
 
-		//vector_f_copy(init, res);
-	//	tmp = init;
-	//	init = res;
-	//	res = tmp;
-
-		//time = timer_lap(tmr);
-		time = timer_total_ms(tmr);
-		logd(LOGD_H, " Multiplying done in %ld ms\n", time);
-	//}
+	time = timer_total_ms(tmr);
+	logd(LOGD_H, " Multiplying done in %ld ms\n", time);
 
 	if(save_res) {
 		timer_start(tmr);

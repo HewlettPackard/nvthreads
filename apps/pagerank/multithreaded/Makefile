@@ -1,10 +1,7 @@
 OBJS = main.o \
        vector.o \
-       matrix.o \
        crsmatrix.o \
-       crsmatrixop.o \
        algorithm.o \
-       utils.o \
        logger.o
 
 DEBUG = 
