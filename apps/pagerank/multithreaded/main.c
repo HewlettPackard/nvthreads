@@ -13,6 +13,7 @@
 #include <utils.h>
 #include <tests.h>
 
+
 static char* all_tests()
 {
 	mu_run_test(test_compare_floats);
@@ -73,6 +74,7 @@ int main(int argc, char** argv)
 		logd(LOGD_L, "TEST CRS-MATRIX\n");
 		logd(LOGD_L, "Testing file load with file '%s'...", argv[1]);
 		
+        printf("allocating %zu bytes\n", sizeof(matrix_crs_f)); 
 		matrix_crs_f *m = malloc(sizeof(matrix_crs_f));
 		mcrs_f_init(m, 0, 0);
 	
@@ -89,6 +91,7 @@ int main(int argc, char** argv)
 
 		mcrs_f_display(LOGD_L, m);
 
+        printf("allocating %zu bytes\n", sizeof(vector_i)); 
 		vector_i *linkv = malloc(sizeof(vector_i));
 		vector_i_init_set(linkv, m->n_row, 0);		
 		int empty;
@@ -111,7 +114,8 @@ int main(int argc, char** argv)
 
 		logd(LOGD_L, " Converting to matrix...");
 		
-		matrix_f *gm = malloc(sizeof(matrix_f));
+        printf("allocating %zu bytes\n", sizeof(matrix_f));
+        matrix_f *gm = malloc(sizeof(matrix_f));
 		matrix_f_init_set(gm, m->n_row, 0.0);
 		
 		matrix_f_from_mcrs_f(gm, m);
@@ -122,8 +126,10 @@ int main(int argc, char** argv)
 		
 		logd(LOGD_L, " Testing multiplication...");
 		
-		vector_f *v1 = malloc(sizeof(vector_f));
-		vector_f *v2 = malloc(sizeof(vector_f));
+        printf("allocating %zu bytes\n", sizeof(vector_f));
+        vector_f *v1 = malloc(sizeof(vector_f));
+        printf("allocating %zu bytes\n", sizeof(vector_f));
+        vector_f *v2 = malloc(sizeof(vector_f));
 		vector_f_init_set(v1, m->n_row, 1.0 / m->n_row);
 		vector_f_init_set(v2, m->n_row, 0.0);
 		
@@ -155,6 +161,7 @@ int main(int argc, char** argv)
 		logd(LOGD_L, "TEST STD-MATRIX\n");
 		logd(LOGD_L, " Loading file... %s...\n", argv[1]);
 		
+        printf("allocating %zu bytes\n", sizeof(matrix_i)); 
 		matrix_i *adjm = malloc(sizeof(matrix_i));
 		matrix_i_init_set(adjm, 1, 0);
 		
@@ -166,6 +173,7 @@ int main(int argc, char** argv)
 		
 		logd(LOGD_L, " Generating linkv...");
 		
+        printf("allocating %zu bytes\n", sizeof(vector_i)); 
 		vector_i *linkv = malloc(sizeof(vector_i));
 		vector_i_init_set(linkv, adjm->size, 0);
 		
@@ -177,6 +185,7 @@ int main(int argc, char** argv)
 		
 		logd(LOGD_L, " Generating Google-matrix...\n");
 		
+        printf("allocating %zu bytes\n", sizeof(matrix_f)); 
 		matrix_f *gm = malloc(sizeof(matrix_f));
 		matrix_f_init_set(gm, adjm->size, 0.0);
 	
@@ -223,7 +232,8 @@ int main(int argc, char** argv)
 	logd(LOGD_H, "Start loading adj. matrix from file... \n");
 	timer_start(tmr);
 
-	matrix_crs_f *adjm = malloc(sizeof(matrix_crs_f));
+    printf("allocating %zu bytes\n", sizeof(matrix_crs_f)); 
+    matrix_crs_f *adjm = malloc(sizeof(matrix_crs_f));
 	mcrs_f_init(adjm, 0.0, n_vals);
 
 	//matrix_i *adjm = (matrix_i*)malloc(sizeof(matrix_i));
@@ -247,7 +257,7 @@ int main(int argc, char** argv)
 
 	// reset timer
 	timer_start(tmr);
-
+    printf("allocating %zu bytes\n", sizeof(vector_i));
 	vector_i *linkv = (vector_i*)malloc(sizeof(vector_i));
 	vector_i_init_set(linkv, adjm->n_row, 0);
 	int empty;
@@ -291,6 +301,7 @@ int main(int argc, char** argv)
 	// reset timer
 	timer_start(tmr);
 	
+    printf("allocating %zu bytes\n", sizeof(vector_f)); 
 	vector_f *init = malloc(sizeof(vector_f));
 	vector_f_init_set(init, adjm->n_row, 1.0 / adjm->n_row);
 	
@@ -303,6 +314,7 @@ int main(int argc, char** argv)
 	vector_f_display(LOGD_M, init);
 	logd(LOGD_M, "\n");
 
+    printf("allocating %zu bytes\n", sizeof(vector_f)); 
 	vector_f *res = (vector_f*)malloc(sizeof(vector_f));
 	vector_f_init_set(res, adjm->n_row, 0.0);
 

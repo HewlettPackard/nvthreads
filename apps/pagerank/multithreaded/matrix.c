@@ -10,13 +10,16 @@ extern void matrix_f_init_set(matrix_f* m, size_t size, float init)
 	assert(m != NULL);
 
 	m->size = size;
-	m->elements = (float**)malloc(sizeof(float*) * size);
+    printf("allocating %zu bytes\n", sizeof(float *) * size);
+    m->elements = (float **)malloc(sizeof(float *) * size);
 
 	assert(m->elements != NULL);
 
 	for (size_t i = 0; i < size; ++i)
 	{
-		m->elements[i] = malloc(sizeof(float) * size);
+        
+        printf("allocating %zu bytes\n", sizeof(float *) * size);
+        m->elements[i] = malloc(sizeof(float) * size);
 
 		for(size_t j = 0; j < size; j++) {
 			m->elements[i][j] = init;
@@ -33,13 +36,16 @@ extern void matrix_i_init_set(matrix_i *m, size_t size, int init)
 {
 	assert(m != NULL);
 
+    printf("allocating %zu bytes\n", sizeof(float *) * size); 
+
 	m->size = size;
 	m->elements = (int**)malloc(sizeof(int*) * size);
 	
 	assert(m->elements != NULL);
 
 	for(size_t i = 0; i < size; i++) {
-		m->elements[i] = malloc(sizeof(int) * size);
+        printf("allocating %zu bytes\n", sizeof(float *) * size);
+        m->elements[i] = malloc(sizeof(int) * size);
 		
 		for(size_t j = 0; j < size; j++) {
 			m->elements[i][j] = init;
@@ -140,7 +146,8 @@ extern int matrix_f_realloc(matrix_f *m, size_t newsize, float init)
 	}
 
 	for(size_t i = m->size; i < newsize; i++) {
-		m->elements[i] = malloc(sizeof(float) * newsize);
+        printf("allocating %zu bytes\n", sizeof(float *) * newsize);
+        m->elements[i] = malloc(sizeof(float) * newsize);
 
 		if(m->elements[i] == NULL)
 			return 3;
@@ -174,7 +181,8 @@ extern int matrix_i_realloc(matrix_i *m, size_t newsize, int init)
 	}
 	
 	for(size_t i = m->size; i < newsize; i++) {
-		m->elements[i] = malloc(sizeof(int) * newsize);
+        printf("allocating %zu bytes\n", sizeof(float *) * newsize);
+        m->elements[i] = malloc(sizeof(int) * newsize);
 		
 		if(m->elements[i] == NULL)
 			return 3;
