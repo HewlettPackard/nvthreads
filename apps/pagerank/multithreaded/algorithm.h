@@ -1,3 +1,6 @@
+#ifndef ALGORITHM_H
+#define ALGORITHM_H
+
 #include <crsmatrix.h>
 
 #include <vector.h>
@@ -7,6 +10,7 @@
 
 typedef struct thd_data {
 	int thread_id;
+	mcrs_err e;
 	
 	logd_lvl_t lvl;
 	l_clock_t* tmr;
@@ -30,3 +34,5 @@ extern mcrs_err check_gmatrix_integrity(const logd_lvl_t lvl, const matrix_crs_f
 extern void gen_link_vector_crs(vector_i *linkv, int* empty, const matrix_crs_f *adjm);
 
 extern void gen_google_matrix_crs(matrix_crs_f *m, const vector_i *linkv, const float damping_factor);
+
+#endif // ALGORITHM_H
