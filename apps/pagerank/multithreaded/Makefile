@@ -7,7 +7,9 @@ OBJS = main.o \
        utils.o \
        logger.o
 
-CC = gcc -ggdb -std=gnu99 -O3
+DEBUG = 
+
+CC = gcc $(DEBUG) -std=gnu99 -O3
 
 PTEXEC = prr-pt
 DTEXEC = prr-dt
@@ -21,7 +23,7 @@ LINKOPT = -dynamic
 
 NVTPATH = $(LINKOPT) $(PWD)/../../../src/libnvthread.so
 #DTPATH = -rdynamic -libdthread -ldl
-DTPATH = $(LINKOPT) $(PWD)/../../../third-parties/dthreads/src/libdthread.so
+DTPATH = $(LINKOPT) $(PWD)/../../../third-parties/dthreads/lib/libdthread.so
 
 LIBS = -lrt -ldl
 

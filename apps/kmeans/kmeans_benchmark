@@ -1,0 +1,38 @@
+#! /bin/bash
+
+BMNAME="KMEANS"
+
+EXECBASE=""
+PROGBASE=$PWD"/"
+#PROGBASE=$PWD"/"
+
+XINPUT=$PROGBASE"../../../mnt/bruegner/x_1M_50_double"
+CINPUT=$PROGBASE"../../../mnt/bruegner/c_100_50_double"
+OUTPUTBASE=$PROGBASE"../../../mnt/bruegner/res/x"
+
+NAMES=("kmeans-mt-pt" "kmeans-mt-dt" "kmeans-mt-nvt")
+THREADS=(1 2 4 8 12)
+NIT=10
+SMD=2
+LMD=1
+
+echo 
+echo === STARTED $BMNAME BENCHMARK @ $(date) ===
+echo
+
+for NAME in "${NAMES[@]}"
+do
+	echo
+	echo === RUNNING $NAME-BENCHMARKS @ $(date) ===
+	
+	for NTHD in "${THREADS[@]}"
+	do
+		echo
+		echo -- NTHD=$NTHD NIT=$NIT STARTED @ $(date) --
+		echo EXECUTING $PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
+		$EXECBASE$PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
+	done
+done
+
+echo
+echo === FINISHED $BMNAME BENCHMARK @ $(date) ===

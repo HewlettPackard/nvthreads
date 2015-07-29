@@ -1,5 +1,5 @@
 NVPATH=$(PWD)/../../src/libnvthread.so
-DPATH=$(PWD)/../../third-parties/dthreads/src/libdthread.so
+DPATH=$(PWD)/../../third-parties/dthreads/lib/libdthread.so
 all: kmeans-mt-pt kmeans-mt-dt kmeans-mt-nvt datagen
 
 kmeans-mt-pt: kmeans-mt-pt.o
