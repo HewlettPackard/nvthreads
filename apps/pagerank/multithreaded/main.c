@@ -11,7 +11,6 @@
 #include <algorithm.h>
 #include <utils.h>
 
-
 const double DAMPING_FACTOR = 0.1;
 
 const int P_MIN = 6;
@@ -22,8 +21,7 @@ const int P_NTHD = 3;
 const int P_INITNL = 4;
 const int P_FOUT = 5;
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	mcrs_err e;
 	
 	logd_set_level(LOGD_H);
@@ -59,6 +57,8 @@ int main(int argc, char** argv)
 	logd(LOGD_H, "Start loading adj. matrix from file... \n");
 	timer_start(tmr);
 
+	printf("allocating %zu bytes\n", sizeof(matrix_crs_f)); 
+	
 	matrix_crs_f *adjm = malloc(sizeof(matrix_crs_f));
 	mcrs_f_init(adjm, 0.0, n_vals);
 
@@ -83,7 +83,9 @@ int main(int argc, char** argv)
 
 	// reset timer
 	timer_start(tmr);
-
+    	
+	printf("allocating %zu bytes\n", sizeof(vector_i));
+	
 	vector_i *linkv = (vector_i*)malloc(sizeof(vector_i));
 	vector_i_init_set(linkv, adjm->n_row, 0);
 	int empty;
@@ -127,6 +129,8 @@ int main(int argc, char** argv)
 	// reset timer
 	timer_start(tmr);
 	
+    	printf("allocating %zu bytes\n", sizeof(vector_f)); 
+	
 	vector_f *init = malloc(sizeof(vector_f));
 	vector_f_init_set(init, adjm->n_row, 1.0 / adjm->n_row);
 	
@@ -139,6 +143,8 @@ int main(int argc, char** argv)
 	vector_f_display(LOGD_M, init);
 	logd(LOGD_M, "\n");
 
+    	printf("allocating %zu bytes\n", sizeof(vector_f)); 
+	
 	vector_f *res = (vector_f*)malloc(sizeof(vector_f));
 	vector_f_init_set(res, adjm->n_row, 0.0);
 

@@ -8,7 +8,8 @@ void *mcrs_gmatrix_worker(void* param) {
 
 	//printf(" THD %d started!\n", data->thread_id);
 
-        mcrs_err* e = malloc(sizeof(mcrs_err));
+        printf("allocating sz %zu\n", sizeof(mcrs_err));
+        mcrs_err *e = malloc(sizeof(mcrs_err));
 	
 	(*e) = mcrs_gmatrix_mult_vector_f_rng(data->loc, data->m, data->v, data->rstart, data->rend, 1);
 
@@ -53,7 +54,8 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		data[i].tmr = tmr;
 		
 		data[i].out = out;
-		data[i].loc = malloc(sizeof(vector_f) * sz);
+        printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
+        data[i].loc = malloc(sizeof(vector_f) * sz);
 		
 		vector_f_init(data[i].loc, sz);
 		
