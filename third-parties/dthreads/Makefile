@@ -6,9 +6,9 @@ DEPS = $(SRCS) $(INC_DIR)/xpersist.h $(INC_DIR)/xdefines.h $(INC_DIR)/xglobals.h
 
 INCLUDE_DIRS = -I$(INC_DIR) -I$(INC_DIR)/heaplayers -I$(INC_DIR)/heaplayers/util
 
-TARGETS = lib/libdthread.so
+TARGETS = libdthread.so libdthread32.so
 
-all: $(TARGETS)
+all: $(TARGETS) 
 
 CXX = g++
 
@@ -18,10 +18,10 @@ CFLAGS64 = -m64 -msse2 -O3 -DNDEBUG -shared -fPIC -DLAZY_COMMIT -DLOCK_OWNERSHIP
 
 LIBS = -ldl -lpthread
 
-lib/libdthread32.so: $(SRCS) $(DEPS) Makefile
+libdthread32.so: $(SRCS) $(DEPS) Makefile
 	$(CXX) $(CFLAGS32) $(INCLUDE_DIRS) $(SRCS) -o $@ $(LIBS)
 
-lib/libdthread.so: $(SRCS) $(DEPS) Makefile
+libdthread.so: $(SRCS) $(DEPS) Makefile
 	$(CXX) $(CFLAGS64) $(INCLUDE_DIRS) $(SRCS) -o $@ $(LIBS)
 
 
