@@ -8,9 +8,9 @@ void *mcrs_gmatrix_worker(void* param) {
 
 	data->e = mcrs_gmatrix_mult_vector_f_rng(data->loc, data->m, data->v, data->rstart, data->rend, 1);
 
-	pthread_mutex_lock(&m_log);
-	logd(data->lvl, "%d:%lu ", data->thread_id, timer_total_ms(data->tmr));
-	pthread_mutex_unlock(&m_log);
+	//pthread_mutex_lock(&m_log);
+	//logd(data->lvl, "%d:%lu ", data->thread_id, timer_total_ms(data->tmr));
+	//pthread_mutex_unlock(&m_log);
 	
 	size_t i;
 
@@ -49,7 +49,7 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		
 		data[i].out = out;
         	
-		printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
+		//printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
 	        data[i].loc = malloc(sizeof(vector_f) * sz);
 		
 		vector_f_init(data[i].loc, sz);
@@ -101,8 +101,11 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		logd(lvl, ")\t");
 		
 		time = timer_lap_ms(tmr);
-		
-		logd(lvl, "%d\t%ld\tms\n", n, time);
+	
+		logd(lvl, "%d\t", n);	
+		logd(LOGD_X, "%ld", time);
+		logd(lvl, "\tms");
+		logd(LOGD_X, "\n");
 		
 		//if((*e) != MCRS_ERR_NONE) {
 		//	return (*e);
@@ -243,7 +246,7 @@ extern void gen_link_vector_crs(vector_i *linkv, int* empty, const matrix_crs_f 
                 //      linkv->elements[i] = adjm->n_row;
         }
 
-        printf(" LINKV empty=%d\n", (*empty));
+        //printf(" LINKV empty=%d\n", (*empty));
 
         //linkv->elements[i]
         //              = ((diff = adjm->row_ptr[i + 1] - adjm->row_ptr[i]) == 0 ? sz : diff);
@@ -259,7 +262,7 @@ extern void gen_google_matrix_crs(matrix_crs_f *m, const vector_i *linkv, const 
 
         m->empty = damping_factor / (f_t)m->sz_row;
 
-        printf(" m->empty*100000=%f\n", m->empty * 100000);
+        //printf(" m->empty*100000=%f\n", m->empty * 100000);
 
         //printf(" \nEmpty=%f should be %f/%d=%f\n", m->empty, damping_factor, m->sz_row, damping_factor / m->sz_row);
 
