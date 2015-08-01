@@ -116,7 +116,7 @@ public:
     *_remaining -= sz;
     *_position += sz;
 
-    printf("%d: allocated %zu bytes, remaining: %zu bytes\n", getpid(), sz, *_remaining);
+//  printf("%d: allocated %zu bytes, remaining: %zu bytes\n", getpid(), sz, *_remaining);
 
     void * newptr = (void*)*_position;
     //__asm__ __volatile__ ("mfence": : :"memory");

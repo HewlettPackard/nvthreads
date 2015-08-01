@@ -793,30 +793,34 @@ public:
     
         INC_COUNTER(transactions);
         
-        // Open a new log file if we have dirtied pages
-//      printf("-----%d-----\n", getpid());
+#ifdef ENABLE_PROFILING
         clock_t start_time = clock(), diff;
+#endif
         START_TIMER(logging);
+
+        // Open a new log file if we have dirtied pages
         localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
             pageinfo = (struct xpageinfo *)i->second;
             localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
         }
+        // Flush log
+        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
+
         // Write an end of log
         localMemoryLog->WriteEndOfLog();
 
-        // Flush log
+        // Flush end of log
         localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
 
         // Close log
         localMemoryLog->CloseMemoryLog();
 
-        // Flush eol before moving on
-//      localMemoryLog->MakeDurable(localMemoryLog->_eol_ptr, localMemoryLog->_eol_size);
-
         STOP_TIMER(logging); 
 
+#ifdef ENABLE_PROFILING
         diff = clock() - start_time;;
+#endif
         ADD_COUNTER(logtimer, (double)diff);
 
         // Check all pages in the dirty list
