@@ -595,7 +595,7 @@ int main(int argc, char **argv)
    free(final);
    free(use_len);
    free(length);
-   cleanup();
+//   cleanup();
    pthread_attr_destroy(&attr);
    free(pid);
    
