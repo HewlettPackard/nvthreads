@@ -15,14 +15,16 @@ import sys
 import subprocess
 import multiprocessing
 import time
+import csv
 
 print (sys.version)
 print '[NVthread-eval] ----------------------------------------------------Welcome-------------------------------------------------------'
-print '[NVthread-eval] Usage: ./eval.py action[build/run] benchmark input-size[simlarge/native] thread-type[p/d/nvthread] runs ncore[1/2/4/8/12core]'
+print '[NVthread-eval] Usage: ./eval.py action[build/run] benchmark input-size[simlarge/native] thread-type[p/d/nvthread] runs ncore[1/2/4/8/12core] delays[10/25/50/100/1000(ns)]'
 
 log_path = '/mnt/ramdisk/'
 MAX_failed = 20
 runs = 1
+start_time = 0
 #input_size = 'simsmall'
 #input_size = 'simlarge'
 input_size = 'native'
@@ -30,8 +32,8 @@ input_size = 'native'
 pwd = os.getcwd()
 
 # Define becnhmarks directories
-#phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'reverse_index', 'string_match', 'word_count']
-phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'string_match', 'word_count']
+phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'reverse_index', 'string_match', 'word_count']
+#phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'string_match', 'word_count']
 parsec_benchmarks = ['blackscholes', 'canneal', 'dedup', 'ferret', 'streamcluster', 'swaptions']
 #parsec_benchmarks = ['ferret', 'streamcluster', 'swaptions']
 
@@ -44,6 +46,9 @@ all_configs = ['pthread', 'dthread', 'nvthread']
 # All input sizes
 all_inputs = ['simlarge', 'native']
 
+# All delays to simulate
+all_delays = [200, 250, 500, 550, 700, 750, 1000, 5000, 8000, 10000, 20000, 30000]
+
 # Number of cores on machine (hyper threading)
 ht_cores = 24
 
@@ -51,12 +56,14 @@ ht_cores = 24
 all_cores = 12
 
 # Get input arguments
+nvm_delays = []
 benchmarks = []
 configs = []
 uninstall = 0
 build = 0
 geninput = 0
 run = 1
+delay = 0
 cores = all_cores
 for p in sys.argv:
 	if p == 'phoenix':
@@ -68,7 +75,11 @@ for p in sys.argv:
 	elif p in all_configs:
 		configs.append(p)
 	elif re.match('^[0-9]+$', p):
-		runs = int(p)
+		tmp = int(p)
+		if tmp < 25:
+			runs = tmp
+		else:
+			nvm_delays.append(tmp)
 	elif p == '1core':
 		cores = 1
 	elif p == '2core':
@@ -92,11 +103,12 @@ if len(configs) == 0:
 
 data = {}
 
-
-def sim():
+def sim(delay):
 	print '[NVthread-eval] Input: '+input_size
 	print '[NVthread-eval] #cores in use: ' + str(cores)
 	print '[NVthread-eval] #runs per setup: ' + str(runs)
+	if delay != 0:
+		print '[NVthread-eval] write delay: ' + str(delay) + ' ns'
 	print '[NVthread-eval] Running benchmarks: ',
 	for b in benchmarks:
 		print b + ' ',
@@ -248,11 +260,43 @@ def sim():
 		print ''
 	return data
 
+# Write results to file
+def writeToFile(delay):
+	filepath = './stats/'
+	filename = filepath+input_size+'_'+str(cores)+'cores_'+str(runs)+'runs_'+str(delay)+'ns.csv'
+	target = open(filename, 'w')
+	target.write('Input,'+input_size+'\n')
+	target.write('#cores used,' + str(cores)+'\n')
+	target.write('#runs per setup,' + str(runs)+'\n')
+	target.write('write delay,' + str(delay) + ' ns\n')
+	target.write('\n')
+	target.write('benchmark,')
+	for config in configs :
+		target.write('\t' + config + ',')
+	target.write('\n')
+	for bench in benchmarks:
+		target.write(bench + ',')
+		for config in configs:
+			if bench in data and config in data[bench] and len(data[bench][config]) == runs:
+				if len(data[bench][config]) >= 4:
+					mean = (sum(data[bench][config])-max(data[bench][config])-min(data[bench][config]))/(runs-2)
+				else:
+					mean = sum(data[bench][config])/runs
+				target.write(str(mean)+',')
+			else:
+				target.write( 'NOT RUN,')
+		target.write('\n')
+
+	elapsed_time = time.time() - start_time
+	target.write('\n\nFinished in : ' + str(elapsed_time) + ' seconds\n')
+
 # Print results
-def printStats(data):
+def printStats(data, delay):
 	print '[NVthread-eval] Input: '+input_size
 	print '[NVthread-eval] #cores used: ' + str(cores)
 	print '[NVthread-eval] #runs per setup: ' + str(runs)
+	if delay != 0:
+		print '[NVthread-eval] write delay: ' + str(delay) + ' ns'
 	print '[NVthread-eval] ----------------------------Stats--------------------------------'
 	print '[NVthread-eval] benchmark',
 	for config in configs :
@@ -271,6 +315,7 @@ def printStats(data):
 				print ('\tNOT RUN'),
 		print 
 	print '[NVthread-eval] -----------------------------------------------------------------'
+	writeToFile(delay)
 
 def buildBenchmark(benchmark):
 		os.chdir('./tests/'+benchmark);
@@ -320,17 +365,44 @@ def restoreCPU():
 	alive_cores = multiprocessing.cpu_count()
 	print '[NVthread-eval] Restored CPU, alive #cores: ' + str(alive_cores)
 
+# Mount nvmfs
+mountPoint = '/mnt/ramdisk'
+def mountNVMfs(delay):
+	cmd = 'sudo mount -t nvmfs -o rd_delay_ns_fixed=0,wr_delay_ns_fixed='+str(delay)+',rd_delay_ns_per_kb=0,wr_delay_ns_per_kb=0,cpu_freq_mhz=2666,size=1000000m nvmfs ' + mountPoint
+	os.system(cmd)
+	print '[NVthread-eval] Mounted NVM filesystem with write delay '+str(delay)+' ns at ' + mountPoint
+
+# Umount nvmfs
+def umountNVMfs():
+	cmd = 'sudo umount '+mountPoint
+	os.system(cmd)
+	print '[NVthread-eval] Umounted NVM filesystem at '+mountPoint
+
+
+
 def main():
-	start_time = time.time()
-	if build == 1:
-		buildAll()
-	if run == 1:
-		restoreCPU()
-		setCPU()
-		data = sim()
-		printStats(data)
-		restoreCPU()
-	elapsed_time = time.time() - start_time
-	print '[NVthread-eval] Finished, time: ' + str(elapsed_time) + ' seconds.'
+	if not nvm_delays:
+		nvm_delays.append(0)
+	nvm_delays.sort();
+
+	for d in nvm_delays:
+		delay = d;
+		start_time = time.time()
+		if delay != 0:
+			mountNVMfs(delay)
+
+		if build == 1:
+			buildAll()
+		if run == 1:
+			restoreCPU()
+			setCPU()
+			data = sim(delay)
+			printStats(data, delay)
+			restoreCPU()
+		elapsed_time = time.time() - start_time
+		print '[NVthread-eval] Finished, time: ' + str(elapsed_time) + ' seconds.'
+
+		if delay != 0:
+			umountNVMfs()
 
 main()
