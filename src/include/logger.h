@@ -96,7 +96,7 @@ class LogEntry {
 public:
     struct log_t {
         unsigned long addr;
-        char *before_image;
+        char *after_image;
     };
     enum {LogEntrySize = sizeof(unsigned long) + LogDefines::PageSize};
 
@@ -399,7 +399,7 @@ public:
 
         struct LogEntry::log_t newLE;
         newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
-        newLE.before_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
+        newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
 
 //      printf("%d: Appending log at file %s for addr %p page %lu: 0x%08lx\n", getpid(), _mempages_filename, addr, _logentry_count, newLE.addr);
         
@@ -418,9 +418,9 @@ public:
                 fprintf(stderr, "opened a file descriptor %d\n", _mempages_fd);
             }
         }
-        sz = write(_mempages_fd, (void *)newLE.before_image, LogDefines::PageSize);
+        sz = write(_mempages_fd, (void *)newLE.after_image, LogDefines::PageSize);
         if ( sz == -1 ) {
-            fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.before_image, _mempages_fd, _mempages_filename);
+            fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.after_image, _mempages_fd, _mempages_filename);
             perror("write (page): ");
 
             close(_mempages_fd);
@@ -432,10 +432,13 @@ public:
                 fprintf(stderr, "opened a file descriptor %d\n", _mempages_fd);
             } 
         }
+
+//      mfencePage((void *)newLE.addr);
+
 //      memcpy((char *)(_mempages_ptr + _mempages_offset), &newLE.addr, sizeof(unsigned long));
 //      _mempages_offset += ADDRBYTE;
 
-//      memcpy((char *)(_mempages_ptr + _mempages_offset), newLE.before_image, LogDefines::PageSize);
+//      memcpy((char *)(_mempages_ptr + _mempages_offset), newLE.after_image, LogDefines::PageSize);
 //      _mempages_offset += LogDefines::PageSize;
         INC_COUNTER(loggedpages);
         _logentry_count++;
@@ -555,6 +558,7 @@ public:
 
     /* Flush cache line to main memory */
     inline void mfencePage(volatile void *__p) {
+//      printf("Flushing %p!\n", __p);
         __asm__ __volatile__("mfence");
         asm volatile("clflush %0" : "+m"(*(volatile char *)__p));
         __asm__ __volatile__("mfence");
@@ -595,7 +599,7 @@ public:
         int i;
         char *tmp;
         lprintf("addr: 0x%08lx, before-image:\n", LE->addr);
-        tmp = LE->before_image;
+        tmp = LE->after_image;
         for (i = 0; i < (int)LogDefines::PageSize; i++) {
             lprintf("%02x ", (unsigned)tmp[i] & 0xffU);
             if ( i % 50 == 0 && i != 0 ) {
