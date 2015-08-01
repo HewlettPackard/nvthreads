@@ -15,6 +15,7 @@ static const logd_lvl_t LOGD_ALL = 0;
 static const logd_lvl_t LOGD_L = 1;
 static const logd_lvl_t LOGD_M = 500;
 static const logd_lvl_t LOGD_H = 1000;
+static const logd_lvl_t LOGD_X = 2000;
 static const logd_lvl_t LOGD_NONE = UINT_MAX;
 
 extern void logd_set_level(logd_lvl_t lvl);
