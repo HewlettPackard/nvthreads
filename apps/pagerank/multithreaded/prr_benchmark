@@ -1,0 +1,37 @@
+#! /bin/bash
+
+#PROGBASE="nvthreads/apps/pagerank/multithreaded/"
+PROGBASE=""
+
+#INPUT="../../../../mnt/bruegner/adj_clueweb_100M"
+INPUT="../../../../mnt/bruegner/adj_livejournal_snap"
+OUTPUTBASE="../../../../mnt/bruegner/res/livejournal"
+
+NAMES=("prr-pt" "prr-dt" "prr-nvt")
+#NAMES=("prr-nvt")
+
+#THREADS=(1 2 4 8 12)
+THREADS=(1 1 2 2 2 2 4 4 4 4 8 8 8 8 12 12 12 12)
+NLINES=68993773
+NIT=10
+
+echo 
+echo === PRR BENCHMARK @ $(date) ===
+echo
+
+for NAME in "${NAMES[@]}"
+do
+	echo
+	echo === RUNNING $NAME-BENCHMARKS ===
+	
+	for NTHD in "${THREADS[@]}"
+	do
+		echo
+		echo -- NTHD=$NTHD NIT=$NIT
+		echo
+		./$PROGBASE$NAME $INPUT $NIT $NTHD $NLINES $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
+	done
+done
+
+echo
+echo === FINISHED PRR BENCHMARK @ $(date) ===
