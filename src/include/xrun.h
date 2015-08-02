@@ -65,6 +65,7 @@ class xrun {
 private:
     static volatile bool _initialized;
     static volatile bool _protection_enabled;
+    static volatile bool _protection_again;
     static size_t _master_thread_id;
     static size_t _thread_index;
     static bool _fence_enabled;
@@ -83,6 +84,7 @@ public:
 
         _initialized = false;
         _protection_enabled = false;
+        _protection_again = false;
         _children_threads_count = 0;
         _lock_count = 0;
         _token_holding = false;
@@ -263,6 +265,11 @@ public:
             openMemoryProtection();
             atomicBegin(true);
         }
+
+        if ( _protection_again ) {
+            atomicBegin(true);         
+        }
+
         atomicEnd(false);
 
 #ifdef LAZY_COMMIT
@@ -347,6 +354,7 @@ public:
         // If current thread is the only alive thread, then close the protection.
         if ( determ::getInstance().isSingleAliveThread() ) {
 //          closeMemoryProtection();
+            _protection_again = true; //begin another atomic transaction for future spawn
 
             // Do some cleanup for fence.
             closeFence();
