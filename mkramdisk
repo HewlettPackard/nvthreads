@@ -1,0 +1,5 @@
+mknod -m 660 /dev/ram b 1 1
+chown root.disk /dev/ram
+dd if=/dev/zero of=/dev/ram bs=4k count=16777216
+/sbin/mkfs -t ext2 -m 0 /dev/ram 67108864
+mount -t ext2 /dev/ram /mnt/ramdisk
