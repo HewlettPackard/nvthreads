@@ -10,7 +10,7 @@
 #include <types.h>
 #include <logger.h>
 
-static const size_t MCRS_ALLOC_BLOCK = 1000000;
+static const size_t MCRS_ALLOC_BLOCK = 5000000;
 
 typedef enum {
 	MCRS_ERR_NONE = 0,

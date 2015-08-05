@@ -185,7 +185,7 @@ extern mcrs_err mcrs_i_set(matrix_crs_i *m, size_t x, size_t y, i_t val, mcrs_se
 	if(!found || newrow) { // resize col_ind
 		if(!newrow && m->col_ind[m->sz_col - 1] > x) {
 			logd_e("ERROR: no seq access on rows!\n");
-			return MCRS_ERR_NO_SEQ_ACCESS;
+		//	return MCRS_ERR_NO_SEQ_ACCESS;
 		}
 
 		if((m->sz_col + 1) > m->allocd_col) {

@@ -20,7 +20,7 @@ LINKOPT = -dynamic
 
 NVTPATH = $(LINKOPT) $(PWD)/../../../src/libnvthread.so
 #DTPATH = -rdynamic -libdthread -ldl
-DTPATH = $(LINKOPT) $(PWD)/../../../third-parties/dthreads/lib/libdthread.so
+DTPATH = $(LINKOPT) $(PWD)/../../../third-parties/dthreads/libdthread.so
 
 LIBS = -lrt -ldl
 
