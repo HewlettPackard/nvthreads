@@ -3,15 +3,16 @@
 #PROGBASE="nvthreads/apps/pagerank/multithreaded/"
 PROGBASE=""
 
-#INPUT="../../../../mnt/bruegner/adj_clueweb_100M"
-INPUT="../../../../mnt/bruegner/adj_livejournal_snap"
-OUTPUTBASE="../../../../mnt/bruegner/res/livejournal"
+INPUT="../../../../mnt/bruegner/adj_clueweb_100M"
+#INPUT="../../../../mnt/bruegner/adj_livejournal_snap"
+OUTPUTBASE="../../../../mnt/bruegner/res/clueweb"
 
-NAMES=("prr-pt" "prr-dt" "prr-nvt")
-#NAMES=("prr-nvt")
+#NAMES=("prr-dt" "prr-nvt")
+NAMES=("prr-dt")
 
-#THREADS=(1 2 4 8 12)
-THREADS=(1 1 2 2 2 2 4 4 4 4 8 8 8 8 12 12 12 12)
+THREADS=(4)
+#THREADS=(2 2 2 4 4 4 8 8 8 12 12 12)
+#NLINES=1215492978
 NLINES=68993773
 NIT=10
 

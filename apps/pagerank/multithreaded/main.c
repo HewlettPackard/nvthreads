@@ -21,7 +21,7 @@ const int P_FOUT = 5;
 int main(int argc, char** argv) {
 	mcrs_err e;
 	
-	logd_set_level(LOGD_X);
+	logd_init(LOGD_H, 100);
 
 	if(argc != P_MIN)
         {
@@ -150,6 +150,8 @@ int main(int argc, char** argv) {
 		return 4;
 	}
 
+	logd_flush();
+
 	time = timer_total_ms(tmr);
 	logd(LOGD_H, " Multiplying done in %ld ms\n", time);
 
@@ -164,7 +166,9 @@ int main(int argc, char** argv) {
 	else {
 		logd(LOGD_M, "Skipped dumping result.\n");
 	}
-	
+
+	logd_flush();	
+
 	return 0;
 }
 

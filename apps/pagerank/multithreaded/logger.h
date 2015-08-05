@@ -1,6 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+//#define LOGD_USE_HISTORY
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -11,6 +13,11 @@
 
 typedef unsigned int logd_lvl_t;
 
+typedef struct logd_hist_t {
+	char* format;
+	va_list* args;
+} logd_hist_t;
+
 static const logd_lvl_t LOGD_ALL = 0;
 static const logd_lvl_t LOGD_L = 1;
 static const logd_lvl_t LOGD_M = 500;
@@ -18,11 +25,15 @@ static const logd_lvl_t LOGD_H = 1000;
 static const logd_lvl_t LOGD_X = 2000;
 static const logd_lvl_t LOGD_NONE = UINT_MAX;
 
-extern void logd_set_level(logd_lvl_t lvl);
+extern void logd_init(logd_lvl_t lvl, size_t buffer);
+
+//extern void logd_set_level(logd_lvl_t lvl);
 
 extern void logd(logd_lvl_t lvl, const char *format, ...);
 
 extern void logd_e(const char *format, ...);
+
+extern void logd_flush();
 
 /* --- TIMER --- */
 
