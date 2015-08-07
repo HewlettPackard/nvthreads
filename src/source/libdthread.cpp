@@ -46,13 +46,19 @@ void finalize()__attribute__((destructor));
 runtime_data_t *global_data;
 
 static bool initialized = false;
-
+static int stats_fd;
+static char stats_filename[1024]; 
 void initialize() {
     DEBUG("intializing libdthread");
 
     init_real_functions();
 
-    global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+//  global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    sprintf(stats_filename, "/tmp/statsXXXXXX");
+    stats_fd = mkstemp(stats_filename);
+    global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
+    INIT_COUNTER_ARRAY(pagedensity, 4097UL);
 
     global_data->thread_index = 1;
     DEBUG("after mapping global data structure");
@@ -69,18 +75,31 @@ void finalize() {
     PRINT_LOG_COUNTER(logtimer);
     PRINT_TIMER(serial);
     PRINT_TIMER(logging);
-    PRINT_COUNTER(commit);
+//  PRINT_COUNTER(commit);
     PRINT_COUNTER(transactions);
-    PRINT_COUNTER(loggedpages);
+//  PRINT_COUNTER(loggedpages);
     PRINT_COUNTER(dirtypage_modified);
-    PRINT_COUNTER(dirtypage_owned);
-    PRINT_COUNTER(dirtypage_inserted);
-    PRINT_COUNTER(faults);
-    PRINT_COUNTER(twinpage);
-    PRINT_COUNTER(suspectpage);
-    PRINT_COUNTER(slowpage);
-    PRINT_COUNTER(lazypage);
-    PRINT_COUNTER(shorttrans);
+//  PRINT_COUNTER(dirtypage_owned);
+//  PRINT_COUNTER(dirtypage_inserted);
+//  PRINT_COUNTER(faults);
+//  PRINT_COUNTER(twinpage);
+//  PRINT_COUNTER(suspectpage);
+//  PRINT_COUNTER(slowpage);
+//  PRINT_COUNTER(lazypage);
+//  PRINT_COUNTER(shorttrans);
+
+//  PRINT_COUNTER_ARRAY(pagedensity, 4096UL);
+    PRINT_COUNTER(pdcount);
+    PRINT_COUNTER(dummy);
+    char fn[1024];
+    sprintf(fn, "/tmp/pagedensity.csv");
+    FILE *fp = fopen(fn, "w");
+    if ( fp != NULL) {
+        OUTPUT_COUNTER_ARRAY_FILE(pagedensity, 4097UL, fp);
+    }
+    fclose(fp);
+
+    unlink(stats_filename);
 }
 
 extern "C"
@@ -245,7 +264,6 @@ extern "C"
     }
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
-//      printf("%d: pthread unlocking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_unlock(mutex);
         }
