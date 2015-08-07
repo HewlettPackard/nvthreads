@@ -1,10 +1,10 @@
 #ifndef ALGORITHM_H
 #define ALGORITHM_H
 
-#include <crsmatrix.h>
+#include "crsmatrix.h"
 
-#include <vector.h>
-#include <logger.h>
+#include "vector.h"
+#include "logger.h"
 
 #include <pthread.h>
 
