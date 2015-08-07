@@ -329,8 +329,9 @@ def printStats(data, delay):
 	writeToFile(delay)
 
 def buildBenchmark(benchmark):
-		os.chdir('./tests/'+benchmark);
-		rv = os.system('make clean; make');
+		os.chdir('./tests/'+benchmark)
+		os.system('mkdir obj')
+		rv = os.system('make clean; make')
 		os.chdir('../../')
 		return rv
 
