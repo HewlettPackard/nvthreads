@@ -1,4 +1,3 @@
-#include <pthread.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -51,41 +50,6 @@ vec2_d* construct_vec2_d(int x, int y) {
 
 	return res;
 }
-
-/* ==== STRUCTS AND STUFF ==== */
-
-struct t_data {
-	int thread_id;
-
-	SyncMethod sync_method;
-
-	/*bool use_local_lbls;
-	bool use_locks;
-	bool use_postsync;*/
-
-	vec2_d *x;
-
-	int x_start;
-	int x_length;
-
-	vec_d *x_norms;
-
-	vec_i *lbls_loc;
-	vec_i *lbls;
-
-	vec2_d *c;
-
-	int c_n_start;
-	int c_n_length;
-
-	vec_d *c_norms;
-
-	vec2_d *c_sum_loc;
-	vec2_d *c_sum;
-
-	vec_i *c_count_loc;
-	vec_i *c_count;
-};
 
 /* ==== LOGGING ==== */
 
@@ -286,51 +250,6 @@ void arr_i_fill(int *a, int sz, int f) {
 		*(a + i) = f;
 }
 
-// balances the workload: x = no. of datapoints, t = no. of threads
-// returns an vector of 2-dim-arrays for each thread
-void balance_x(int x, const int t, int *res) {
-	int assigned = 0;
-
-	for(int i = 0; i < t; i++) {
-		int length = ((x - assigned) / (t - i));
-
-		int start = assigned;
-
-		(*(res + i * 2 + 0)) = start;
-		(*(res + i * 2 + 1)) = length;
-
-		assigned += length;
-	}
-}
-
-vec2_i* balance_x(int x, const int t) {
-	int assigned = 0;
-
-	vec2_i *res = new vec2_i(t);
-
-	for(int i = 0; i < t; i++) {
-		int length = ((x - assigned) / (t - i));
-
-		int start = assigned;
-
-		(*res)[i][0] = start;
-		(*res)[i][1] = length;
-
-		assigned += length;
-	}
-
-	return res;
-}
-
-bool stob(string s, string s_t, string s_f) {
-	if(s == s_t)
-		return true;
-	else if(s == s_f)
-		return false;
-	else
-		return false;
-}
-
 /* ==== SINGLE-THREADED K-MEANS ==== */
 
 void kmeans(vec2_d *x, vec_d *x_norms,
@@ -464,261 +383,14 @@ void kmeans(vec2_d *x, vec_d *x_norms,
 	}
 }
 
-/* ==== MULTI-THREADED K-MEANS ==== */
-
-pthread_mutex_t mutex_log;
-pthread_mutex_t mutex_counter;
-pthread_mutex_t mutex_lbls;
-pthread_mutex_t mutex_c_norms;
-pthread_mutex_t mutex_c_sum;
-pthread_mutex_t mutex_c_count;
-
-pthread_barrier_t barrier_calc_c_norms;
-pthread_barrier_t barrier_find_center;
-
-void *kmeans_worker(void *p_data) {
-	t_data *data = (t_data*)p_data;
-
-	//int x_sz = (*(*data).x).size();
-	int c_sz = (*(*data).c).size();
-	int v_sz = (*(*data).x)[0].size();
-
-	double best;
-	double appD;
-	double dd;
-	double tmp_d;
-	int inew = 0;
-
-	// find the closest center within the threads range of data
-	for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++) {
-		// find the closest center
-		best = POS_INF;
-
-		for(int n = 0; n < c_sz; n++) {
-			appD = (*(*data).x_norms)[i] - (*(*data).c_norms)[n];
-			appD *= appD;
-
-			if(best < appD)
-				continue;
-
-			dd = 0.0;
-
-			for(int j = 0; j < v_sz; j++) {
-				tmp_d = (*(*data).x)[i][j] - (*(*data).c)[n][j];
-
-				dd += tmp_d * tmp_d;
-			}
-
-			if(dd < best) {
-				best = dd;
-				inew = n;
-			}
-		}
-
-		if((*data).sync_method == SyncMethod::AFTER_T_EXIT
-				|| (*data).sync_method == SyncMethod::ON_T_EXIT
-				|| (*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
-			(*(*data).lbls_loc)[i] = inew;
-		}
-		else if((*data).sync_method == SyncMethod::IMM_LOCKED){
-			pthread_mutex_lock(&mutex_lbls);
-
-			(*(*data).lbls)[i] = inew;
-
-			pthread_mutex_unlock(&mutex_lbls);
-		}
-		else { // SyncMethod::IMM
-			(*(*data).lbls)[i] = inew;
-		}
-
-		(*(*data).c_count_loc)[inew]++;
-
-		for(int j = 0; j < v_sz; j++) {
-			(*(*data).c_sum_loc)[inew][j] += (*(*data).x)[i][j];
-		}
-	}
-
-	if((*data).sync_method == SyncMethod::ON_T_EXIT) {
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-			(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
-	}
-	else if((*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
-		pthread_mutex_lock(&mutex_lbls);
-
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-					(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
-
-		pthread_mutex_unlock(&mutex_lbls);
-	}
-
-	pthread_exit(NULL);
-}
-
-void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
-		vec2_d *centers, int iterations, vec_i *lbls, SyncMethod sync_method) {//bool use_local_lbls, bool use_locks) {
-	if(NUM_THREADS == -1) {
-		kmeans(x, x_norms, centers, iterations, lbls);
-	}
-	else {
-		clock_start();
-
-		pthread_t threads[NUM_THREADS];
-
-		// init barriers and mutexes
-		pthread_barrier_init(&barrier_calc_c_norms, NULL, NUM_THREADS);
-		pthread_barrier_init(&barrier_find_center, NULL, NUM_THREADS);
-
-		pthread_mutex_init(&mutex_log, NULL);
-		pthread_mutex_init(&mutex_counter, NULL);
-		pthread_mutex_init(&mutex_lbls, NULL);
-		pthread_mutex_init(&mutex_c_norms, NULL);
-		pthread_mutex_init(&mutex_c_sum, NULL);
-		pthread_mutex_init(&mutex_c_count, NULL);
-
-		int x_sz = (*x).size();
-		int v_sz = (*x)[0].size();
-		int c_sz = (*centers).size();
-
-		// balance load
-		int bal_x[NUM_THREADS][2];
-		int bal_c[NUM_THREADS][2];
-
-		balance_x(x_sz, NUM_THREADS, &(bal_x[0][0]));
-		balance_x(c_sz, NUM_THREADS, &(bal_c[0][0]));
-
-		// init local copies
-		t_data data[NUM_THREADS];
-		t_data d;
-
-		vec_d c_norms(c_sz);
-
-		vec2_d c_sum = *construct_vec2_d(c_sz, v_sz);
-		vec_i c_count(c_sz);
-
-		for(int i = 0; i < NUM_THREADS; i++) {
-			d = *(new t_data);
-
-			d.thread_id = i;
-
-			d.sync_method = sync_method;
-
-			//d.use_local_lbls = use_local_lbls;
-			//d.use_locks = use_locks;
-
-			d.x = x;
-			d.x_start = bal_x[i][0];
-			d.x_length = bal_x[i][1];
-
-			d.x_norms = x_norms;
-
-			d.lbls_loc = new vec_i(x_sz);
-			d.lbls = lbls;
-
-			d.c = centers;
-
-			d.c_norms = &c_norms;
-
-			d.c_n_start = 0;
-			d.c_n_length = 0;
-
-			d.c_sum_loc = construct_vec2_d(c_sz, v_sz);
-			d.c_sum = &c_sum;
-
-			d.c_count_loc = new vec_i(c_sz);
-			d.c_count = &c_count;
-
-			data[i] = d;
-		}
-
-		clock_stop();
-
-		log(LOG_TIME, " Thread-initialization done in ");
-		log(LOG_TIME, clock_get_duration());
-		log(LOG_TIME, " ms.\n");
-
-		for(int _it = 0; _it < iterations; _it++) {
-			clock_start();
-
-			// reset sum and counters
-			for(int i = 0; i < c_sz; i++) {
-				for(int j = 0; j < v_sz; j++) {
-					c_sum[i][j] = 0.0;
-				}
-
-				c_count[i] = 0;
-			}
-
-			// calculate center-norms
-			for(int i = 0; i < c_sz; i++) {
-				c_norms[i] = 0;
-
-				for(int j = 0; j < v_sz; j++) {
-					c_norms[i] += (*centers)[i][j] * (*centers)[i][j];
-				}
-
-				c_norms[i] = sqrt(c_norms[i]);
-			}
-
-			// spawn threads
-			for(int t = 0; t < NUM_THREADS; t++) {
-				pthread_create(&(threads[t]), NULL, kmeans_worker, &(data[t]));
-			}
-
-			for(int t = 0; t < NUM_THREADS; t++) {
-				pthread_join(threads[t], NULL);
-
-				// merge labels of this thread if AFTER_T_EXIT-syncing is enabled
-				if(sync_method == SyncMethod::AFTER_T_EXIT) {
-					for(int i = data[t].x_start; i < data[t].x_start + data[t].x_length; i++) {
-						(*lbls)[i] = (*(data[t]).lbls_loc)[i];
-					}
-				}
-			}
-
-			// merge sums and count
-			for(int i = 0; i < c_sz; i++) {
-				for(int t = 0; t < NUM_THREADS; t++) {
-					// sum intermediates
-					c_count[i] += (*(data[t]).c_count_loc)[i];
-
-					// reset local
-					(*(data[t]).c_count_loc)[i] = 0;
-				}
-
-				for(int j = 0; j < v_sz; j++) {
-					for(int t = 0; t < NUM_THREADS; t++) {
-						// sum intermediates
-						c_sum[i][j] += (*(data[t]).c_sum_loc)[i][j];
-
-						// reset local
-						(*(data[t]).c_sum_loc)[i][j] = 0;
-					}
-
-					(*centers)[i][j] = c_sum[i][j] / c_count[i];
-				}
-			}
-
-			clock_stop();
-
-			log(LOG_TIME, " ");
-			log(LOG_TIME, _it);
-			log(LOG_TIME, "\t ");
-			log(LOG_TIME, clock_get_duration());
-			log(LOG_TIME, " ms\n");
-		}
-	}
-}
-
-const int MIN_ARGC = 7;
+const int MIN_ARGC = 5;
 
 const int P_PNAME = 0;
 const int P_F_X = 1;
 const int P_F_C = 2;
-const int P_N_TH = 3;
-const int P_N_IT = 4;
-const int P_O_SYNCM = 5;
-const int P_O_LOG = 6;
-const int P_F_LBLS = 7;
+const int P_N_IT = 3;
+const int P_O_LOG = 4;
+const int P_F_LBLS = 5;
 
 const int MAX_ARGC = MIN_ARGC + 1;
 
@@ -729,15 +401,8 @@ int main(int argc, char* argv[]) {
 		log_e(LOG_ALL, "\nInvalid arguments! Usage:\n");
 		log_e(LOG_ALL, argv[P_PNAME]);
 		log_e(LOG_ALL, " <x-input-file> <centers-input-file> "
-				"<threads> <iterations> <sync-mode> <log-mode> "
+				"<iterations> <log-mode> "
 				"[<mapping-output-file>]\n\n"
-				" Allowed sync-modes:\n"
-				"  0 - Sync in main-thread\n"
-				"  1 - Sync on thread-exit without locks\n"
-				"  2 - ... with locks\n"
-				"  3 - Immediately after the label is calculated without locks\n"
-				"  4 - ... with locks\n"
-				" \n"
 				" Allowed log-modes:\n"
 				"  0 - All\n"
 				"  1 - Time and Err-only\n"
@@ -765,9 +430,7 @@ int main(int argc, char* argv[]) {
 
 	string f_x(argv[P_F_X]);
 	string f_c(argv[P_F_C]);
-	int n_threads = stoi(argv[P_N_TH]);
 	int n_iterations = stoi(argv[P_N_IT]);
-	SyncMethod o_syncm = (SyncMethod)stoi(argv[P_O_SYNCM]);
 
 	log(LOG_ALL, "Start reading the file \"");
 	log(LOG_ALL, f_x);
@@ -829,24 +492,18 @@ int main(int argc, char* argv[]) {
 	log(LOG_ALL, "\" (");
 	log(LOG_ALL, (double)centers.size());
 	log(LOG_ALL, " lines)\n");
-	log(LOG_ALL, "       Threads = ");
-	log(LOG_ALL, n_threads);
-	log(LOG_ALL, "\n");
 	log(LOG_ALL, "    Iterations = ");
 	log(LOG_ALL, (int)n_iterations);
 	log(LOG_ALL, "\n");
 	log(LOG_ALL, "    Dimensions = ");
 	log(LOG_ALL, (int)x[0].size());
-	log(LOG_ALL, "\n");
-	log(LOG_ALL, "   Sync-Method = ");
-	log(LOG_ALL, o_syncm);
 	log(LOG_ALL, "\n\n");
 
 	log(LOG_ALL, "Running... ");
 
 	clock_start();
 
-	spawn_threads(n_threads, &x, &norms, &centers, n_iterations, &lbls, o_syncm);
+	kmeans(&x, &norms, &centers, n_iterations, &lbls);
 
 	clock_stop();
 

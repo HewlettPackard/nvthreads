@@ -3,7 +3,6 @@ apps/pagerank/multithreaded/dthreads*
 apps/pagerank/multithreaded/prr-pt
 apps/pagerank/multithreaded/prr-dt
 apps/pagerank/multithreaded/prr-nvt
-apps/pagerank/multithreaded/prr_benchmark
 apps/pagerank/multithreaded/Makefile_old
 apps/kmeans/kmeans-mt-dt
 apps/kmeans/kmeans-mt-nvt
