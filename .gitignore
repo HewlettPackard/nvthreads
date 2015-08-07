@@ -1,3 +1,4 @@
+.fseventsd/
 massif.out.*
 apps/pagerank/multithreaded/dthreads*
 apps/pagerank/multithreaded/prr-pt
