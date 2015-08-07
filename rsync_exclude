@@ -10,3 +10,4 @@ apps/Atlas
 .DS_Store
 rsync_exclude
 rsync_make.sh
+rsync.sh
