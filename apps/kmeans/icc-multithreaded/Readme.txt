@@ -11,6 +11,7 @@ Find the datagenerator including an explanation here: github.com/hbrgnr/datagene
 
 -- 2. Generating data --------------------------------------------------------------------------------------------
 
+(moved to its own directory)
 To use the datagenerator, run ./datagen with the following parameters:
 
 ./datagen <int|double> <rows> <columns> <offset> <range> <seed> <output-file>
@@ -30,10 +31,10 @@ Execute ./kmeans-mt-(pt/dt) with the following parameters:
 
 <x-input-file>		path to the dataset
 <centers-input-file>	path to the centers-file, IMPORTANT: assert(x.colums == centers.columns)
-<threads>		no. of threads: if set to -1, the REAL singlethreaded version is executed (in both kmeans-mt-pt and -dt)
+<threads>		no. of threads
 <iterations>		no. of iterations
 <sync-mode>		specifies how the labels are written into the global array (2 is recommended: each thread writes to the global array before exit using locks)
 <log-mode>		specifies what is written to the screen (1 is recommended: logging just time and errors)
 <mapping-output-file>	(optional) path to the output file that maps x-input to calculated center; centers will be written on screen if not specified
 
-Known issues: implement centers-output-file
+Known issues: implement centers-output-file (nope -> can be calculated from the labelling)

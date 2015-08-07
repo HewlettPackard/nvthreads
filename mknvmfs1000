@@ -1,0 +1,1 @@
+mount -t nvmfs -o rd_delay_ns_fixed=0,wr_delay_ns_fixed=1000,rd_delay_ns_per_kb=0,wr_delay_ns_per_kb=0,cpu_freq_mhz=2666,size=1000000m nvmfs /mnt/ramdisk/
