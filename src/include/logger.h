@@ -175,6 +175,7 @@ public:
         close(_heap_log_fd);
         _global_log_fd = open(_global_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
         close(_global_log_fd);
+
 //      OpenMemoryLog();
     }
 
@@ -196,6 +197,7 @@ public:
 
     void ReadConfig(void) {
         log_dest = DRAM_TMPFS;
+//      log_dest = DISK;
         _DurableMethod = FSYNC;
         _eol_size = 4;
         _log_flags = O_RDWR | O_ASYNC | O_APPEND;
@@ -251,25 +253,14 @@ public:
     }
 
     void OpenDiskLog(void) {
-        // Create a temp file for logging memory pages
-        sprintf(_mempages_filename, "MemLogDISK_%d_%d_XXXXXXX", threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "/mnt/ssd/terry/tmp/MemLog_%d_%d_XXXXXXX", threadID, _mempages_file_count);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
+
         if ( _mempages_fd == -1 ) {
             fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
+            perror("mkstemp: ");
             abort();
         }
-        _mempages_offset = 0;
-
-        // Adjust the file size
-        if ( ftruncate(_mempages_fd, LogEntry::LogEntrySize * _dirtiedPagesCount) ) {
-            fprintf(stderr, "Error truncating memory log file");
-            abort();
-        }
-
-        // Map the temp file to process memory space
-        _mempages_ptr = (char *)mmap(NULL, LogEntry::LogEntrySize *_dirtiedPagesCount,
-                                     PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, _mempages_offset);
-
     }
 
     /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
@@ -282,18 +273,6 @@ public:
             perror("mkstemp: ");
             abort();
         }
-//      _mempages_offset = 0;
-
-        // Adjust the file size
-//      if ( ftruncate(_mempages_fd, _mempages_filesize) ) {
-//          fprintf(stderr, "Error truncating memory log file");
-//          abort();
-//      }
-
-        // Map the temp file to process memory space
-//      _mempages_ptr = (char *)mmap(NULL, _mempages_filesize,
-//                                   PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, _mempages_offset);
-//      printf("New log: %s\n", _mempages_filename);
     }
 
     void OpenNvramTmpfsLog(void) {
@@ -391,17 +370,18 @@ public:
     /* Append a log entry to the end of the memory log */
     int AppendMemoryLog(void *addr) {
         int fflags;
-        
+        /*
         if ( !_logging_enabled ) {
             lprintf("Logging disabled, skip logging for addr %p page 0x%08lx\n", addr, (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
             return 0;
         }
-
+        */
+        
+//      printf("%d: Appending log at file %s for addr %p page %lu: 0x%08lx\n", getpid(), _mempages_filename, addr, _logentry_count, newLE.addr);
         struct LogEntry::log_t newLE;
         newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
         newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
 
-//      printf("%d: Appending log at file %s for addr %p page %lu: 0x%08lx\n", getpid(), _mempages_filename, addr, _logentry_count, newLE.addr);
         
         size_t sz;
         sz = write(_mempages_fd, (void*)newLE.addr, sizeof(unsigned long));
@@ -460,9 +440,9 @@ public:
 
     void CloseDiskMemoryLog(void) {
         if ( _mempages_fd != -1 ) {
-            lprintf("Removing memory log %s\n", _mempages_filename);
+//          lprintf("Removing memory log %s\n", _mempages_filename);
             close(_mempages_fd);
-            unlink(_mempages_filename);
+//          unlink(_mempages_filename);
         }
     }
     void CloseDramTmpfsMemoryLog() {

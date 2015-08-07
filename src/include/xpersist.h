@@ -97,8 +97,8 @@ public:
         }
 
         // Get a temporary file name (which had better not be NFS-mounted...).
-        char _backingFname[L_tmpnam];
-        sprintf(_backingFname, "dthreadsMXXXXXX");
+        char _backingFname[1024];
+        sprintf(_backingFname, "/tmp/dthreadsMXXXXXX");
         _backingFd = mkstemp(_backingFname);
         if ( _backingFd == -1 ) {
             fprintf(stderr, "Failed to make persistent file.\n");
@@ -218,6 +218,7 @@ public:
         if ( !_isHeap ) {
 //          printf("created globals!\n");
         }
+
     }
 
     void initialize() {
@@ -237,6 +238,7 @@ public:
         int pages = getSingleThreadPages();
         fprintf(stderr, "Totally there are %d single thread pages.\n", pages);
 #endif
+
     }
 
 #ifdef GET_CHARACTERISTICS
@@ -459,7 +461,6 @@ public:
         unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + xdefines::PageSize * pageNo);
         struct xpageinfo *curr = NULL;
 
-
 #ifdef LAZY_COMMIT
         // Check the access type of this page.
         int accessType = _pageInfo[pageNo];
@@ -493,9 +494,9 @@ public:
         mprotectWrite(pageStart, pageNo);
 #endif
 
-        if ( xpageentry::getInstance().getCur() % 100000 == 0  && xpageentry::getInstance().getCur() > 0) {
-            printf("%d: cur: %llu\n", getpid(), xpageentry::getInstance().getCur());
-        }
+//      if ( xpageentry::getInstance().getCur() % 100000 == 0  && xpageentry::getInstance().getCur() > 0) {
+//          printf("%d: cur: %llu\n", getpid(), xpageentry::getInstance().getCur());
+//      }
 
         // Now one more user are using this page.
         xatomic::increment((unsigned long *)&_pageUsers[pageNo]);
@@ -527,6 +528,11 @@ public:
         return (_dirtiedPagesList.empty());
     }
 
+    /// @brief Commit dirtied pages before open protection
+    inline void commitBeforeOpenProtection(MemoryLog *localMemoryLog){
+        checkandcommit(true, localMemoryLog);
+    }
+
     /// @brief Start a transaction.
     inline void begin(bool cleanup) {
         // Update all pages related in this dirty page list
@@ -546,6 +552,7 @@ public:
     // Write those difference between local and twin to the destination.
     inline void writePageDiffs(const void *local, const void *twin,
                                void *dest, int pageno) {
+
 #ifdef SSE_SUPPORT
         // Now we are using the SSE3 instructions to speedup the commits.
         __m128i *localbuf = (__m128i *)local;
@@ -583,8 +590,38 @@ public:
                 //fprintf(stderr, "%d: RACE at %p from %x to %x (dest %x). pageno %d\n", getpid(), &mylocal[i], mytwin[i], mylocal[i], mydest[i], pageno);
             }
         }
+
+
 #endif
     }
+
+    /* For page density profiling */
+#ifdef PAGE_DENSITY
+    void ProfileDiffs(const void *local, const void *twin) {
+        long long *mylocal = (long long *)local;
+        long long *mytwin = (long long *)twin;
+        int count = 0;
+
+        // Count diff in bytes
+        for (int i = 0; i < xdefines::PageSize; i++) {
+            if ( mylocal[i] != mytwin[i] ) {
+                count++;
+            }
+        }
+
+        // Increment frequency for page with "count" dirty bytes
+        INC_COUNTER_ARRAY(pagedensity, count);
+        INC_COUNTER(pdcount);
+    }
+
+    void PrintPageDensity(void) {
+        printf("%d:-------page density-------\n", getpid());
+//      for (int i = 0; i < xdefines::PageSize; i++) {
+//          printf("%d: PageDensity[%d]: %ld\n", getpid(), i, page_density[i]);
+//      }
+        PRINT_COUNTER_ARRAY(pagedensity, 4097UL);
+    }
+#endif
 
     // Create the twin page for the page with specified pageNo.
     void createTwinPage(int pageNo) {
@@ -788,6 +825,7 @@ public:
         if ( _dirtiedPagesList.size() == 0 ) {
             return;
         }
+//      printf("%d: commit #dirtied pages: %d\n", getpid(), _dirtiedPagesList.size());
 
         _trans++;
     
@@ -800,10 +838,46 @@ public:
 
         // Open a new log file if we have dirtied pages
         localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
+
+        // Loop through all dirtied pages
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
+            bool needsModify = false;
             pageinfo = (struct xpageinfo *)i->second;
-            localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+            pageNo = pageinfo->pageNo; 
+            shareinfo = &_pageUsers[pageNo];
+            local = (unsigned long *)pageinfo->pageStart; 
+
+            // Check if we can skip this log entry
+            if ( update ) {
+                if ( pageinfo->version != _persistentVersions[pageNo] ) {
+                    needsModify = true;
+                }
+            }
+            else{
+                if ( !pageinfo->isUpdated ) {
+                    needsModify = true;
+                }
+            }
+
+            // Perform actual logging
+            if ( needsModify ) {
+                // Profile dirty page density
+#ifdef PAGE_DENSITY
+                unsigned long *twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
+                ProfileDiffs(local, twin);
+#endif
+                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+
+#ifdef PAGE_DENSITY
+                // Counter sanity checks
+                if ( global_data->stats.pdcount_count != global_data->stats.loggedpages_count ) {
+                    fprintf(stderr, "pdcount: %lu != loggedpages: %lu\n", (unsigned long)global_data->stats.pdcount_count, (unsigned long)global_data->stats.loggedpages_count);
+                    abort();
+                }
+#endif
+            }
         }
+
         // Flush log
         localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
 
@@ -925,6 +999,7 @@ public:
                 TRACE("%d: writing pageNo %d\n", getpid(), pageNo);
 
                 if ( !pageinfo->isUpdated ) {
+
                     if ( pageinfo->version == _persistentVersions[pageNo] ) {
                         TRACE("%d: memcpy pageNo %d\n", getpid(), pageNo);
                         memcpy(share, local, xdefines::PageSize);
@@ -940,7 +1015,6 @@ public:
                         TRACE("%d: writePageDiffs %d\n", getpid(), pageNo);
 
                     }
-
                     isModified = true;
                 }
             }
