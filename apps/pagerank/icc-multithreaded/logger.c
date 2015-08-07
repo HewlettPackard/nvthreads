@@ -1,4 +1,4 @@
-#include <logger.h>
+#include "logger.h"
 
 /* --- LOG --- */
 
@@ -9,11 +9,11 @@ logd_lvl_t logd_level;
 
 extern void logd_init(logd_lvl_t lvl, size_t buffer) {
 	logd_level = lvl;
-	logd_history = malloc(sizeof(logd_history) * buffer);
+	logd_history = (logd_hist_t*)malloc(sizeof(logd_history) * buffer);
 	
 	size_t i;
 	for(i = 0; i < buffer; i++) {
-		logd_history[i].format = malloc(sizeof(logd_history[i].format) * 300);
+        logd_history[i].format = (char *)malloc(sizeof(logd_history[i].format) * 300);
 		//logd_history[i].args = malloc(sizeof(va_list));
 	}
 	

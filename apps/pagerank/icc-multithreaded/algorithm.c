@@ -1,4 +1,8 @@
-#include <algorithm.h>
+#include "algorithm.h"
+#include <mnemosyne.h>
+#include <mtm.h>
+#include <pmalloc.h>
+
 
 pthread_mutex_t m_merge;
 pthread_mutex_t m_log;
@@ -14,14 +18,17 @@ void *mcrs_gmatrix_worker(void* param) {
 	
 	size_t i;
 
-	pthread_mutex_lock(&m_merge);
-	for(i = 0; i < data->m->sz_row; i++) {
-		data->out->elements[i] += data->loc->elements[i];
-		data->loc->elements[i] = 0.0;
-	}
-	pthread_mutex_unlock(&m_merge);
+    MNEMOSYNE_ATOMIC {
+        pthread_mutex_lock(&m_merge);
+        for(i = 0; i < data->m->sz_row; i++) {
+            data->out->elements[i] += data->loc->elements[i];
+            data->loc->elements[i] = 0.0;
+        }
+        pthread_mutex_unlock(&m_merge);
+    }
 	
 	pthread_exit(NULL);
+    return NULL;
 }
 
 extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, const matrix_crs_f *m, const vector_f *v, const size_t n_threads, const size_t n_iterations) {
@@ -50,12 +57,12 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		data[i].out = out;
         	
 		//printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
-	        data[i].loc = malloc(sizeof(vector_f) * sz);
+        data[i].loc = (vector_f *)malloc(sizeof(vector_f) * sz);
 		
 		vector_f_init(data[i].loc, sz);
 		
-		data[i].m = m;
-		data[i].v = v;
+        data[i].m = (matrix_crs_f *)m;
+        data[i].v = (vector_f *)v;
 		
 		length = (sz - assigned) / (n_threads - i);
 		
