@@ -25,6 +25,8 @@ log_path = '/mnt/ramdisk/'
 MAX_failed = 20
 runs = 1
 start_time = 0
+disk = 0
+pagedensity = 0
 #input_size = 'simsmall'
 #input_size = 'simlarge'
 input_size = 'native'
@@ -47,7 +49,7 @@ all_configs = ['pthread', 'dthread', 'nvthread']
 all_inputs = ['simlarge', 'native']
 
 # All delays to simulate
-all_delays = [200, 250, 500, 550, 700, 750, 1000, 5000, 8000, 10000, 20000, 30000]
+all_delays = [200, 250, 500, 550, 700, 750, 1000, 5000, 8000, 10000, 20000, 30000, 40000, 50000]
 
 # Number of cores on machine (hyper threading)
 ht_cores = 24
@@ -95,6 +97,11 @@ for p in sys.argv:
 		run = 0
 	elif p in all_inputs:
 		input_size = p
+	elif p == 'disk':
+		disk = 1
+		log_path = '/mnt/ssd/terry/tmp/'
+	elif p == 'pagedensity':
+		pagedensity = 1
 
 if len(benchmarks) == 0:
 	benchmarks = all_benchmarks
@@ -257,12 +264,16 @@ def sim(delay):
 				if config == 'nvthread':
 					os.system('du -h ' + log_path)
 					os.system('find ' + log_path + ' | xargs rm')
+					os.system('mv /tmp/pagedensity.csv pagedensity/'+bench+'_pagedensity.csv')
+
 		print ''
 	return data
 
 # Write results to file
 def writeToFile(delay):
 	filepath = './stats/'
+	if disk != 0:
+		filepath = filepath + 'disk_'
 	filename = filepath+input_size+'_'+str(cores)+'cores_'+str(runs)+'runs_'+str(delay)+'ns.csv'
 	target = open(filename, 'w')
 	target.write('Input,'+input_size+'\n')
