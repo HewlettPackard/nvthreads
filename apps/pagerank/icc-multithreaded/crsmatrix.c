@@ -1,4 +1,7 @@
 #include "crsmatrix.h"
+#include <mnemosyne.h>
+#include <mtm.h>
+#include <pmalloc.h>
 
 extern mcrs_err mcrs_i_init(matrix_crs_i *m, i_t empty) {
     m->allocd_row = 0;
@@ -28,10 +31,14 @@ extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t init_val_sz) {
     m->sz_row = 0;
     m->sz_col = 0;
 
+    printf("Pmallocing values %zu bytes\n", sizeof(m->values) * init_val_sz);
     m->values = (f_t *)malloc(sizeof(m->values) * init_val_sz);
+    printf("Pmallocing col_ind %zu bytes\n", sizeof(m->col_ind) * init_val_sz);
     m->col_ind = (size_t *)malloc(sizeof(m->col_ind) * init_val_sz);
+    printf("Pmallocing row_ptr %zu bytes\n", sizeof(m->row_ptr));
     m->row_ptr = (size_t *)malloc(sizeof m->row_ptr);
 
+    printf("done mcrs_f_init\n");
     if ( m->values && m->col_ind && m->row_ptr )
         return MCRS_ERR_NONE;
     else
@@ -245,6 +252,9 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
             }
 
             m->row_ptr = (size_t *)realloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
+//          size_t tmp = m->row_ptr;
+//          free(m->row_ptr);
+//          m->row_ptr = (size_t *)malloc(sizeof(tmp) * m->allocd_row);
             logd(LOGD_H, " row_ptr reallocd to %d\n", m->allocd_row);
         }
 
@@ -374,7 +384,8 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
 
     mcrs_err e;
 
-    char *line = (char *)malloc(sizeof(char) * 200);
+//  char *line = (char *)malloc(sizeof(char) * 200);
+    char line[1024];
     size_t *n;
     ssize_t sz;
 
@@ -383,17 +394,25 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
     int i1 = 0;
     int i2 = 0;
 
-    size_t count = 0;
+    unsigned long long count = 0;
 
+    fprintf(stderr, "Loading data from %s\n", path);
 //  while((sz = getline(&line, n, f)) != -1) {
-    while (fgets(line, 200, f) != NULL) {
-        el1 = strtok(line, &col);
-        el2 = strtok(NULL, &row);
+//  while (fgets(line, 200, f) != NULL) {
+    while (fgets(line, 1024, f) != NULL) {
 
-        printf("%d: %s\n", count, line);
-        if ( el2 == NULL )
+//      fprintf(stderr, "%llu: line: %s", count, line);
+//      el1 = strtok(line, &col);
+//      el2 = strtok(NULL, &row);
+        el1 = strtok(line, ",");
+        el2 = strtok(NULL, "\n"); 
+
+//      fprintf(stderr, "%llu: el1: %s, el2: %s\n", count, el1, el2);
+        if ( el2 == NULL ) {
 //          return MCRS_ERR_INVALID_FILE;
+            printf("el2 == NULL! %llu: %s\n", count, line);
             abort();
+        }
 
         i1 = atof(el1);
         i2 = atof(el2);
@@ -402,10 +421,10 @@ extern mcrs_err mcrs_f_load(matrix_crs_f *m, const char *path, const char col, c
             logd_e(" An error occured while setting i1(row)=%d i2(col)=%d: %d\n", i1, i2, e);
             return e;
         }
-
+//      printf("-------------\n");
         count++;
     }
     printf("Read %zu lines\b", count);
-    free(line);
+//  free(line);
     return MCRS_ERR_NONE;
 }
