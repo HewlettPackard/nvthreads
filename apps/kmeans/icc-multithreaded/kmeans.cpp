@@ -195,6 +195,8 @@ vec2_d load_data(std::string path, const char delim) {
 			res.push_back(parse_line(line, delim));
 		}
 
+		printf("%f\n", res[0][0]);
+
 		data_file.close();
 	}
 
