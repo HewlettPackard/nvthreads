@@ -11,6 +11,9 @@
 #include <mnemosyne.h>
 #include <mtm.h>
 #include <pmalloc.h>
+#include <mnemosyne.h>
+#include <mtm.h>
+#include <pmalloc.h>
 
 const double DAMPING_FACTOR = 0.1;
 
@@ -25,7 +28,9 @@ const int P_FOUT = 5;
 int main(int argc, char **argv) {
     mcrs_err e;
 
+    printf("init log\n");
     logd_init(LOGD_H, 100);
+    printf("done init log\n");
 
     if ( argc != P_MIN ) {
         logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads> <n_lines> [<outputfile>]\n");
@@ -59,6 +64,7 @@ int main(int argc, char **argv) {
 
     //printf("allocating %zu bytes\n", sizeof(matrix_crs_f));
 
+    printf("Pmallocing %zu bytes\n", sizeof(matrix_crs_f));
     matrix_crs_f *adjm = (matrix_crs_f *)malloc(sizeof(matrix_crs_f));
     mcrs_f_init(adjm, 0.0, n_vals);
 
@@ -66,6 +72,7 @@ int main(int argc, char **argv) {
     //matrix_i_init_set(adjm, 1, 0);
     //matrix_i_realloc(adjm, 90000, 0);
     //if(matrix_i_load(fin, adjm, ',', '\n')) {
+    printf("loading\n");
     if ( (e = mcrs_f_load(adjm, fin, ',', '\n')) != MCRS_ERR_NONE ) {
         logd_e("Unable to load file (CODE %d). Aborting.\n", e);
 

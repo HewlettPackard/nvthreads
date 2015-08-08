@@ -19,12 +19,12 @@ void *mcrs_gmatrix_worker(void* param) {
 	size_t i;
 
     MNEMOSYNE_ATOMIC {
-        pthread_mutex_lock(&m_merge);
+//  pthread_mutex_lock(&m_merge);
         for(i = 0; i < data->m->sz_row; i++) {
             data->out->elements[i] += data->loc->elements[i];
             data->loc->elements[i] = 0.0;
         }
-        pthread_mutex_unlock(&m_merge);
+//      pthread_mutex_unlock(&m_merge);
     }
 	
 	pthread_exit(NULL);

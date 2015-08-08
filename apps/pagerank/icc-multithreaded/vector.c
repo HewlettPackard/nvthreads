@@ -1,4 +1,7 @@
 #include "vector.h"
+#include <mnemosyne.h>
+#include <mtm.h>
+#include <pmalloc.h>
 
 extern void vector_f_init(vector_f *v, size_t size) {
     vector_f_init_set(v, size, 0.0);

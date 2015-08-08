@@ -1,4 +1,7 @@
 #include "logger.h"
+#include <mnemosyne.h>
+#include <mtm.h>
+#include <pmalloc.h>
 
 /* --- LOG --- */
 
