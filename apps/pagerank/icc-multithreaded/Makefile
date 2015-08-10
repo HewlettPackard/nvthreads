@@ -6,7 +6,8 @@ OBJS = main.o \
 
 DEBUG = 
 
-CC = gcc $(DEBUG) -std=gnu99 -O3
+GCC = /home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
+CC = $(GCC) $(DEBUG) -std=gnu99 -O3
 
 PTEXEC = prr-pt
 DTEXEC = prr-dt
