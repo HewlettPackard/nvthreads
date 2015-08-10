@@ -10,7 +10,7 @@
 #include <types.h>
 #include <logger.h>
 
-static const size_t MCRS_ALLOC_BLOCK = 5000000;
+static const size_t MCRS_ALLOC_BLOCK = 10000;
 
 typedef enum {
 	MCRS_ERR_NONE = 0,
@@ -37,11 +37,9 @@ typedef struct matrix_crs_i {
 	
 	i_t empty;
 
-	size_t n_row;
-	size_t n_col;
-	
 	size_t sz_row;
 	size_t sz_col;
+	size_t n_col;
 	
 	i_t *values; // sz_col
 	size_t *col_ind; // sz_col
@@ -54,11 +52,9 @@ typedef struct matrix_crs_f {
 	
 	f_t empty;
 	
-	size_t n_row;
-	size_t n_col;
-	
 	size_t sz_row;
 	size_t sz_col;
+	size_t n_col;
 	
 	f_t *values;
 	size_t *col_ind;
@@ -67,6 +63,8 @@ typedef struct matrix_crs_f {
 
 extern mcrs_err mcrs_i_init(matrix_crs_i *m, i_t empty);
 extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t init_val_sz);
+
+extern size_t mcrs_f_get_size(matrix_crs_f *m);
 
 extern mcrs_err mcrs_i_free(matrix_crs_i *m);
 extern mcrs_err mcrs_f_free(matrix_crs_f *m);
