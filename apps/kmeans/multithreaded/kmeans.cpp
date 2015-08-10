@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <string>
 #include <pthread.h>
 #include <iostream>
 #include <sstream>
@@ -9,14 +11,16 @@
 #include <chrono>
 #include <stack>
 
-using namespace std;
+//using namespace std;
 
-typedef vector<int> vec_i;
-typedef vector<vec_i> vec2_i;
-typedef vector<double> vec_d;
-typedef vector<vec_d> vec2_d;
+//typedef std::string /string;
 
-const double POS_INF = numeric_limits<double>::infinity();
+typedef std::vector<int> vec_i;
+typedef std::vector<vec_i> vec2_i;
+typedef std::vector<double> vec_d;
+typedef std::vector<vec_d> vec2_d;
+
+const double POS_INF = std::numeric_limits<double>::infinity();
 
 enum SyncMethod {
 	AFTER_T_EXIT,		// local during computation, sync in main-thread
@@ -100,95 +104,98 @@ void log_set_min(int level) {
 	min_level = level;
 }
 
-void log(int level, string msg) {
+void log(int level, std::string msg) {
 	if(level >= min_level)
-		cout << msg << flush;
+		std::cout << msg << std::flush;
 }
 
 void log(int level, int msg) {
 	if(level >= min_level)
-		cout << msg << flush;
+		std::cout << msg << std::flush;
 }
 
 void log(int level, long msg) {
 	if(level >= min_level)
-		cout << msg << flush;
+		std::cout << msg << std::flush;
 }
 
 void log(int level, double msg) {
 	if(level >= min_level)
-		cout << msg << flush;
+		std::cout << msg << std::flush;
 }
 
-void log_e(int level, string msg) {
+void log_e(int level, std::string msg) {
 	if(level >= min_level)
-		cerr << msg << flush;
+		std::cerr << msg << std::flush;
 }
 
 void log_e(int level, int msg) {
 	if(level >= min_level)
-		cerr << msg << flush;
+		std::cerr << msg << std::flush;
 }
 
 void log_e(int level, long msg) {
 	if(level >= min_level)
-		cerr << msg << flush;
+		std::cerr << msg << std::flush;
 }
 
 void log_e(int level, double msg) {
 	if(level >= min_level)
-		cerr << msg << flush;
+		std::cerr << msg << std::flush;
 }
 
 /* ==== CLOCK ==== */
 
-stack<chrono::high_resolution_clock::time_point> times_start;
-stack<chrono::high_resolution_clock::time_point> times_end;
+std::stack<std::chrono::high_resolution_clock::time_point> times_start;
+std::stack<std::chrono::high_resolution_clock::time_point> times_end;
 
 void clock_start() {
-	times_start.push(chrono::high_resolution_clock::now());
+	times_start.push(std::chrono::high_resolution_clock::now());
 }
 
 void clock_stop() {
-	times_end.push(chrono::high_resolution_clock::now());
+	times_end.push(std::chrono::high_resolution_clock::now());
 }
 
 long clock_get_duration() {
-	long duration = chrono::duration_cast<chrono::milliseconds>(times_end.top() - times_start.top()).count();
+	long duration = std::chrono::duration_cast<std::chrono::milliseconds>(times_end.top() - times_start.top()).count();
 
 	times_start.pop();
 	times_end.pop();
 
 	return duration;
+//	return 0;
 }
 
 /* ==== FUNCTIONS FOR DATA-LOADING AND -SAVING ==== */
 
-vector<double> parse_line(const string &line, char delim) {
-	vector<double> res;
-	stringstream ss(line);
-	string itm;
+vec_d parse_line(const std::string &line, char delim) {
+	vec_d res;
+	std::stringstream ss(line);
+	std::string itm;
 
-	while(getline(ss, itm, delim)) {
+	while(std::getline(ss, itm, delim)) {
 		//cout << itm << " ";
-		res.push_back(stod(itm));
+		res.push_back(std::atof(itm.c_str()));
 	}
 
 	return res;
 }
 
-vec2_d load_data(string path, const char delim) {
-	ifstream data_file;
-	string line;
+vec2_d load_data(std::string path, const char delim) {
+	std::ifstream data_file;
+	std::string line;
 
-	vector<vector<double>> res;
+	vec2_d res;
 
-	data_file.open(path);
+	data_file.open(path.c_str());
 
 	if(data_file.is_open()) {
-		while(getline(data_file, line)) {
+		while(std::getline(data_file, line)) {
 			res.push_back(parse_line(line, delim));
 		}
+
+		printf("%f\n", res[0][0]);
 
 		data_file.close();
 	}
@@ -196,10 +203,10 @@ vec2_d load_data(string path, const char delim) {
 	return res;
 }
 
-void dump_data(vec_i data, string path, const char delim) {
-	ofstream data_file;
+void dump_data(vec_i data, std::string path, const char delim) {
+	std::ofstream data_file;
 
-	data_file.open(path);
+	data_file.open(path.c_str());
 
 	if(data_file.is_open()) {
 		for(int i = 0; i < data.size(); i++) {
@@ -210,10 +217,10 @@ void dump_data(vec_i data, string path, const char delim) {
 	data_file.close();
 }
 
-void dump_data(vec2_d data, string path, const char delim) {
-	ofstream data_file;
+void dump_data(vec2_d data, std::string path, const char delim) {
+	std::ofstream data_file;
 
-	data_file.open(path);
+	data_file.open(path.c_str());
 
 	if(data_file.is_open()) {
 		for(int i = 0; i < data.size(); i++) {
@@ -228,7 +235,7 @@ void dump_data(vec2_d data, string path, const char delim) {
 	data_file.close();
 }
 
-void vec_to_arr(vector<double> *v, double *a) {
+void vec_to_arr(vec_d *v, double *a) {
 	int v_sz = (*v).size();
 
 	for(int i = 0; i < v_sz; i++) {
@@ -236,7 +243,7 @@ void vec_to_arr(vector<double> *v, double *a) {
 	}
 }
 
-void vec_to_arr(vector<vector<double>> *v, double *a) {
+void vec_to_arr(vec2_d *v, double *a) {
 	int v_sz = (*v).size();
 	int v0_sz = (*v)[0].size();
 
@@ -253,7 +260,7 @@ vec_d calc_norm(vec2_d *x) {
 	int x_sz = (*x).size();
 	int x0_sz = (*x)[0].size();
 
-	vector<double> norms(x_sz);
+	vec_d norms(x_sz);
 
 	for(int i = 0; i < x_sz; i++) {
 		for(int j = 0; j < x0_sz; j++)
@@ -322,7 +329,7 @@ vec2_i* balance_x(int x, const int t) {
 	return res;
 }
 
-bool stob(string s, string s_t, string s_f) {
+bool stob(std::string s, std::string s_t, std::string s_f) {
 	if(s == s_t)
 		return true;
 	else if(s == s_f)
@@ -333,7 +340,15 @@ bool stob(string s, string s_t, string s_f) {
 
 /* ==== MULTI-THREADED K-MEANS ==== */
 
+pthread_mutex_t mutex_log;
+pthread_mutex_t mutex_counter;
 pthread_mutex_t mutex_lbls;
+pthread_mutex_t mutex_c_norms;
+pthread_mutex_t mutex_c_sum;
+pthread_mutex_t mutex_c_count;
+
+pthread_barrier_t barrier_calc_c_norms;
+pthread_barrier_t barrier_find_center;
 
 void *kmeans_worker(void *p_data) {
 	t_data *data = (t_data*)p_data;
@@ -374,12 +389,12 @@ void *kmeans_worker(void *p_data) {
 			}
 		}
 
-		if((*data).sync_method == SyncMethod::AFTER_T_EXIT
-				|| (*data).sync_method == SyncMethod::ON_T_EXIT
-				|| (*data).sync_method == SyncMethod::ON_T_EXIT_LOCKED) {
+		if((*data).sync_method == AFTER_T_EXIT
+				|| (*data).sync_method == ON_T_EXIT
+				|| (*data).sync_method == ON_T_EXIT_LOCKED) {
 			(*(*data).lbls_loc)[i] = inew;
 		}
-		else if((*data).sync_method == SyncMethod::IMM_LOCKED){
+		else if((*data).sync_method == IMM_LOCKED){
 			pthread_mutex_lock(&mutex_lbls);
 
 			(*(*data).lbls)[i] = inew;
@@ -397,12 +412,18 @@ void *kmeans_worker(void *p_data) {
 		}
 	}
 
-	pthread_mutex_lock(&mutex_lbls);
+	if((*data).sync_method == ON_T_EXIT) {
+		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
+			(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
+	}
+	else if((*data).sync_method == ON_T_EXIT_LOCKED) {
+		pthread_mutex_lock(&mutex_lbls);
 
-	for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-		(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
+		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
+					(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
 
-	pthread_mutex_unlock(&mutex_lbls);
+		pthread_mutex_unlock(&mutex_lbls);
+	}
 
 	pthread_exit(NULL);
 }
@@ -414,7 +435,16 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 	pthread_t threads[NUM_THREADS];
 
+	// init barriers and mutexes
+	pthread_barrier_init(&barrier_calc_c_norms, NULL, NUM_THREADS);
+	pthread_barrier_init(&barrier_find_center, NULL, NUM_THREADS);
+
+	pthread_mutex_init(&mutex_log, NULL);
+	pthread_mutex_init(&mutex_counter, NULL);
 	pthread_mutex_init(&mutex_lbls, NULL);
+	pthread_mutex_init(&mutex_c_norms, NULL);
+	pthread_mutex_init(&mutex_c_sum, NULL);
+	pthread_mutex_init(&mutex_c_count, NULL);
 
 	int x_sz = (*x).size();
 	int v_sz = (*x)[0].size();
@@ -504,6 +534,13 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 		for(int t = 0; t < NUM_THREADS; t++) {
 			pthread_join(threads[t], NULL);
+
+			// merge labels of this thread if AFTER_T_EXIT-syncing is enabled
+			if(sync_method == AFTER_T_EXIT) {
+				for(int i = data[t].x_start; i < data[t].x_start + data[t].x_length; i++) {
+					(*lbls)[i] = (*(data[t]).lbls_loc)[i];
+				}
+			}
 		}
 
 		// merge sums and count
@@ -578,7 +615,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	int o_logm = stoi(argv[P_O_LOG]);
+	int o_logm = std::atoi(argv[P_O_LOG]);
 
 	switch(o_logm) {
 		case 0: log_set_min(LOG_ALL); break;
@@ -593,11 +630,11 @@ int main(int argc, char* argv[]) {
 			"    K-MEANS, Multithreaded (Helge Bruegner 2015)    \n"
 			"----------------------------------------------------\n\n");
 
-	string f_x(argv[P_F_X]);
-	string f_c(argv[P_F_C]);
-	int n_threads = stoi(argv[P_N_TH]);
-	int n_iterations = stoi(argv[P_N_IT]);
-	SyncMethod o_syncm = (SyncMethod)stoi(argv[P_O_SYNCM]);
+	std::string f_x(argv[P_F_X]);
+	std::string f_c(argv[P_F_C]);
+	int n_threads = std::atoi(argv[P_N_TH]);
+	int n_iterations = std::atoi(argv[P_N_IT]);
+	SyncMethod o_syncm = (SyncMethod)std::atoi(argv[P_O_SYNCM]);
 
 	log(LOG_ALL, "Start reading the file \"");
 	log(LOG_ALL, f_x);
@@ -688,7 +725,7 @@ int main(int argc, char* argv[]) {
 	log(LOG_TIME, "\n");
 
 	if(argc == MIN_ARGC + 1) {
-		string f_lbls(argv[P_F_LBLS]);
+		std::string f_lbls(argv[P_F_LBLS]);
 
 		log(LOG_ALL, "Dump labeling to the file [");
 		log(LOG_ALL, f_lbls);
