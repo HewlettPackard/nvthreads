@@ -14,16 +14,11 @@ extern void logd_init(logd_lvl_t lvl, size_t buffer) {
 	size_t i;
 	for(i = 0; i < buffer; i++) {
 		logd_history[i].format = malloc(sizeof(logd_history[i].format) * 300);
-		//logd_history[i].args = malloc(sizeof(va_list));
 	}
 	
 	logd_history_latest = 0;
 	logd_history_size = buffer;
 }
-
-//extern void logd_set_level(logd_lvl_t lvl) {
-//	logd_level = (lvl < LOGD_NONE) ? lvl : LOGD_NONE;
-//}
 
 extern void logd(logd_lvl_t lvl, const char *format, ...) {
 	if(lvl >= logd_level && lvl < LOGD_NONE && logd_history_latest + 1 < logd_history_size) {
@@ -36,9 +31,6 @@ extern void logd(logd_lvl_t lvl, const char *format, ...) {
 		vsprintf(logd_history[logd_history_latest].format, format, args);
 		
 		va_end(args);
-		
-		//logd_history[logd_history_latest].format = format;
-		//va_start(logd_history[logd_history_latest].args, format);
 		#else
 		va_list args;
 		
@@ -66,8 +58,6 @@ extern void logd_flush() {
 	#ifdef LOGD_USE_HISTORY
 	size_t i;
 	for(i = 0; i < logd_history_size; i++) {
-		//vprintf(logd_history[i].format, logd_history[i].args);
-		//va_end(logd_history[i].args);
 		printf("%s", logd_history[i].format);
 	}
 	
