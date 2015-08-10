@@ -135,7 +135,7 @@ mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, co
 		return MCRS_ERR_INVALID_PARAMS;
 	}
 	
-	size_t sz = mcrs_f_get_size(m);//(m->sz_row > m->n_col ? m->sz_row : m->n_col);
+	size_t sz = mcrs_f_get_size(m);
 	
 	if(out->size != sz || v->size != sz) {
 		logd_e(" Invalid parameters (Invalid size)!\n");
@@ -145,11 +145,6 @@ mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, co
         f_t sum = 0;
 	size_t i;
 	size_t j, ri, ri_n;
-	
-	//if(!thd_enabled) {
-	//	for(i = 0; i < sz; i++)
-	//		out->elements[i] = m->empty;
-	//}
 	
 	size_t bl = 10000, bl_nxt = 0;
 
@@ -167,23 +162,13 @@ mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, co
 		}
 	
 		for(j = ri; j < ri_n; j++) {
-			//if(thd_enabled) pthread_mutex_lock(&m_merge);
 			out->elements[m->col_ind[j]] += v->elements[i] * m->values[j];
-			//if(thd_enabled) pthread_mutex_lock(&m_merge);
 		}
 	}
-
-	//if(thd_enabled) {
-	//	pthread_mutex_lock(&m_merge);
-	//}
 	
 	for(i = 0; i < sz; i++) {
 		out->elements[i] += sum;
 	}
-	
-	//if(thd_enabled) {
-	//	pthread_mutex_unlock(&m_merge);
-	//}
 
 	return MCRS_ERR_NONE;
 }
@@ -256,15 +241,7 @@ extern void gen_link_vector_crs(vector_i *linkv, int* empty, const matrix_crs_f 
 
                 if(linkv->elements[i] == 0)
                         (*empty)++;
-                //      linkv->elements[i] = adjm->n_row;
         }
-
-        //printf(" LINKV empty=%d\n", (*empty));
-
-        //linkv->elements[i]
-        //              = ((diff = adjm->row_ptr[i + 1] - adjm->row_ptr[i]) == 0 ? sz : diff);
-
-        //linkv->elements[sz - 1] = ((diff = adjm->row_ptr[sz - 1] - adjm->sz_row) == 0 ? sz : diff);
 }
 
 extern void gen_google_matrix_crs(matrix_crs_f *m, const vector_i *linkv, const float damping_factor) {
@@ -277,19 +254,11 @@ extern void gen_google_matrix_crs(matrix_crs_f *m, const vector_i *linkv, const 
 
         m->empty = damping_factor / (f_t)sz;
 
-	//size_t sz = (m->sz_row > m->n_col ? 
-	
-        //printf(" m->empty*100000=%f\n", m->empty * 100000);
-
-        //printf(" \nEmpty=%f should be %f/%d=%f\n", m->empty, damping_factor, m->sz_row, damping_factor / m->sz_row);
-
         size_t i, j, rp_n;
         for(i = 0; i < sz && i < m->sz_row; i++) { // loop through rows
                 rp_n = (i + 1 < m->sz_row ? m->row_ptr[i + 1] : m->sz_col);
                 for(j = m->row_ptr[i]; j < rp_n; j++) {// loop through columns
                         m->values[j] = (1.0 - damping_factor) * m->values[j] * 1.0 / linkv->elements[i];
-
-                        //m->values[j] = (1.0 - damping_factor) * m->values[j] / linkv->elements[i] + m->empty;
                 }
         }
 	

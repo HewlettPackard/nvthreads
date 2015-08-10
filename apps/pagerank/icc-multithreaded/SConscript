@@ -1,0 +1,19 @@
+Import('examplesEnv')
+Import('mcoreLibrary')
+Import('mtmLibrary')
+
+myEnv = examplesEnv.Clone()
+myEnv.Append(CPPPATH = ['#library/common'])
+myEnv.Append(CCFLAGS='-lrt -g')
+
+sources = Split("""
+                main.c
+		algorithm.c
+		logger.c
+		crsmatrix.c
+		vector.c
+                """)
+
+myEnv.Append(LIBS = [mcoreLibrary])
+myEnv.Append(LIBS = [mtmLibrary])
+myEnv.Program('pagerank', sources)
