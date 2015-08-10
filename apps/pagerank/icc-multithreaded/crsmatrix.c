@@ -4,10 +4,9 @@ extern mcrs_err mcrs_i_init(matrix_crs_i *m, i_t empty) {
 	m->allocd_row = 0;
 	m->allocd_col = 0;
 	m->empty = empty;
-	m->n_row = 0;
-	m->n_col = 0;
 	m->sz_row = 0;
 	m->sz_col = 0;
+	m->n_col = 0;
 	
 	m->values = malloc(sizeof(m->values));
 	m->col_ind = malloc(sizeof(m->col_ind));
@@ -23,10 +22,9 @@ extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t init_val_sz) {
 	m->allocd_row = 0;
 	m->allocd_col = init_val_sz;
 	m->empty = empty;
-	m->n_row = 0;
-	m->n_col = 0;
 	m->sz_row = 0;
 	m->sz_col = 0;
+	m->n_col = 0;
 	
 	m->values = malloc(sizeof(m->values) * init_val_sz);
 	m->col_ind = malloc(sizeof(m->col_ind) * init_val_sz);
@@ -38,12 +36,17 @@ extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t init_val_sz) {
 		return MCRS_ERR_UNABLE_TO_ALLOC;
 }
 
+extern size_t mcrs_f_get_size(matrix_crs_f *m) {
+	return (m->sz_row > m->n_col ? m->sz_row : m->n_col);
+}
+
 extern mcrs_err mcrs_i_free(matrix_crs_i *m) {
 	m->allocd_row = 0;
         m->allocd_col = 0;
 	m->empty = 0;
 	m->sz_row = 0;
 	m->sz_col = 0;
+	m->n_col = 0;
 	
 	free(m->values);
 	free(m->col_ind);
@@ -60,6 +63,7 @@ extern mcrs_err mcrs_f_free(matrix_crs_f *m) {
 	m->empty = 0;
         m->sz_row = 0;
         m->sz_col = 0;
+	m->n_col = 0;
 
         free(m->values);
         free(m->col_ind);
@@ -122,7 +126,6 @@ extern f_t mcrs_f_get(const matrix_crs_f *m, size_t x, size_t y) {
 
 // FIX THIS
 extern mcrs_err mcrs_i_set(matrix_crs_i *m, size_t x, size_t y, i_t val, mcrs_set_mode md) {
-	m->n_row = ((y + 1) > m->n_row ? (y + 1) : m->n_row);
 	m->n_col = ((x + 1) > m->n_col ? (x + 1) : m->n_col);
 	
 	if(val == m->empty)
@@ -225,7 +228,6 @@ extern mcrs_err mcrs_i_set(matrix_crs_i *m, size_t x, size_t y, i_t val, mcrs_se
 }
 
 extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_set_mode md) {
-	m->n_row = ((y + 1) > m->n_row ? (y + 1) : m->n_row);
         m->n_col = ((x + 1) > m->n_col ? (x + 1) : m->n_col);
 
         if(val == m->empty)

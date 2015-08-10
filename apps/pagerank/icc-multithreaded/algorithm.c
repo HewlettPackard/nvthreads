@@ -28,7 +28,7 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 	pthread_t threads[n_threads];
 	thd_data_t data[n_threads];
 	
-	size_t n, i, sz = m->sz_row, assigned = 0, length;
+	size_t n, i, sz = mcrs_f_get_size(m), assigned = 0, length;
 	
 	l_clock_t* tmr = timer_alloc();
 	l_time_t time;
@@ -126,19 +126,24 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f(vector_f *out, const matrix_crs_f *m,
 	for(i = 0; i < m->sz_row; i++)
 		v->elements[i] = m->empty;
 	
-	return mcrs_gmatrix_mult_vector_f_rng(out, m, v, 0, m->sz_row, 0);
+	return mcrs_gmatrix_mult_vector_f_rng(out, m, v, 0, mcrs_f_get_size(m), 0);
 }
 
 mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, const vector_f *v, const size_t rstart, const size_t rend, const int thd_enabled) {
-	if(out == NULL || m == NULL || v == NULL 
-			|| out->size != v->size || out->size != m->n_col 
-			|| m->n_col != m->sz_row) {
-		logd_e(" Invalid parameters!\n");
+	if(out == NULL || m == NULL || v == NULL) { 
+		logd_e(" Invalid parameters (NULL)!\n");
+		return MCRS_ERR_INVALID_PARAMS;
+	}
+	
+	size_t sz = mcrs_f_get_size(m);//(m->sz_row > m->n_col ? m->sz_row : m->n_col);
+	
+	if(out->size != sz || v->size != sz) {
+		logd_e(" Invalid parameters (Invalid size)!\n");
 		return MCRS_ERR_INVALID_PARAMS;
 	}
 	
         f_t sum = 0;
-	size_t i, sz = m->sz_row;
+	size_t i;
 	size_t j, ri, ri_n;
 	
 	//if(!thd_enabled) {
@@ -186,12 +191,12 @@ mcrs_err mcrs_gmatrix_mult_vector_f_rng(vector_f *out, const matrix_crs_f *m, co
 extern mcrs_err check_gmatrix_integrity(const logd_lvl_t lvl, const matrix_crs_f *m) {
 	f_t highest = 0, lowest = 9999999, sum;
 
-	size_t invalid = 0, processed = 0, skipped = 0, sz = m->sz_row, i, j, ri, ri_n;
+	size_t invalid = 0, processed = 0, skipped = 0, sz = mcrs_f_get_size(m), i, j, ri, ri_n;
 	
-	for(i = 0; i < sz; i++) {
+	for(i = 0; i < sz && i < m->sz_row; i++) {
 		sum = 0.0;
 		ri = m->row_ptr[i];
-		ri_n = (i + 1 < sz ? m->row_ptr[i + 1] : m->sz_col);
+		ri_n = (i + 1 < m->sz_row ? m->row_ptr[i + 1] : m->sz_col);
 		
 		if(ri < ri_n) {
 			for(j = ri; j < ri_n; j++) {
@@ -202,7 +207,12 @@ extern mcrs_err check_gmatrix_integrity(const logd_lvl_t lvl, const matrix_crs_f
 			
 			highest = (highest < sum ? sum : highest);
 			lowest = (lowest > sum ? sum : lowest);
-			
+		
+			if(isnan(highest) || isnan(lowest) || isinf(highest) || isinf(lowest)) {
+				logd_e(" Invalid sum in row=%lu val[row][0]=%f (highest=%f lowest=%f)\n", i, m->values[ri], highest, lowest);
+				return MCRS_ERR_FAILED_INTEGRITY_CHECK;
+			}
+	
 			if(sum != 1.0) {
 				invalid++;
 			}
@@ -228,20 +238,23 @@ extern void gen_link_vector_crs(vector_i *linkv, int* empty, const matrix_crs_f 
         assert(linkv != NULL);
         assert(empty != NULL);
         assert(adjm != NULL);
-        assert(linkv->size == adjm->n_row);
+	
+	size_t sz = mcrs_f_get_size(adjm);
+	
+        assert(linkv->size == sz);
 
         (*empty) = 0;
 
-        size_t i, j, ri_n, sz = adjm->sz_row, diff;
-        for(i = 0; i < sz; i++) {
-                linkv->elements[i] = 0.0;
+        size_t i, j, ri_n, diff;
+        for(i = 0; i < sz && i < adjm->sz_row; i++) {
+                linkv->elements[i] = 0;
 
-                ri_n = (i + 1 < sz ? adjm->row_ptr[i + 1] : adjm->sz_col);
+                ri_n = (i + 1 < adjm->sz_row ? adjm->row_ptr[i + 1] : adjm->sz_col);
 
                 for(j = adjm->row_ptr[i]; j < ri_n; j++)
                         linkv->elements[i] += adjm->values[j];
 
-                if(linkv->elements[i] == 0.0)
+                if(linkv->elements[i] == 0)
                         (*empty)++;
                 //      linkv->elements[i] = adjm->n_row;
         }
@@ -257,22 +270,37 @@ extern void gen_link_vector_crs(vector_i *linkv, int* empty, const matrix_crs_f 
 extern void gen_google_matrix_crs(matrix_crs_f *m, const vector_i *linkv, const float damping_factor) {
         assert(m != NULL);
         assert(linkv != NULL);
-        assert(m->n_row == linkv->size);
-        assert(m->n_row = m->n_col);
+	
+	size_t sz = mcrs_f_get_size(m);
+	
+        assert(sz == linkv->size);
 
-        m->empty = damping_factor / (f_t)m->sz_row;
+        m->empty = damping_factor / (f_t)sz;
 
+	//size_t sz = (m->sz_row > m->n_col ? 
+	
         //printf(" m->empty*100000=%f\n", m->empty * 100000);
 
         //printf(" \nEmpty=%f should be %f/%d=%f\n", m->empty, damping_factor, m->sz_row, damping_factor / m->sz_row);
 
         size_t i, j, rp_n;
-        for(i = 0; i < m->n_row; i++) { // loop through rows
-                rp_n = (i + 1 < m->n_row ? m->row_ptr[i + 1] : m->sz_col);
+        for(i = 0; i < sz && i < m->sz_row; i++) { // loop through rows
+                rp_n = (i + 1 < m->sz_row ? m->row_ptr[i + 1] : m->sz_col);
                 for(j = m->row_ptr[i]; j < rp_n; j++) {// loop through columns
                         m->values[j] = (1.0 - damping_factor) * m->values[j] * 1.0 / linkv->elements[i];
 
                         //m->values[j] = (1.0 - damping_factor) * m->values[j] / linkv->elements[i] + m->empty;
                 }
         }
+	
+	size_t sz_row_old = m->sz_row;
+	size_t sz_col_old = m->sz_col;
+	
+	for(i = m->sz_row; i < sz; i++) {
+		mcrs_f_set(m, 0, i, m->empty + 1, MCRS_SET);
+		
+		m->row_ptr[i] = sz_col_old;
+	}
+	
+	m->sz_col = sz_col_old;
 }
