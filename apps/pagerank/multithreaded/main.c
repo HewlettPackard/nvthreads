@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 	l_time_t time;
 
 	// get initial time
-	logd(LOGD_H, "Start loading adj. matrix from file... \n");
+	logd(LOGD_H, "Start loading adj. matrix from file...");
 	timer_start(tmr);
 
 	//printf("allocating %zu bytes\n", sizeof(matrix_crs_f)); 
@@ -69,12 +69,14 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
-	logd(LOGD_H, "(Done loading)\n");
+	size_t sz = (adjm->sz_row > adjm->n_col ? adjm->sz_row : adjm->n_col);
+	
+	//logd(LOGD_H, "(Done loading)\n");
 
 	// time matrix load
 	time = timer_total_ms(tmr);
 
-	logd(LOGD_H, "finished in %ld ms.\n", time);
+	logd(LOGD_H, " done in %ld ms.\n", time);
 
 	// reset timer
 	timer_start(tmr);
@@ -82,7 +84,7 @@ int main(int argc, char** argv) {
 	//printf("allocating %zu bytes\n", sizeof(vector_i));
 	
 	vector_i *linkv = (vector_i*)malloc(sizeof(vector_i));
-	vector_i_init_set(linkv, adjm->n_row, 0);
+	vector_i_init_set(linkv, sz, 0);
 	int empty;
 	
 	gen_link_vector_crs(linkv, &empty, adjm);
@@ -104,18 +106,18 @@ int main(int argc, char** argv) {
 	time = timer_total_ms(tmr);
 
 	logd(LOGD_H, "Google matrix generated in %ld ms.\n", time);
-	logd(LOGD_H, " n_row=%lu n_col=%lu sz_row=%lu sz_col=%lu empty=%lu\n", 
-		adjm->n_row, adjm->n_col, adjm->sz_row, adjm->sz_col, adjm->empty);
+	logd(LOGD_H, " sz_row=%lu sz_col=%lu n_col=%lu empty=%lu\n", 
+		adjm->sz_row, adjm->sz_col, adjm->n_col, adjm->empty);
 
 	// reset timer
-	timer_start(tmr);
+	//timer_start(tmr);
 
 	// check integrity of gmatrix
-	check_gmatrix_integrity(LOGD_H, adjm);
+	//check_gmatrix_integrity(LOGD_H, adjm);
 	
-	time = timer_total_ms(tmr);
+	//time = timer_total_ms(tmr);
 	
-	logd(LOGD_H, "Integrity-check executed in %ld ms.\n", time);
+	//logd(LOGD_H, "Integrity-check executed in %ld ms.\n", time);
 
 	// reset timer
 	timer_start(tmr);
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
     	//printf("allocating %zu bytes\n", sizeof(vector_f)); 
 	
 	vector_f *init = malloc(sizeof(vector_f));
-	vector_f_init_set(init, adjm->n_row, 1.0 / adjm->n_row);
+	vector_f_init_set(init, sz, 1.0 / sz);
 	
 	//printf(" -> init=%f*%lu=%f\n", init->elements[0], adjm->n_row, init->elements[0] * adjm->n_row);
 
@@ -135,7 +137,7 @@ int main(int argc, char** argv) {
     	//printf("allocating %zu bytes\n", sizeof(vector_f)); 
 	
 	vector_f *res = (vector_f*)malloc(sizeof(vector_f));
-	vector_f_init_set(res, adjm->n_row, 0.0);
+	vector_f_init_set(res, sz, 0.0);
 
 	int ct = (iterations > 10) ? 10 : iterations;
 
