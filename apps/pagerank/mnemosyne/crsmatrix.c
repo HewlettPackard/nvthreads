@@ -113,7 +113,7 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
 //          	fprintf(stderr, "mcrs_f_set, before prealloc, m %p\n", m);
             	void* tmp = pmalloc(sizeof(m->row_ptr) * m->allocd_row);
 		memcpy(m->row_ptr, tmp, sz_prev);
-		free(m->row_ptr);
+		pfree(m->row_ptr);
 		m->row_ptr = tmp;//prealloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
 		
             	logd(LOGD_H, " row_ptr reallocd to %d\n", m->allocd_row);
@@ -167,12 +167,12 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
 		
 		void* tmp = pmalloc(sizeof(m->col_ind) * m->allocd_col);
 		memcpy(m->col_ind, tmp, sz_prev);
-		free(m->col_ind);
+		pfree(m->col_ind);
 		m->col_ind = tmp;
 		
 		tmp = pmalloc(sizeof(m->values) * m->allocd_col);
 		memcpy(m->values, tmp, sz_prev);
-		free(m->values);
+		pfree(m->values);
 		m->values = tmp;
 //            m->col_ind = realloc(m->col_ind, sizeof(m->col_ind) * (m->allocd_col += MCRS_ALLOC_BLOCK));
 //            m->values = prealloc(m->values, sizeof(m->values) * (m->allocd_col));
