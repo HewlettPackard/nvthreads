@@ -1,5 +1,5 @@
-GCC=/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
-#GCC=g++
+#GCC=/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
+GCC=g++
 GCCFLAGS=-O3 -c -MMD -MP -std=c++0x
 
 NVPATH=$(PWD)/../../../src/libnvthread.so
@@ -19,7 +19,7 @@ kmeans-mt-dt.o: kmeans.cpp
 	$(GCC) $(GCCFLAGS) -o kmeans-mt-dt.o kmeans.cpp
 
 kmeans-mt-nvt: kmeans-mt-nvt.o
-	$(GCC) -g kmeans-mt-nvt.o -o kmeans-mt-nvt  -rdynamic $(NVPATH) -ldl 
+	$(GCC) kmeans-mt-nvt.o -o kmeans-mt-nvt -rdynamic $(NVPATH) -ldl 
 
 kmeans-mt-nvt.o: kmeans.cpp
 	$(GCC) $(GCCFLAGS) -o kmeans-mt-nvt.o kmeans.cpp
