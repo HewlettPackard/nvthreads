@@ -24,8 +24,8 @@ void *prealloc_hook(void *ptr, size_t sz){
 }
 
 extern mcrs_err mcrs_f_init(matrix_crs_f *m, f_t empty, size_t col_sz, size_t row_sz) {
-    m->allocd_row = 0;
-    m->allocd_col = init_val_sz;
+    m->allocd_row = row_sz;
+    m->allocd_col = col_sz;
     m->empty = empty;
     m->sz_row = 0;
     m->sz_col = 0;
