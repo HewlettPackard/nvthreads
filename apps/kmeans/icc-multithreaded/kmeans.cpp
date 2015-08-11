@@ -4,21 +4,34 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <vector>
+//#include <vector>
 #include <cmath>
 #include <limits>
 #include <execinfo.h>
 //#include <chrono>
 //#include <stack>
 
-//using namespace std;
+#define USE_LOCKS
 
-//typedef std::string /string;
+typedef int i_t;
+typedef struct vec_i {
+	size_t size;
+	i_t* el;
+} vec_i;
+typedef struct vec2_i {
+	size_t size;
+	vec_i** el;
+} vec2_i;
 
-typedef std::vector<int> vec_i;
-typedef std::vector<vec_i> vec2_i;
-typedef std::vector<double> vec_d;
-typedef std::vector<vec_d> vec2_d;
+typedef double f_t;
+typedef struct vec_d {
+	size_t size;
+	f_t* el;
+} vec_d;
+typedef struct vec2_d {
+	size_t size;
+	vec_d** el;
+} vec2_d;
 
 const double POS_INF = std::numeric_limits<double>::infinity();
 
@@ -32,40 +45,62 @@ enum SyncMethod {
 
 /* ==== CONSTRUCTOR-FUNCTIONS ==== */
 
-vec2_i* construct_vec2_i(int x, int y) {
-	vec2_i *res = new vec2_i(x);
+vec_i* construct_vec_i(size_t sz, i_t init) {
+	vec_i* res = (vec_i*)malloc(sizeof(res));
+	res->size = sz;
+	res->el = (i_t*)malloc(sizeof(res->el) * sz);
+	
+	size_t i;
+	for(i = 0; i < sz; i++) {
+		res->el[i] = init;
+	}
+	
+	return res;
+}
 
-	for(int i = 0; i < x; i++) {
-		for(int j = 0; j < y; j++) {
-			(*res)[i] = vec_i(y);
-		}
+vec2_i* construct_vec2_i(size_t szx, size_t szy, i_t init) {
+	vec2_i* res = (vec2_i*)malloc(sizeof(res));
+	res->size = szx;
+	res->el = (vec_i**)malloc(sizeof(res->el) * szx);
+
+	size_t i;
+	for(i = 0; i < szx; i++) {
+		res->el[i] = construct_vec_i(szy, init);
 	}
 
 	return res;
 }
 
-vec2_d* construct_vec2_d(int x, int y) {
-	vec2_d *res = new vec2_d(x);
+vec_d* construct_vec_d(size_t sz, f_t init) {
+        vec_d* res = (vec_d*)malloc(sizeof(res));
+        res->size = sz;
+        res->el = (f_t*)malloc(sizeof(res->el) * sz);
 
-	for(int i = 0; i < x; i++) {
-		for(int j = 0; j < y; j++) {
-			(*res)[i] = vec_d(y);
-		}
-	}
-
+        size_t i;
+        for(i = 0; i < sz; i++) {
+                res->el[i] = init;
+        }
+	
 	return res;
+}
+
+vec2_d* construct_vec2_d(size_t szx, size_t szy, f_t init) {
+        vec2_d* res = (vec2_d*)malloc(sizeof(res));
+        res->size = szx;
+        res->el = (vec_d**)malloc(sizeof(res->el) * szx);
+
+        size_t i;
+        for(i = 0; i < szx; i++) {
+                res->el[i] = construct_vec_d(szy, init);
+        }
+
+        return res;
 }
 
 /* ==== STRUCTS AND STUFF ==== */
 
 struct t_data {
 	int thread_id;
-
-	SyncMethod sync_method;
-
-	/*bool use_local_lbls;
-	bool use_locks;
-	bool use_postsync;*/
 
 	vec2_d *x;
 
@@ -102,6 +137,11 @@ int min_level = 0;
 
 void log_set_min(int level) {
 	min_level = level;
+}
+
+void log(int level, const char* msg) {
+        if(level >= min_level)
+                std::cout << msg << std::flush;
 }
 
 void log(int level, std::string msg) {
@@ -169,63 +209,61 @@ long clock_get_duration() {
 
 /* ==== FUNCTIONS FOR DATA-LOADING AND -SAVING ==== */
 
-vec_d parse_line(const std::string &line, char delim) {
-	vec_d res;
-	std::stringstream ss(line);
-	std::string itm;
-
-	while(std::getline(ss, itm, delim)) {
-		//cout << itm << " ";
-		res.push_back(std::atof(itm.c_str()));
-	}
-
-	return res;
-}
-
-vec2_d load_data(std::string path, const char delim) {
+void load_data(vec2_d* res, const char* path, const char delim) {
 	std::ifstream data_file;
 	std::string line;
+	//std::stringstream ss;
+	std::string itm;
 
-	vec2_d res;
+	printf("res->sz=%lu\n", res->size);
+	
+	data_file.open(path);
 
-	data_file.open(path.c_str());
+	size_t i = 0, j = 0;
 
 	if(data_file.is_open()) {
-		while(std::getline(data_file, line)) {
-			res.push_back(parse_line(line, delim));
+		while(std::getline(data_file, line) && i < res->size) {
+			//res.push_back(parse_line(line, delim));
+			
+			std::stringstream ss(line);
+			j = 0;
+			
+			while(std::getline(ss, itm, delim) && j < res->el[i]->size) {
+				res->el[i]->el[j] = std::atof(itm.c_str());
+				
+				j++;
+			}
+			
+			i++;
 		}
-
-		printf("%f\n", res[0][0]);
 
 		data_file.close();
 	}
-
-	return res;
 }
 
-void dump_data(vec_i data, std::string path, const char delim) {
+void dump_data(vec_i* data, const char* path, const char delim) {
 	std::ofstream data_file;
 
-	data_file.open(path.c_str());
+	data_file.open(path);
 
 	if(data_file.is_open()) {
-		for(int i = 0; i < data.size(); i++) {
-			data_file << data[i] << (i == data.size() - 1 ? ' ' : delim);
+		for(int i = 0; i < data->size; i++) {
+			data_file << data->el[i] << (i == data->size - 1 ? ' ' : delim);
 		}
 	}
 
 	data_file.close();
 }
 
-void dump_data(vec2_d data, std::string path, const char delim) {
+void dump_data(vec2_d* data, const char* path, const char delim) {
 	std::ofstream data_file;
 
-	data_file.open(path.c_str());
+	data_file.open(path);
 
 	if(data_file.is_open()) {
-		for(int i = 0; i < data.size(); i++) {
-			for(int j = 0; j < data[i].size(); j++) {
-				data_file << data[i][j] << (j == data[i].size() - 1 ? ' ' : delim);
+		for(int i = 0; i < data->size; i++) {
+			for(int j = 0; j < data->el[i]->size; j++) {
+				data_file << data->el[i]->el[j] << (j == data->el[i]->size - 1 ? ' ' : delim);
 			}
 
 			data_file << "\n";
@@ -235,62 +273,17 @@ void dump_data(vec2_d data, std::string path, const char delim) {
 	data_file.close();
 }
 
-void vec_to_arr(vec_d *v, double *a) {
-	int v_sz = (*v).size();
-
-	for(int i = 0; i < v_sz; i++) {
-		(*(a + i)) = (*v)[i];
-	}
-}
-
-void vec_to_arr(vec2_d *v, double *a) {
-	int v_sz = (*v).size();
-	int v0_sz = (*v)[0].size();
-
-	for(int i = 0; i < v_sz; i++) {
-		for(int j = 0; j < v0_sz; j++) {
-			(*(a + i * v0_sz + j)) = (*v)[i][j];
-		}
-	}
-}
-
 /* ==== SOME HELPER-FUNCTIONS ==== */
 
-vec_d calc_norm(vec2_d *x) {
-	int x_sz = (*x).size();
-	int x0_sz = (*x)[0].size();
+void calc_norm(vec_d* norms, const vec2_d *x) {
+	if(norms->size != x->size) return;
+	
+	for(int i = 0; i < x->size; i++) {
+		for(int j = 0; j < x->el[i]->size; j++)
+			norms->el[i] += x->el[i]->el[j] * x->el[i]->el[j];
 
-	vec_d norms(x_sz);
-
-	for(int i = 0; i < x_sz; i++) {
-		for(int j = 0; j < x0_sz; j++)
-			norms[i] += (*x)[i][j] * (*x)[i][j];
-
-		norms[i] = sqrt(norms[i]);
+		norms->el[i] = sqrt(norms->el[i]);
 	}
-
-	return norms;
-}
-
-void calc_norms(double *x, int x_sz, int v_sz, double* a) {
-	for(int i = 0; i < x_sz; i++) {
-		for(int j = 0; j < v_sz; j++)
-			*(a + i) += *(x + i * v_sz + j) * *(x + i * v_sz + j);
-	}
-}
-
-vec_i generate_lbls(int sz, int init) {
-	vec_i res(sz);
-
-	for(int i = 0; i < sz; i++)
-		res[i] = init;
-
-	return res;
-}
-
-void arr_i_fill(int *a, int sz, int f) {
-	for(int i = 0; i < sz; i++)
-		*(a + i) = f;
 }
 
 // balances the workload: x = no. of datapoints, t = no. of threads
@@ -313,15 +306,15 @@ void balance_x(int x, const int t, int *res) {
 vec2_i* balance_x(int x, const int t) {
 	int assigned = 0;
 
-	vec2_i *res = new vec2_i(t);
+	vec2_i *res = construct_vec2_i(t, 2, 0);
 
 	for(int i = 0; i < t; i++) {
 		int length = ((x - assigned) / (t - i));
 
 		int start = assigned;
 
-		(*res)[i][0] = start;
-		(*res)[i][1] = length;
+		res->el[i]->el[0] = start;
+		res->el[i]->el[1] = length;
 
 		assigned += length;
 	}
@@ -340,22 +333,14 @@ bool stob(std::string s, std::string s_t, std::string s_f) {
 
 /* ==== MULTI-THREADED K-MEANS ==== */
 
-pthread_mutex_t mutex_log;
-pthread_mutex_t mutex_counter;
 pthread_mutex_t mutex_lbls;
-pthread_mutex_t mutex_c_norms;
-pthread_mutex_t mutex_c_sum;
-pthread_mutex_t mutex_c_count;
-
-pthread_barrier_t barrier_calc_c_norms;
-pthread_barrier_t barrier_find_center;
 
 void *kmeans_worker(void *p_data) {
 	t_data *data = (t_data*)p_data;
 
 	//int x_sz = (*(*data).x).size();
-	int c_sz = (*(*data).c).size();
-	int v_sz = (*(*data).x)[0].size();
+	int c_sz = data->c->size;
+	int v_sz = data->x->el[0]->size;
 
 	double best;
 	double appD;
@@ -364,12 +349,12 @@ void *kmeans_worker(void *p_data) {
 	int inew = 0;
 
 	// find the closest center within the threads range of data
-	for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++) {
+	for(int i = data->x_start; i < (data->x_start + data->x_length); i++) {
 		// find the closest center
 		best = POS_INF;
 
 		for(int n = 0; n < c_sz; n++) {
-			appD = (*(*data).x_norms)[i] - (*(*data).c_norms)[n];
+			appD = data->x_norms->el[i] - data->c_norms->el[n];
 			appD *= appD;
 
 			if(best < appD)
@@ -378,7 +363,7 @@ void *kmeans_worker(void *p_data) {
 			dd = 0.0;
 
 			for(int j = 0; j < v_sz; j++) {
-				tmp_d = (*(*data).x)[i][j] - (*(*data).c)[n][j];
+				tmp_d = data->x->el[i]->el[j] - data->c->el[n]->el[j];
 
 				dd += tmp_d * tmp_d;
 			}
@@ -389,66 +374,41 @@ void *kmeans_worker(void *p_data) {
 			}
 		}
 
-		if((*data).sync_method == AFTER_T_EXIT
-				|| (*data).sync_method == ON_T_EXIT
-				|| (*data).sync_method == ON_T_EXIT_LOCKED) {
-			(*(*data).lbls_loc)[i] = inew;
-		}
-		else if((*data).sync_method == IMM_LOCKED){
-			pthread_mutex_lock(&mutex_lbls);
+		data->lbls_loc->el[i] = inew;
 
-			(*(*data).lbls)[i] = inew;
-
-			pthread_mutex_unlock(&mutex_lbls);
-		}
-		else { // SyncMethod::IMM
-			(*(*data).lbls)[i] = inew;
-		}
-
-		(*(*data).c_count_loc)[inew]++;
+		data->c_count_loc->el[inew]++;
 
 		for(int j = 0; j < v_sz; j++) {
-			(*(*data).c_sum_loc)[inew][j] += (*(*data).x)[i][j];
+			data->c_sum_loc->el[inew]->el[j] += data->x->el[i]->el[j];
 		}
 	}
 
-	if((*data).sync_method == ON_T_EXIT) {
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-			(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
-	}
-	else if((*data).sync_method == ON_T_EXIT_LOCKED) {
-		pthread_mutex_lock(&mutex_lbls);
+	#ifdef USE_LOCKS
+	pthread_mutex_lock(&mutex_lbls);
+	#endif
 
-		for(int i = (*data).x_start; i < ((*data).x_start + (*data).x_length); i++)
-					(*(*data).lbls)[i] = (*(*data).lbls_loc)[i];
-
-		pthread_mutex_unlock(&mutex_lbls);
-	}
+	for(int i = data->x_start; i < (data->x_start + data->x_length); i++)
+		data->lbls->el[i] = data->lbls_loc->el[i];
+	
+	#ifdef USE_LOCKS
+	pthread_mutex_unlock(&mutex_lbls);
+	#endif
 
 	pthread_exit(NULL);
 }
 
 void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
-		vec2_d *centers, int iterations, vec_i *lbls, SyncMethod sync_method) {
+		vec2_d *centers, int iterations, vec_i *lbls) {
 
 	clock_start();
 
 	pthread_t threads[NUM_THREADS];
 
-	// init barriers and mutexes
-	pthread_barrier_init(&barrier_calc_c_norms, NULL, NUM_THREADS);
-	pthread_barrier_init(&barrier_find_center, NULL, NUM_THREADS);
-
-	pthread_mutex_init(&mutex_log, NULL);
-	pthread_mutex_init(&mutex_counter, NULL);
 	pthread_mutex_init(&mutex_lbls, NULL);
-	pthread_mutex_init(&mutex_c_norms, NULL);
-	pthread_mutex_init(&mutex_c_sum, NULL);
-	pthread_mutex_init(&mutex_c_count, NULL);
 
-	int x_sz = (*x).size();
-	int v_sz = (*x)[0].size();
-	int c_sz = (*centers).size();
+	int x_sz = x->size;
+	int v_sz = x->el[0]->size;
+	int c_sz = centers->size;
 
 	// balance load
 	int bal_x[NUM_THREADS][2];
@@ -458,42 +418,40 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 	balance_x(c_sz, NUM_THREADS, &(bal_c[0][0]));
 
 	// init local copies
-	t_data data[NUM_THREADS];
-	t_data d;
+	t_data* data[NUM_THREADS];
+	t_data* d;
 
-	vec_d c_norms(c_sz);
+	vec_d* c_norms = construct_vec_d(c_sz, 0);
 
-	vec2_d c_sum = *construct_vec2_d(c_sz, v_sz);
-	vec_i c_count(c_sz);
+	vec2_d* c_sum = construct_vec2_d(c_sz, v_sz, 0);
+	vec_i* c_count = construct_vec_i(c_sz, 0);
 
 	for(int i = 0; i < NUM_THREADS; i++) {
-		d = *(new t_data);
+		d = (t_data*)malloc(sizeof(t_data));
 
-		d.thread_id = i;
+		d->thread_id = i;
 
-		d.sync_method = sync_method;
+		d->x = x;
+		d->x_start = bal_x[i][0];
+		d->x_length = bal_x[i][1];
 
-		d.x = x;
-		d.x_start = bal_x[i][0];
-		d.x_length = bal_x[i][1];
+		d->x_norms = x_norms;
 
-		d.x_norms = x_norms;
+		d->lbls_loc = construct_vec_i(x_sz, 0);
+		d->lbls = lbls;
 
-		d.lbls_loc = new vec_i(x_sz);
-		d.lbls = lbls;
+		d->c = centers;
 
-		d.c = centers;
+		d->c_norms = c_norms;
 
-		d.c_norms = &c_norms;
+		d->c_n_start = 0;
+		d->c_n_length = 0;
 
-		d.c_n_start = 0;
-		d.c_n_length = 0;
+		d->c_sum_loc = construct_vec2_d(c_sz, v_sz, 0);
+		d->c_sum = c_sum;
 
-		d.c_sum_loc = construct_vec2_d(c_sz, v_sz);
-		d.c_sum = &c_sum;
-
-		d.c_count_loc = new vec_i(c_sz);
-		d.c_count = &c_count;
+		d->c_count_loc = construct_vec_i(c_sz, 0);
+		d->c_count = c_count;
 
 		data[i] = d;
 	}
@@ -510,59 +468,52 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 		// reset sum and counters
 		for(int i = 0; i < c_sz; i++) {
 			for(int j = 0; j < v_sz; j++) {
-				c_sum[i][j] = 0.0;
+				c_sum->el[i]->el[j] = 0.0;
 			}
 
-			c_count[i] = 0;
+			c_count->el[i] = 0;
 		}
 
 		// calculate center-norms
 		for(int i = 0; i < c_sz; i++) {
-			c_norms[i] = 0;
+			c_norms->el[i] = 0;
 
 			for(int j = 0; j < v_sz; j++) {
-				c_norms[i] += (*centers)[i][j] * (*centers)[i][j];
+				c_norms->el[i] += centers->el[i]->el[j] * centers->el[i]->el[j];
 			}
 
-			c_norms[i] = sqrt(c_norms[i]);
+			c_norms->el[i] = sqrt(c_norms->el[i]);
 		}
 
 		// spawn threads
 		for(int t = 0; t < NUM_THREADS; t++) {
-			pthread_create(&(threads[t]), NULL, kmeans_worker, &(data[t]));
+			pthread_create(&(threads[t]), NULL, kmeans_worker, data[t]);
 		}
 
 		for(int t = 0; t < NUM_THREADS; t++) {
 			pthread_join(threads[t], NULL);
-
-			// merge labels of this thread if AFTER_T_EXIT-syncing is enabled
-			if(sync_method == AFTER_T_EXIT) {
-				for(int i = data[t].x_start; i < data[t].x_start + data[t].x_length; i++) {
-					(*lbls)[i] = (*(data[t]).lbls_loc)[i];
-				}
-			}
 		}
 
 		// merge sums and count
 		for(int i = 0; i < c_sz; i++) {
 			for(int t = 0; t < NUM_THREADS; t++) {
 				// sum intermediates
-				c_count[i] += (*(data[t]).c_count_loc)[i];
+				c_count->el[i] += data[t]->c_count_loc->el[i];
 
 				// reset local
-				(*(data[t]).c_count_loc)[i] = 0;
+				data[t]->c_count_loc->el[i] = 0;
 			}
 
 			for(int j = 0; j < v_sz; j++) {
 				for(int t = 0; t < NUM_THREADS; t++) {
 					// sum intermediates
-					c_sum[i][j] += (*(data[t]).c_sum_loc)[i][j];
+					c_sum->el[i]->el[j] += data[t]->c_sum_loc->el[i]->el[j];
 
 					// reset local
-					(*(data[t]).c_sum_loc)[i][j] = 0;
+					data[t]->c_sum_loc->el[i]->el[j] = 0;
 				}
 
-				(*centers)[i][j] = c_sum[i][j] / c_count[i];
+				centers->el[i]->el[j] = c_sum->el[i]->el[j] / c_count->el[i];
 			}
 		}
 
@@ -576,16 +527,17 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 	}
 }
 
-const int MIN_ARGC = 7;
+const int MIN_ARGC = 8;
 
 const int P_PNAME = 0;
 const int P_F_X = 1;
 const int P_F_C = 2;
 const int P_N_TH = 3;
 const int P_N_IT = 4;
-const int P_O_SYNCM = 5;
-const int P_O_LOG = 6;
-const int P_F_LBLS = 7;
+const int P_N_LX = 5;
+const int P_N_LC = 6;
+const int P_N_DIM = 7;
+const int P_F_LBLS = 8;
 
 const int MAX_ARGC = MIN_ARGC + 1;
 
@@ -596,26 +548,12 @@ int main(int argc, char* argv[]) {
 		log_e(LOG_ALL, "\nInvalid arguments! Usage:\n");
 		log_e(LOG_ALL, argv[P_PNAME]);
 		log_e(LOG_ALL, " <x-input-file> <centers-input-file> "
-				"<threads> <iterations> <sync-mode> <log-mode> "
-				"[<mapping-output-file>]\n\n"
-				" Allowed sync-modes:\n"
-				"  0 - Sync in main-thread\n"
-				"  1 - Sync on thread-exit without locks\n"
-				"  2 - ... with locks\n"
-				"  3 - Immediately after the label is calculated without locks\n"
-				"  4 - ... with locks\n"
-				" \n"
-				" Allowed log-modes:\n"
-				"  0 - All\n"
-				"  1 - Time and Err-only\n"
-				"  2 - Err-only\n"
-				"  3 - None\n"
-				"\n");
-
+				"<threads> <iterations> <lines_x> <lines_c> "
+				"<dimensions> [<lbl-output-file>]\n");
 		return 1;
 	}
 
-	int o_logm = std::atoi(argv[P_O_LOG]);
+	/*int o_logm = std::atoi(argv[P_O_LOG]);
 
 	switch(o_logm) {
 		case 0: log_set_min(LOG_ALL); break;
@@ -623,18 +561,22 @@ int main(int argc, char* argv[]) {
 		case 2: log_set_min(LOG_ERR); break;
 		case 3: log_set_min(LOG_NONE); break;
 		default: log_set_min(LOG_ALL);
-	}
+	}*/
 
 	log(LOG_ALL, "\n"
 			"----------------------------------------------------\n"
 			"    K-MEANS, Multithreaded (Helge Bruegner 2015)    \n"
 			"----------------------------------------------------\n\n");
 
-	std::string f_x(argv[P_F_X]);
-	std::string f_c(argv[P_F_C]);
+	const char* f_x = argv[P_F_X];
+	const char* f_c = argv[P_F_C];
 	int n_threads = std::atoi(argv[P_N_TH]);
 	int n_iterations = std::atoi(argv[P_N_IT]);
-	SyncMethod o_syncm = (SyncMethod)std::atoi(argv[P_O_SYNCM]);
+	size_t n_lx = std::atoi(argv[P_N_LX]);
+	size_t n_lc = std::atoi(argv[P_N_LC]);
+	size_t n_dim = std::atoi(argv[P_N_DIM]);
+	
+	//SyncMethod o_syncm = (SyncMethod)std::atoi(argv[P_O_SYNCM]);
 
 	log(LOG_ALL, "Start reading the file \"");
 	log(LOG_ALL, f_x);
@@ -642,7 +584,8 @@ int main(int argc, char* argv[]) {
 
 	clock_start();
 
-	vec2_d x = load_data(f_x, ',');
+	vec2_d* x = construct_vec2_d(n_lx, n_dim, 0);
+	load_data(x, f_x, ',');
 
 	clock_stop();
 
@@ -659,7 +602,10 @@ int main(int argc, char* argv[]) {
 
 	clock_start();
 
-	vec2_d centers = load_data(f_c, ',');
+	vec2_d* centers = construct_vec2_d(n_lc, n_dim, 0);
+	load_data(centers, f_c, ',');
+
+	dump_data(centers, "centers", ',');
 
 	clock_stop();
 
@@ -674,8 +620,9 @@ int main(int argc, char* argv[]) {
 
 	log(LOG_ALL, "Calculating the norms and generating initial labels... ");
 
-	vec_d norms = calc_norm(&x);
-	vec_i lbls = generate_lbls(x.size(), -1);
+	vec_d* norms = construct_vec_d(x->size, 0);
+	calc_norm(norms, x);
+	vec_i* lbls = construct_vec_i(x->size, -1);
 
 	clock_stop();
 
@@ -689,12 +636,12 @@ int main(int argc, char* argv[]) {
 			"        X-File = \"");
 	log(LOG_ALL, f_x);
 	log(LOG_ALL, "\" (");
-	log(LOG_ALL, (int)x.size());
+	log(LOG_ALL, (int)x->size);
 	log(LOG_ALL, " lines)\n"
 			"  Centers-File = \"");
 	log(LOG_ALL, f_c);
 	log(LOG_ALL, "\" (");
-	log(LOG_ALL, (double)centers.size());
+	log(LOG_ALL, (int)centers->size);
 	log(LOG_ALL, " lines)\n");
 	log(LOG_ALL, "       Threads = ");
 	log(LOG_ALL, n_threads);
@@ -703,17 +650,14 @@ int main(int argc, char* argv[]) {
 	log(LOG_ALL, (int)n_iterations);
 	log(LOG_ALL, "\n");
 	log(LOG_ALL, "    Dimensions = ");
-	log(LOG_ALL, (int)x[0].size());
-	log(LOG_ALL, "\n");
-	log(LOG_ALL, "   Sync-Method = ");
-	log(LOG_ALL, o_syncm);
+	log(LOG_ALL, (int)x->el[0]->size);
 	log(LOG_ALL, "\n\n");
 
 	log(LOG_ALL, "Running... ");
 
 	clock_start();
 
-	spawn_threads(n_threads, &x, &norms, &centers, n_iterations, &lbls, o_syncm);
+	spawn_threads(n_threads, x, norms, centers, n_iterations, lbls);
 
 	clock_stop();
 
@@ -725,7 +669,7 @@ int main(int argc, char* argv[]) {
 	log(LOG_TIME, "\n");
 
 	if(argc == MIN_ARGC + 1) {
-		std::string f_lbls(argv[P_F_LBLS]);
+		const char* f_lbls = argv[P_F_LBLS];
 
 		log(LOG_ALL, "Dump labeling to the file [");
 		log(LOG_ALL, f_lbls);
@@ -738,14 +682,14 @@ int main(int argc, char* argv[]) {
 	else {
 		log(LOG_ALL, "Skipped dumping to file. Printing centers:\n");
 
-		for(int i = 0; i < centers.size(); i++) {
+		for(int i = 0; i < centers->size; i++) {
 			log(LOG_ALL, "[");
 			log(LOG_ALL, (int)i);
 			log(LOG_ALL, "](");
 
-			for(int j = 0; j < centers[i].size(); j++) {
-				log(LOG_ALL, centers[i][j]);
-				log(LOG_ALL, (j == centers[i].size() - 1 ? "" : ","));
+			for(int j = 0; j < centers->el[i]->size; j++) {
+				log(LOG_ALL, centers->el[i]->el[j]);
+				log(LOG_ALL, (j == centers->el[i]->size - 1 ? "" : ","));
 			}
 
 			log(LOG_ALL, ")\n");
