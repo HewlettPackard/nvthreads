@@ -23,7 +23,8 @@ const int P_FIN = 1;
 const int P_NIT = 2;
 const int P_NTHD = 3;
 const int P_INITNL = 4;
-const int P_FOUT = 5;
+const int P_INITNR = 5;
+const int P_FOUT = 6;
 
 int main(int argc, char** argv) {
 	mcrs_err e;
@@ -32,14 +33,15 @@ int main(int argc, char** argv) {
 
 	if(argc != P_MIN)
         {
-                logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads> <n_lines> [<outputfile>]\n");
+                logd_e("Invalid arguments!\nUsage: pagerank <inputfile> <n_iterations> <n_threads> <n_lines> <n_rows> [<outputfile>]\n");
                 return 1;
         }
 
 	char *fin = argv[P_FIN];
         const int iterations = atoi(argv[P_NIT]);
         size_t n_threads = atoi(argv[P_NTHD]);
-	size_t n_vals = atoi(argv[P_INITNL]);
+	size_t n_lines = atoi(argv[P_INITNL]);
+	size_t n_rows = atoi(argv[P_INITRL]);
 
         int save_res = 0;
         char *fout;
@@ -65,7 +67,7 @@ int main(int argc, char** argv) {
 	
 	matrix_crs_f *adjm = pmalloc(sizeof(matrix_crs_f));
     fprintf(stderr, "pmalloced %p\n", adjm);
-	mcrs_f_init(adjm, 0.0, n_vals);
+	mcrs_f_init(adjm, 0.0, n_lines, n_rows);
 
 	//matrix_i *adjm = (matrix_i*)malloc(sizeof(matrix_i));
 	//matrix_i_init_set(adjm, 1, 0);
