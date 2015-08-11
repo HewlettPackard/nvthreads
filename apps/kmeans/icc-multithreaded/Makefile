@@ -1,5 +1,5 @@
-#GCC=/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
-GCC=g++
+GCC=/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
+#GCC=g++
 GCCFLAGS=-O3 -c -MMD -MP -std=c++0x
 
 NVPATH=$(PWD)/../../../src/libnvthread.so
