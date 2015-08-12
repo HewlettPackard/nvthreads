@@ -7,6 +7,8 @@
 #include <cmath>
 #include <limits>
 #include <execinfo.h>
+#include <stack>
+#include <chrono>
 
 #include "nvrecovery.h"
 
@@ -125,6 +127,8 @@ vec_i* nvconstruct_vec_i(size_t sz, i_t init, char* label, bool recover) {
 
 vec2_i* nvconstruct_vec2_i(size_t szx, size_t szy, i_t init, char* label, bool recover) {
 	vec2_i* res = (vec2_i*)nvmalloc(sizeof(res), label);
+	
+//	printf(" - res
 		
 	if(recover) {
 		nvrecover(res, sizeof(res), label);
@@ -184,7 +188,7 @@ vec_d* nvconstruct_vec_d(size_t sz, f_t init, char* label, bool recover) {
 
 vec2_d* nvconstruct_vec2_d(size_t szx, size_t szy, f_t init, char* label, bool recover) {
         vec2_d* res = (vec2_d*)nvmalloc(sizeof(res), label);
-
+	
         if(recover) {
                 nvrecover(res, sizeof(res), label);
                 szx = res->size;
@@ -300,25 +304,25 @@ void log_e(int level, double msg) {
 
 /* ==== CLOCK ==== */
 
-//stack<chrono::high_resolution_clock::time_point> times_start;
-//stack<chrono::high_resolution_clock::time_point> times_end;
+std::stack<std::chrono::high_resolution_clock::time_point> times_start;
+std::stack<std::chrono::high_resolution_clock::time_point> times_end;
 
 void clock_start() {
-//	times_start.push(chrono::high_resolution_clock::now());
+	times_start.push(std::chrono::high_resolution_clock::now());
 }
 
 void clock_stop() {
-//	times_end.push(chrono::high_resolution_clock::now());
+	times_end.push(std::chrono::high_resolution_clock::now());
 }
 
 long clock_get_duration() {
-//	long duration = chrono::duration_cast<chrono::milliseconds>(times_end.top() - times_start.top()).count();
-//
-//	times_start.pop();
-//	times_end.pop();
-//
-//	return duration
-	return 0;
+	long duration = std::chrono::duration_cast<std::chrono::milliseconds>(times_end.top() - times_start.top()).count();
+
+	times_start.pop();
+	times_end.pop();
+
+	return duration;
+//	return 0;
 }
 
 /* ==== FUNCTIONS FOR DATA-LOADING AND -SAVING ==== */
@@ -326,19 +330,14 @@ long clock_get_duration() {
 void load_data(vec2_d* res, const char* path, const char delim) {
 	std::ifstream data_file;
 	std::string line;
-	//std::stringstream ss;
 	std::string itm;
 
-	printf("res->sz=%lu\n", res->size);
-	
 	data_file.open(path);
 
 	size_t i = 0, j = 0;
 
 	if(data_file.is_open()) {
 		while(std::getline(data_file, line) && i < res->size) {
-			//res.push_back(parse_line(line, delim));
-			
 			std::stringstream ss(line);
 			j = 0;
 			
@@ -504,7 +503,9 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 	int x_sz = x->size;
 	int v_sz = x->el[0]->size;
 	int c_sz = centers->size;
-
+	
+	printf(" - SIZES %d %d %d\n", x_sz, v_sz, c_sz);
+	
 	// balance load
 	int bal_x[NUM_THREADS][2];
 	int bal_c[NUM_THREADS][2];
@@ -690,6 +691,7 @@ int main(int argc, char* argv[]) {
 	vec2_d* centers = nvconstruct_vec2_d(n_lc, n_dim, 0, LBL_CENTERS, crashed);
 	
 	if(!crashed) {
+		printf(" - loading data\n");
 		load_data(centers, f_c, ',');
 	}
 

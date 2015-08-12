@@ -1,7 +1,7 @@
 #GCC=/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc
 
 GCC=g++
-GCCFLAGS=-O3 -MMD -MP -std=c++0x
+GCCFLAGS=-O0 -g3 -MMD -MP -std=c++0x
 
 NVINCLUDE=$(PWD)/../../../src/include
 NVSRC=$(PWD)/../../../src/source/nvrecovery.cpp
