@@ -57,8 +57,12 @@ void initialize() {
 
     sprintf(stats_filename, "/tmp/statsXXXXXX");
     stats_fd = mkstemp(stats_filename);
+
     global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
+
+#ifdef PAGE_DENSITY
     INIT_COUNTER_ARRAY(pagedensity, 4097UL);
+#endif
 
     global_data->thread_index = 1;
     DEBUG("after mapping global data structure");
@@ -89,6 +93,8 @@ void finalize() {
 //  PRINT_COUNTER(shorttrans);
 
 //  PRINT_COUNTER_ARRAY(pagedensity, 4096UL);
+
+#ifdef PAGE_DENSITY
     PRINT_COUNTER(pdcount);
     PRINT_COUNTER(dummy);
     char fn[1024];
@@ -98,8 +104,9 @@ void finalize() {
         OUTPUT_COUNTER_ARRAY_FILE(pagedensity, 4097UL, fp);
     }
     fclose(fp);
-
+#endif
     unlink(stats_filename);
+
 }
 
 extern "C"
