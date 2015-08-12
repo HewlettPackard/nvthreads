@@ -321,12 +321,15 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
         if(md == MCRS_SET || newcol)
                 m->values[ci] = val;
         else {
-                if(md == MCRS_ADD)
-			m->values[ci] = m->values[ci] + val;
-                else if(md == MCRS_SUB)
+                if(md == MCRS_ADD) {
+			m->values[ci] += val;
+		}
+                else if(md == MCRS_SUB) {
                         m->values[ci] -= val;
-                else
+		}
+                else {
                         return MCRS_ERR_INVALID_MODE;
+		}
         }
 
         return MCRS_ERR_NONE;
