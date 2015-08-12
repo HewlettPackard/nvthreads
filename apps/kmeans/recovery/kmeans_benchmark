@@ -9,12 +9,12 @@ PROGBASE=$PWD"/"
 #XINPUT=$PROGBASE"../../../mnt/bruegner/x_10M_50_double"
 XINPUT="/mnt/ssd/bruegner/x_1M_50_double"
 CINPUT="/mnt/ssd/bruegner/c_100_50_double"
-OUTPUTBASE="/mnt/ssd/bruegner/res/icc_x1M"
+OUTPUTBASE="/mnt/ssd/bruegner/res/iccnvm_x1M"
 
-NAMES=("kmeans-mt-pt" "kmeans-mt-dt" "kmeans-mt-nvt")
+NAMES=("kmeans")
 #NAMES=("kmeans-mt-nvt")
-THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
-#THREADS=(8)
+#THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
+THREADS=(8)
 NIT=10
 
 NLX=1000000
