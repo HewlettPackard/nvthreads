@@ -9,15 +9,17 @@ PROGBASE=$PWD"/"
 #XINPUT=$PROGBASE"../../../mnt/bruegner/x_10M_50_double"
 XINPUT="/mnt/ssd/bruegner/x_1M_50_double"
 CINPUT="/mnt/ssd/bruegner/c_100_50_double"
-OUTPUTBASE="/mnt/ssd/bruegner/res/nicc_x1M"
+OUTPUTBASE="/mnt/ssd/bruegner/res/icc_x1M"
 
 NAMES=("kmeans-mt-pt" "kmeans-mt-dt" "kmeans-mt-nvt")
 #NAMES=("kmeans-mt-nvt")
 THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
 #THREADS=(8)
 NIT=10
-SMD=2
-LMD=1
+
+NLX=1000000
+NLC=100
+NDIM=50
 
 echo 
 echo === STARTED $BMNAME BENCHMARK @ $(date) ===
@@ -33,7 +35,7 @@ do
 		echo
 		echo -- NTHD=$NTHD NIT=$NIT STARTED @ $(date) --
 		#echo EXECUTING $PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
-		$EXECBASE$PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
+		$EXECBASE$PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $NLX $NLC $NDIM $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
 	done
 done
 
