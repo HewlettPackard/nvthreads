@@ -206,7 +206,10 @@ CM = 'CM_SUICIDE'
 #   grow dynamically when they become full.
 ########################################################################
 
-RW_SET_SIZE = 32768
+#RW_SET_SIZE = 32768
+#RW_SET_SIZE = 26777216
+RW_SET_SIZE = 8886777216
+#RW_SET_SIZE =  4886777216
 
 ########################################################################
 # LOCK_ARRAY_LOG_SIZE (default=20): number of bits used for indexes in
@@ -215,6 +218,7 @@ RW_SET_SIZE = 32768
 ########################################################################
 
 LOCK_ARRAY_LOG_SIZE = 20
+#LOCK_ARRAY_LOG_SIZE = 30
 
 ########################################################################
 # LOCK_SHIFT_EXTRA (default=2): additional shifts to apply to the
@@ -235,6 +239,7 @@ LOCK_SHIFT_EXTRA = 2
 #   the power of  PRIVATE_LOCK_ARRAY_LOG_SIZE.
 ########################################################################
 
+#PRIVATE_LOCK_ARRAY_LOG_SIZE = 8
 PRIVATE_LOCK_ARRAY_LOG_SIZE = 8
 
 
