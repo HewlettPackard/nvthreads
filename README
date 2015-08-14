@@ -1,0 +1,34 @@
+NVthreads: Practical Persistence for Multi-threaded Applications
+
+- Authors: Terry Hsu, Helge Bruegner, Indrajit Roy, Kimberly Keeton
+
+- Source tree structure:
+   
+    apps/: The applications cases for NVthreads.
+        - GraphEngine1.18/: graph workload provided by analytics team at HPL.
+        - LSH_multithreaded/: high similarity search provided by analytics team at HPL.
+        - datagen/: generates data from kmeans inputs.
+        - kmeans/: implementation of the kmeans algorithm.
+        - pagerank/: implementation of the well-known page rank algorithm.
+
+    configs/: Configuration files for NVthreads 
+    
+    docs/: Published reserach paper for the NVthreads design rationale.
+
+    eval/: Benchmark evaluation
+        datasets/: please save input data for benchmarks in this directory
+        tests/: this directory contains all the benchmarks we used in the paper evaluation (Phoenix and Parsec)
+
+    src/: The core of NVthreads library
+        source: source code 
+        include: header file
+
+    tests/: Simple test cases for NVthreads library
+    
+    third-parties/: Tools related to NVthreads
+        dthreads/: unmodified version of the Dthreads library.
+        mnemosyne/: unmodified version of the Mnemosyne system.
+
+- Install library:
+
+    See INSTALL at $NVthreads/ directory
