@@ -14,4 +14,5 @@
 #
 ########################################################################
 
-GENALLOC = 'GENALLOC_DOUGLEA'
+#GENALLOC = 'GENALLOC_DOUGLEA'
+GENALLOC = 'GENALLOC_VISTAHEAP'
