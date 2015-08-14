@@ -1,0 +1,16 @@
+.sconsign.dblite
+._*
+*~
+*.pyc
+cscope.out
+.DS_Store
+.segments
+/build
+/bench/openldap/openldap-2.3.35-bdb/build_local
+/bench/openldap/openldap-2.3.35-mnemosyne/build_local
+/doc/html
+/library/src/mtm/mode/wbwt/
+/examples/atomic/
+/dep/libevent-2.0.10/build
+/bench/memcached/memcached-1.2.4-mtm/build
+/bench/memcached/memcachedb-1.2.0/build/

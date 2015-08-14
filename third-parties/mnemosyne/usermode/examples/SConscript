@@ -1,0 +1,22 @@
+import os
+
+Import('examplesEnv')
+Import('pmallocLibrary')
+
+examplesEnv['CPPPATH'] = ['#library/mcore/include', '#library/mtm/include', '#library/pmalloc/include']
+examplesEnv.Append(CCFLAGS = ' -Qtm_enabled -fpic ')
+examplesEnv.Append(LINKFLAGS = ' -Qtm_enabled ')
+examplesEnv.Append(LIBS = [pmallocLibrary])
+
+if examplesEnv['BUILD_DEBUG'] == True:
+	examplesEnv.Append(CCFLAGS = ' -g')
+else:	
+	examplesEnv.Append(CCFLAGS = ' -O2')
+
+examplesEnv.Append(CCFLAGS = ' -m64 ')
+examplesEnv.Append(LINKFLAGS = ' -T '+ examplesEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+Export('examplesEnv')
+
+example = examplesEnv['BUILD_EXAMPLE']
+sconscript_path = example + '/SConscript'
+SConscript(sconscript_path)
