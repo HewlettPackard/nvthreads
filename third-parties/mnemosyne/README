@@ -1,0 +1,64 @@
+MNEMOSYNE OVERVIEW:
+
+New storage-class memory (SCM) technologies, such as phase-change memory, 
+STT-RAM, and memristors, promise user-level access to non-volatile storage 
+through regular memory instructions. These memory devices enable fast 
+user-mode access to persistence, allowing regular in-memory data structures 
+to survive system crashes.
+
+Mnemosyne provides a simple interface for programming with persistent 
+memory. Mnemosyne addresses two challenges: how to create and manage such 
+memory, and how to ensure consistency in the presence of failures. Without 
+additional mechanisms, a system failure may leave data structures in SCM in 
+an invalid state, crashing the program the next time it starts.
+
+In Mnemosyne, programmers declare global persistent data with the keyword 
+persistent or allocate it dynamically. Mnemosyne provides primitives for 
+directly modifying persistent variables and supports consistent updates 
+through a lightweight transaction mechanism. Compared to past work on 
+disk-based persistent memory, Mnemosyne is much lighter weight, as it can 
+store data items as small as a word rather than a virtual memory page. In 
+tests emulating the performance characteristics of forthcoming SCMs, we 
+find that Mnemosyne provides a 20--280 percent performance increase for 
+small data sizes over alternative persistence strategies, such as 
+Berkeley DB or Boost serialization that are designed for disks.
+
+
+SOURCE-TREE:
+
+$MNEMOSYNE/usermode  : Mnemosyne user-mode library suite
+$MNEMOSYNE/kernelmode: Mnemosyne kernel extensions
+
+For further information please refer to the Doxygen generated documentation.
+
+
+BUILDING:
+
+Invoke SCons
+
+For example, to build Mnemosyne for PCM write latency of 1000ns, you may invoke SCons 
+while in $MNEMOSYNE/usermode:
+
+% cd $MNEMOSYNE/usermode
+% scons M_PCM_EMULATE_LATENCY=True M_PCM_LATENCY_WRITE=1000
+
+For further information please refer to the Doxygen generated documentation.
+
+
+DOCUMENTATION:
+
+Running doxygen will create documentation under $MNEMOSYNE/doc/html
+
+% cd $MNEMOSYNE
+% doxygen
+
+
+AUTHORS:
+
+Haris Volos   <hvolos@cs.wisc.edu>
+Andres Jaan Tack   <tack@cs.wisc.edu>
+
+
+LICENSE:
+
+See license file under each module

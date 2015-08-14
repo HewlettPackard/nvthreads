@@ -1,0 +1,67 @@
+import os
+import sys
+import string
+sys.path.append('%s/library' % (Dir('#').abspath))
+import configuration.pmalloc
+
+Import('mainEnv')  # read only -- clone if need to modify
+
+buildEnv = configuration.pmalloc.Environment(mainEnv, mainEnv['BUILD_CONFIG_NAME'])
+
+OPTIMIZE_FLAG = '-fno-rtti -fno-exceptions -finline-functions'
+WARNINGS = '-Wall -Wpointer-arith  -Wconversion -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual '
+DISABLE_WARNINGS = ['-wd981',  #remark  #981 : operands are evaluated in unspecified order
+                    '-wd2090', #warning #2090: GNU minimum/maximum operators are deprecated                    
+                    '-wd1419', #warning #1419: external declaration in primary source file
+                    '-wd444',  #remark  #444 : destructor for base class is not virtual
+                   ]
+
+
+if buildEnv['BUILD_DEBUG'] == True:
+	CCFLAGS= ' -g -D_MNEMOSYNE_BUILD_DEBUG '
+else:
+	CCFLAGS= ' -g -DNDEBUG -O2 ' + OPTIMIZE_FLAG
+
+if buildEnv['BUILD_STATS'] == True:
+	buildEnv.Append(CCFLAGS = ' -D_M_STATS_BUILD')
+
+CCFLAGS = CCFLAGS + WARNINGS + string.join(DISABLE_WARNINGS, ' ') + ' -Qtm_enabled -fpic -fno-omit-frame-pointer'
+CCFLAGS = CCFLAGS + ' -m64 '
+
+buildEnv.Append(CCFLAGS = CCFLAGS)
+buildEnv.Append(CXXFLAGS = CCFLAGS)
+buildEnv.Append(CPPPATH = ['#library'])
+buildEnv.Append(CPPPATH = ['#library/mcore/include'])
+buildEnv.Append(LINKFLAGS = ' -T '+ buildEnv['MY_LINKER_DIR'] + '/linker_script_persistent_segment_m64')
+
+C_SRC = Split("""
+              src/pdlmalloc.c 
+              src/vhalloc.c 
+              src/vistaheap.c
+              """)
+
+CXX_SRC = Split("""
+                src/arch-specific.cpp
+                src/hoardheap.cpp
+                src/persistentheap.cpp
+                src/processheap.cpp
+                src/superblock.cpp
+                src/threadheap.cpp
+                src/wrapper.cpp
+                """)
+
+#Not sure what to do with these files:
+DEPRECATED_CXX_SRC = Split("""
+                src/mallocwrap.cpp
+                """)
+
+
+SRC = C_SRC + CXX_SRC
+
+
+if buildEnv['BUILD_LINKAGE'] == 'dynamic':
+	pmallocLibrary = buildEnv.SharedLibrary('pmalloc', SRC)
+else:
+	pmallocLibrary = buildEnv.StaticLibrary('pmalloc', SRC)
+
+Return('pmallocLibrary')
