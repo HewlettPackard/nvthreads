@@ -32,3 +32,7 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 - Install library:
 
     See INSTALL at $NVthreads/ directory
+    
+
+Note for HP Labs users:
+    You can find the dataset for benchmarks in /scratch/terryh/datasets/nvthreads/
