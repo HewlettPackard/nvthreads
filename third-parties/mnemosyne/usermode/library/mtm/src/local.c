@@ -32,7 +32,9 @@
 
 #include <mtm_i.h>
 
-#define LOCAL_LOG_SIZE (256*1024)
+//#define LOCAL_LOG_SIZE (256*1024)
+//#define LOCAL_LOG_SIZE (256*1024*512)
+#define LOCAL_LOG_SIZE 0xFFFFFFFF
 
 struct mtm_local_undo_entry_s {
   void   *addr;

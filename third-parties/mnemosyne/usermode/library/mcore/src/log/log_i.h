@@ -56,7 +56,8 @@ extern "C" {
  * Physical log size is power of 2 to implement arithmetic efficiently 
  * e.g. modulo using bitwise operations: x % 2^n == x & (2^n - 1) 
  */
-#define PHYSICAL_LOG_NUM_ENTRIES_LOG2 20
+//#define PHYSICAL_LOG_NUM_ENTRIES_LOG2 20  // works for microbenchmark
+#define PHYSICAL_LOG_NUM_ENTRIES_LOG2 40    // for pagerank
 #define PHYSICAL_LOG_NUM_ENTRIES      (1 << PHYSICAL_LOG_NUM_ENTRIES_LOG2)
 #define PHYSICAL_LOG_SIZE             (PHYSICAL_LOG_NUM_ENTRIES * sizeof(pcm_word_t)) /* in bytes */
 

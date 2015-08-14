@@ -53,9 +53,10 @@
 
 __attribute__ ((section("PERSISTENT"))) pcm_word_t log_pool = 0x0;
 
-#define LOG_NUM 32
-
-
+//#define LOG_NUM 16
+//#define LOG_NUM 1024
+#define LOG_NUM 0xFFFFFF
+//#define LOG_NUM 0xA00000
 typedef struct m_logtype_entry_s m_logtype_entry_t;
 struct m_logtype_entry_s {
 	int              type;
@@ -100,7 +101,7 @@ create_log_pool(pcm_storeset_t *set, m_logmgr_t *mgr)
 	uintptr_t        metadata_start_addr;
 	uintptr_t        logs_start_addr;
 	int              metadata_section_size;
-	int              physical_log_size;
+	uint64_t              physical_log_size;
 	void             *addr;
 	m_log_dsc_t      *log_dscs;
 	m_segidx_entry_t *segidx_entry;
