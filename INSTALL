@@ -1,0 +1,10 @@
+To build NVthreads library, type the following commands:
+    cd $NVthreads/src
+    make
+
+Your NVthreads library named libnvthread.so will be compiled and ready to use at:
+    $NVthreads/src/libnvthread.so
+
+To link your application to NVthreads library
+    gcc -o foo.o foo.c -ldl -rdynamic $NVthreads/src/libnvthread.so
+
