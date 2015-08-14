@@ -61,7 +61,7 @@ m_result_t
 mtm_pwbnl_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 {
 	mtm_pwb_mode_data_t *data;
-
+    int rv = 0;
 #if CM == CM_PRIORITY
 	COMPILE_TIME_ASSERT((sizeof(w_entry_t) & ALIGNMENT_MASK) == 0); /* Multiple of ALIGNMENT */
 #endif /* CM == CM_PRIORITY */
@@ -85,11 +85,14 @@ mtm_pwbnl_create(mtm_tx_t *tx, mtm_mode_data_t **datap)
 
 	/* Non-volatile log */
 #ifdef SYNC_TRUNCATION	
-	m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, 0, &data->ptmlog_dsc);
+	rv = m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, 0, &data->ptmlog_dsc);
 #else
-	m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, LF_ASYNC_TRUNCATION, &data->ptmlog_dsc);
+	rv = m_logmgr_alloc_log(tx->pcm_storeset, M_TMLOG_LF_TYPE, LF_ASYNC_TRUNCATION, &data->ptmlog_dsc);
 #endif	
-	data->ptmlog = (M_TMLOG_T *) data->ptmlog_dsc->log;
+    if ( rv != M_R_SUCCESS ) {
+        fprintf(stderr, "Failed to allocate log!!!!!\n");
+    }
+    data->ptmlog = (M_TMLOG_T *)data->ptmlog_dsc->log;
 
 	*datap = (mtm_mode_data_t *) data;
 
