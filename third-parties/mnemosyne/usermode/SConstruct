@@ -84,8 +84,10 @@ mainEnv['MY_LINKER_DIR'] = os.path.join(rootDir, 'tool/linker')
 
 mainEnv['ICC_DIR'] = '/opt/intel/Compiler/11.0/606/'
 
-mainEnv['CC'] = os.path.join(mainEnv['ICC_DIR'], 'bin/intel64/icc')
-mainEnv['CXX'] = os.path.join(mainEnv['ICC_DIR'],  'bin/intel64/icpc')
+#mainEnv['CC'] = os.path.join(mainEnv['ICC_DIR'], 'bin/intel64/icc')
+mainEnv['CC'] = os.path.join(mainEnv['ICC_DIR'], '/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icc')
+#mainEnv['CXX'] = os.path.join(mainEnv['ICC_DIR'],  'bin/intel64/icpc')
+mainEnv['CXX'] = os.path.join(mainEnv['ICC_DIR'],  '/home/hsuchi/intel/Compiler/11.0/606/bin/intel64/icpc')
 
 
 Export('mainEnv')
