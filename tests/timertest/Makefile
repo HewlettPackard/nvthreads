@@ -1,4 +1,4 @@
-NVPATH=$(PWD)/../../../src/libnvthread.so
+NVPATH=$(PWD)/../../src/libnvthread.so
 
 all: tc tcpp tcppnvt
 
@@ -18,4 +18,4 @@ lcpp.o: logger.c
 	g++ -O0 -c -MMD -MP -std=c++0x logger.c -o lcpp.o
 
 clean:
-	rm -rf tc tcpp tcppnvt
+	rm -rf tc tcpp tcppnvt *.o *.d
