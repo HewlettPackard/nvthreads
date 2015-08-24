@@ -4,7 +4,6 @@
 #include "logger.h"
 
 void* worker(void* args) {
-	printf("Spawned!\n");
 	sleep(1);
 }
 
@@ -15,7 +14,8 @@ int main(int argc, char* argv) {
 	for(i = 0; i < 100; i++) {
 		timer_start(tmr);
 		
-		//sleep(1);
+		printf(" TIMER_START-time=%lu\n", timer_total_ms(tmr));
+		
 		pthread_t thd;
 		
 		pthread_create(&thd, NULL, worker, NULL);
