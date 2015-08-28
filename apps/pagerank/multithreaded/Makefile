@@ -14,7 +14,8 @@ NVTEXEC = prr-nvt
 
 W_FLAGS = -Wall -Wextra -pedantic
 
-FLAGS = -I . $(W_FLAGS)
+FLAGS = -I . $(W_FLAGS) -DENABLE_SEQ_PROFILING
+#-DENABLE_SERIAL_PROFILING
 
 LINKOPT = -dynamic
 

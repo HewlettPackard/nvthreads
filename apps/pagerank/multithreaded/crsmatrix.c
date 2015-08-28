@@ -248,7 +248,7 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
 			}
 			
                         m->row_ptr = realloc(m->row_ptr, sizeof(m->row_ptr) * m->allocd_row);
-			logd(LOGD_H, " row_ptr reallocd to %d\n", m->allocd_row);
+			//logd(LOGD_H, " row_ptr reallocd to %d\n", m->allocd_row);
                 }
 
                 ri_old = m->sz_row;
@@ -298,7 +298,7 @@ extern mcrs_err mcrs_f_set(matrix_crs_f *m, size_t x, size_t y, f_t val, mcrs_se
                         m->col_ind = realloc(m->col_ind, sizeof(m->col_ind) * (m->allocd_col += MCRS_ALLOC_BLOCK));
                         m->values = realloc(m->values, sizeof(m->values) * (m->allocd_col));
 			
-			logd(LOGD_H, " col_ind, values reallocd to %d\n", m->allocd_col);
+			//logd(LOGD_H, " col_ind, values reallocd to %d\n", m->allocd_col);
                 }
 
                 if(m->col_ind == NULL) {

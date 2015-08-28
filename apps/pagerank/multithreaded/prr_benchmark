@@ -3,17 +3,19 @@
 #PROGBASE="nvthreads/apps/pagerank/multithreaded/"
 PROGBASE=""
 
-INPUT="/mnt/ssd/bruegner/adj_slashdot_snap"
+INPUT="/mnt/ssd/bruegner/adj_livejournal_snap"
 #INPUT="../../../../mnt/bruegner/adj_livejournal_snap"
 OUTPUTBASE="/mnt/ssd/bruegner/res/sd"
 
 #NAMES=("prr-pt" "prr-dt" "prr-nvt")
-NAMES=("prr-dt")
+NAMES=("prr-pt" "prr-dt" "prr-nvt")
+#NAMES=("prr-nvt")
 
-#THREADS=(4)
-THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
+THREADS=(4 4)
+#THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
 #NLINES=1215492978
-NLINES=948464
+#NLINES=948464
+NLINES=68993773
 NIT=10
 
 echo 
