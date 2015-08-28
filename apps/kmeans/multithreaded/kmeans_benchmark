@@ -13,11 +13,12 @@ OUTPUTBASE="/mnt/ssd/bruegner/res/nicc_x1M"
 
 NAMES=("kmeans-mt-pt" "kmeans-mt-dt" "kmeans-mt-nvt")
 #NAMES=("kmeans-mt-nvt")
-THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
-#THREADS=(8)
+#THREADS=(1 2 2 2 4 4 4 8 8 8 12 12 12)
+THREADS=(4)
 NIT=10
-SMD=2
-LMD=1
+NX=1000000
+NC=100
+ND=50
 
 echo 
 echo === STARTED $BMNAME BENCHMARK @ $(date) ===
@@ -33,7 +34,7 @@ do
 		echo
 		echo -- NTHD=$NTHD NIT=$NIT STARTED @ $(date) --
 		#echo EXECUTING $PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
-		$EXECBASE$PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $SMD $LMD $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
+		$EXECBASE$PROGBASE$NAME $XINPUT $CINPUT $NTHD $NIT $NX $NC $ND $OUTPUTBASE"_"$NAME"_"$NIT"_"$NTHD
 	done
 done
 
