@@ -5,22 +5,40 @@ pthread_mutex_t m_log;
 
 void *mcrs_gmatrix_worker(void* param) {
 	thd_data_t* data = (thd_data_t*)param;
+	
+	#ifdef ENABLE_SEQ_PROFILING
+	logd(data->lvl, "%d\tspawned\t%lu\n", data->thread_id, timer_total_ms(data->tmr));
+	#endif	
 
 	data->e = mcrs_gmatrix_mult_vector_f_rng(data->loc, data->m, data->v, data->rstart, data->rend, 1);
 
+	#ifdef ENABLE_SERIAL_PROFILING
 	//pthread_mutex_lock(&m_log);
-	//logd(data->lvl, "%d:%lu ", data->thread_id, timer_total_ms(data->tmr));
+	logd(data->lvl, "%d\tcalcd\t%lu\n", data->thread_id, timer_total_ms(data->tmr));
 	//pthread_mutex_unlock(&m_log);
+	#endif
 	
 	size_t i;
 
 	pthread_mutex_lock(&m_merge);
+	
+	#ifdef ENABLE_PARALLEL_PROFILING
+	logd(data->lvl, "%d\tlocked\t%lu\n", data->thread_id, timer_total_ms(data->tmr));
+	#endif
+	
 	for(i = 0; i < data->m->sz_row; i++) {
 		data->out->elements[i] += data->loc->elements[i];
 		data->loc->elements[i] = 0.0;
 	}
+	
+	#ifdef ENABLE_SEQ_PROFILING
+	logd(data->lvl, "%d\tmerged\t%lu\n", data->thread_id, timer_total_ms(data->tmr));
+	#endif
 	pthread_mutex_unlock(&m_merge);
 	
+	#ifdef ENABLE_SEQ_PROFILING
+	logd(data->lvl, "%d\tunlckd\t%lu\n", data->thread_id, timer_total_ms(data->tmr));
+	#endif
 	pthread_exit(NULL);
 }
 
@@ -49,7 +67,6 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		
 		data[i].out = out;
         	
-		//printf("allocating sz %zu for thread %d/%d\n", sizeof(vector_f) * sz, i, n_threads);
 	        data[i].loc = malloc(sizeof(vector_f) * sz);
 		
 		vector_f_init(data[i].loc, sz);
@@ -76,7 +93,9 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
                         tmp->elements[i] = m->empty;//0.0;
                 }
 		
+		#ifdef ENABLE_SERIAL_PROFILING
 		logd(lvl, "(");	
+		#endif
 	
 		for(i = 0; i < n_threads; i++) {
 			if(pthread_create(&threads[i], NULL, mcrs_gmatrix_worker, (void*)&data[i])) {
@@ -98,18 +117,14 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 			data[i].out = tmp;
 		}
 		
+		#ifdef ENABLE_SERIAL_PROFILING
 		logd(lvl, ")\t");
+		logd(lvl, "%d\t", n);
+		#endif
 		
 		time = timer_lap_ms(tmr);
-	
-		logd(lvl, "%d\t", n);	
-		logd(LOGD_X, "%ld", time);
-		logd(lvl, "\tms");
-		logd(LOGD_X, "\n");
 		
-		//if((*e) != MCRS_ERR_NONE) {
-		//	return (*e);
-		//}
+		logd(LOGD_X, " %ld\n", time);
 	}
 	
 	for(i = 0; i < n_threads; i++) {

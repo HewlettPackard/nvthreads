@@ -1,6 +1,11 @@
 #ifndef ALGORITHM_H
 #define ALGORITHM_H
 
+#ifdef ENABLE_SEQ_PROFILING
+#define ENABLE_SERIAL_PROFILING
+#define ENABLE_PARALLEL_PROFILING
+#endif
+
 #include <crsmatrix.h>
 
 #include <vector.h>
