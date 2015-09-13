@@ -141,7 +141,6 @@ public:
 //      if ( MemoryLog::_logging_enabled ) {
         lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvmLog->_varmap_filename);
         _localNvmLog->AppendVarMapLog(ptr, sz, name);
-        _localMemoryLog->AppendMemoryLog(ptr);
 //      }
 
         return ptr;
