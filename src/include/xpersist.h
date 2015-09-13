@@ -840,6 +840,7 @@ public:
         localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
 
         // Loop through all dirtied pages
+        int page_count = 0;
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
             bool needsModify = false;
             pageinfo = (struct xpageinfo *)i->second;
@@ -867,7 +868,8 @@ public:
                 ProfileDiffs(local, twin);
 #endif
                 localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-
+                lprintf("Logged page %d at %p\n", page_count, pageinfo->pageStart);
+                page_count++;
 #ifdef PAGE_DENSITY
                 // Counter sanity checks
                 if ( global_data->stats.pdcount_count != global_data->stats.loggedpages_count ) {
