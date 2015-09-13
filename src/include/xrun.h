@@ -418,6 +418,11 @@ public:
         }
     }
 
+    /* Check whether current program crashed before */
+    static inline bool isCrashed(void){
+        return xmemory::_localNvRecovery->isCrashed();
+    }
+
     /* nvmalloc-related functions */
     static inline void *nvmalloc(size_t sz, char *name){
         void *ptr;
