@@ -111,6 +111,9 @@ void finalize() {
 
 extern "C"
 {
+    bool isCrashed(void){
+        return xrun::isCrashed();
+    }
 
     void* nvmalloc(size_t size, char *name) {
         void *ptr;
