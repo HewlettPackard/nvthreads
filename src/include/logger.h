@@ -46,7 +46,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 0
+#define LDEBUG 1
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -169,14 +169,13 @@ public:
         _mempages_file_count = 0;
         _logentry_count = 0;
         _dirtiedPagesCount = 0;
-        sprintf(_heap_log_filename, "/mnt/ramdisk/MemLog_%d_Heap", threadID); 
-        sprintf(_global_log_filename, "/mnt/ramdisk/MemLog_%d_Global", threadID); 
-        _heap_log_fd = open(_heap_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
-        close(_heap_log_fd);
-        _global_log_fd = open(_global_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
-        close(_global_log_fd);
+//      sprintf(_heap_log_filename, "/mnt/ramdisk/MemLog_%d_Heap", threadID);
+//      sprintf(_global_log_filename, "/mnt/ramdisk/MemLog_%d_Global", threadID);
+//      _heap_log_fd = open(_heap_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
+//      close(_heap_log_fd);
+//      _global_log_fd = open(_global_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
+//      close(_global_log_fd);
 
-//      OpenMemoryLog();
     }
 
     void finalize() {
@@ -184,7 +183,6 @@ public:
         if ( !_logging_enabled ) {
             return;
         }
-//      CloseMemoryLog();
     }
 
     static bool isCommentStmt(char *stmt) {
@@ -244,12 +242,12 @@ public:
             abort();
         }
 
-//      if ( _mempages_ptr == MAP_FAILED ) {
-//          fprintf(stderr, "%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
-//          abort();
-//      } else {
-//          printf("Created fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
-//      }
+        if ( _mempages_ptr == MAP_FAILED ) {
+            lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
+            abort();
+        } else {
+            lprintf("Opened memory page log. fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
+        }
     }
 
     void OpenDiskLog(void) {
@@ -260,7 +258,7 @@ public:
             fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
             perror("mkstemp: ");
             abort();
-        }
+        }       
     }
 
     /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
@@ -377,14 +375,13 @@ public:
         }
         */
         
-//      printf("%d: Appending log at file %s for addr %p page %lu: 0x%08lx\n", getpid(), _mempages_filename, addr, _logentry_count, newLE.addr);
         struct LogEntry::log_t newLE;
         newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
         newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
-
+        lprintf("Appending log at file %s for addr 0x%08lx\n", _mempages_filename, newLE.addr); 
         
         size_t sz;
-        sz = write(_mempages_fd, (void*)newLE.addr, sizeof(unsigned long));
+        sz = write(_mempages_fd, &newLE.addr, sizeof(void*));
         if ( sz == -1 ) {
             fprintf(stderr, "%d: write addr %p error fd: %d, filename: %s\n", getpid(), (void *)newLE.addr, _mempages_fd, _mempages_filename);
             perror("write (addr): ");
