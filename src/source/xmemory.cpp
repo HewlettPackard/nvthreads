@@ -15,5 +15,4 @@ stack_t xmemory::_sigstk;
 
 int xmemory::_heapid;
 MemoryLog *xmemory::_localMemoryLog;
-nvmemory *xmemory::_localNvmLog;
 nvrecovery *xmemory::_localNvRecovery;

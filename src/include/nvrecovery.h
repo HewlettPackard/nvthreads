@@ -73,6 +73,16 @@ extern "C"
 }
 
 
+/* Class for log entry to be appended to the end of per-thread MemoryLog */
+class varmap_entry {
+    enum {MaxVarNameLength = 1024};
+public:
+    struct varmap_t {
+        unsigned long addr;
+        char *name;
+    };
+};
+
 class nvrecovery {
 
 public:
@@ -83,19 +93,30 @@ public:
 //      lprintf("Destructing an instance of nvmemory\n");
     }
 
+    // FIXME: Why limit the file size of varmap?? make it appendable
+    enum {NumEntryVarMap = 10000};
+    enum {MaxEntrySize = 64};
+    enum {MapSizeOfLog = NumEntryVarMap * MaxEntrySize};
+    enum {MAXPID = 32768};
+
     int nvid;
     int nvlib_linenum;
+    char nvlib_crash[FILENAME_MAX];
+    char log_path_prefix[FILENAME_MAX];
     bool crashed;
     bool _main_thread;
     bool _initialized;
     bool _logging_enabled;
     LOG_DEST log_dest;
-//  char running_filename[FILENAME_MAX];
-//  int running_fd;
-//  char crash_filename[FILENAME_MAX];
-//  int crash_fd;
-    char nvlib_crash[FILENAME_MAX]; 
-    char log_path_prefix[FILENAME_MAX];
+    int threadID;
+
+    /* For file mapped varmap log */
+    FILE *_varmap_fptr;
+    void *_varmap_ptr;
+    int _varmap_fd;
+    unsigned long _varmap_offset;
+    char _varmap_filename[FILENAME_MAX];
+    bool _first_entry;
 
     // Store a list of file names for memory pages
     std::vector<std::string> *mempage_file_vector;
@@ -109,7 +130,7 @@ public:
 
     void initialize(bool main_thread) {
         _main_thread = main_thread;
-
+        threadID = getpid();
 #ifdef NVLOGGING
         _logging_enabled = true;
 #else
@@ -124,7 +145,7 @@ public:
         lprintf("----------initializing nvrecovery class--------------\n");
         if ( !_initialized ) {
             srand(time(NULL));
-            strcpy(nvlib_crash, "/tmp/nvlib.crash"); 
+            strcpy(nvlib_crash, "/tmp/nvlib.crash");
 
             // TODO: Read from config
 //          log_dest = MemoryLog::log_dest;
@@ -135,24 +156,22 @@ public:
             varmap = new std::map<std::string, unsigned long>;
             varmap_file_vector = new std::vector<std::string>;
 
-            if ( log_dest == DISK ) {
-                sprintf(log_path_prefix, "./");
-            } else if ( log_dest == DRAM_TMPFS ) {
-                sprintf(log_path_prefix, "/mnt/ramdisk/");
-            }
-
+            // Main thread checks whether the program crashed before and sets the crash flag
             if ( _main_thread ) {
                 setCrashedFlag();
                 if ( isCrashed() ) {
                     // Recover the variable and address mapping and memory pages
                     createRecoverHashMap();
-                } 
+                }
                 /*
                 else {
                     running_fd = create_flag_file(running_filename);
                 }
                 */
             }
+
+            // Create new VarMap file for current run
+            OpenVarMap();
 
             _initialized = true;
         }
@@ -171,17 +190,74 @@ public:
 //          close(crash_fd);
 //          unlink(running_filename);
 //          unlink(crash_filename);
-            delete_nvlib_crash();
+            delete_nvlibcrash_entry();
             delete_varmap();
             delete_memlog();
+            CloseVarMap(); 
         }
 //      delete mempage_file_vector;
 //      delete varmap_file_vector;
 //      delete varmap;
     }
 
+    // Create the path to store memory log and variable mapping
+    void createLogPath(void) {  
+        // Create direcotry for current nvid to save varmap and MemLog
+        if ( (mkdir(log_path_prefix, 0777)) == -1 ) {
+            perror("Error when mkdir(log_path_prefix)");
+            abort();
+        }
+        lprintf("Created log path: %s\n", log_path_prefix);
+    }
+
+    // Open variable mapping file descriptor
+    void OpenVarMap(void) {
+        // Create a temp file for logging mapping between variable and address
+        sprintf(_varmap_filename, "%svarmap_%d_XXXXXX", log_path_prefix, threadID);
+        _varmap_fd = mkostemp(_varmap_filename, O_RDWR | O_ASYNC | O_APPEND);
+
+        if ( _varmap_fd == -1 ) {
+            fprintf(stderr, "%d: Error creating %s\n", getpid(), _varmap_filename);
+            perror("mkostemp");
+            abort();
+        }
+        lprintf("Opened varmap file at: %s\n", _varmap_filename);
+        _varmap_offset = 0;
+    }
+
+    // Close variable mapping file descriptor and remove it
+    void CloseVarMap(void) {
+        close(_varmap_fd);
+        unlink(_varmap_filename);
+        lprintf("Closed %s\n", _varmap_filename);
+    }
+
+    // Add a entry for variable mapping. Called by nvmalloc
+    void AppendVarMapLog(void *start, size_t size, char *name) {
+        // Append record to the end of the varmap log
+        char tmp[strlen(name) + sizeof(unsigned long)];
+        varmap_entry::varmap_t varmap;
+        varmap.addr = (unsigned long)start;
+        varmap.name = name;
+        sprintf(tmp, "%s:%lx\n", varmap.name, varmap.addr);
+
+        if ( _first_entry ) {
+            _first_entry = false;
+        }
+
+        // Write log to varmap file
+        if ( write(_varmap_fd, tmp, strlen(tmp)) == -1 ) {
+            fprintf(stderr, "Error writing log to varmap file: %s\n", _varmap_filename);
+            perror("write");
+            abort();
+        }
+        _varmap_offset = _varmap_offset + strlen(tmp);
+
+        lprintf("Added variable address map record: %s\n", tmp);
+    }
+
     // Delete line number of the current program entry in nvlib.crash
-    void delete_nvlib_crash(void){
+    void delete_nvlibcrash_entry(void) {
         int line = 0;
         char tmp[FILENAME_MAX];
         char buf[FILENAME_MAX];
@@ -193,9 +269,8 @@ public:
             if ( line != nvlib_linenum ) {
                 fprintf(outfp, "%s", buf);
                 lprintf("Copied %s from %s to %s\n", buf, nvlib_crash, tmp);
-            }
-            else{
-                lprintf("Skip copying %s\n", buf); 
+            } else {
+                lprintf("Skip copying %s\n", buf);
             }
             line++;
         }
@@ -206,14 +281,14 @@ public:
         rename(tmp, nvlib_crash);
 
         // Delete old file
-        unlink(tmp); 
+        unlink(tmp);
     }
 
-    void delete_varmap(void){
+    void delete_varmap(void) {
 
     }
 
-    void delete_memlog(void){
+    void delete_memlog(void) {
 
     }
 /*
@@ -238,30 +313,30 @@ public:
         int line = 0;
 
         // Get absolute exe name
-        ret = readlink("/proc/self/exe",exe,sizeof(exe)-1);
+        ret = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
         if ( ret == -1 ) {
             fprintf(stderr, "readlink() error when lookup nvid.\n");
             abort();
         }
         exe[ret] = 0;
         lprintf("exe: %s\n", exe);
-        
+
         // Lookup in crash record file at /tmp/nvlib.crash
         FILE *fp = fopen(nvlib_crash, "r+");
 
         // nvlib.crash doesn't exist, create a new one.
         if ( fp == NULL ) {
             lprintf("%s doesn't exist, create it now\n", nvlib_crash);
-            fp = fopen(nvlib_crash, "w"); 
+            fp = fopen(nvlib_crash, "w");
         }
         // Lookup absolute exe name in nvlib.crash
-        else{
+        else {
             char buf[FILENAME_MAX];
             while (fgets(buf, FILENAME_MAX, fp) != NULL) {
                 char *token;
-                token = strtok(buf,", \n");
+                token = strtok(buf, ", \n");
                 // Found record, program has crashed before
-                if ( strcmp(token, exe) == 0 ) {                  
+                if ( strcmp(token, exe) == 0 ) {
                     crashed = true;
                     token = strtok(NULL, ", \n");
                     // Read old NVID
@@ -270,14 +345,13 @@ public:
                 }
                 line++;
             }
-        }        
+        }
         // Record line number for the entry
         nvlib_linenum = line;
 
         if ( crashed ) {
             lprintf("%s crashed before, Found nvid at line %d in nvlib.crash: %d\n", exe, nvlib_linenum, nvid);
-        }
-        else{
+        } else {
             // Generate a new NVID
             nvid = rand();
             lprintf("%s didn't crash in previous execution\n", exe);
@@ -286,12 +360,19 @@ public:
         }
         fclose(fp);
 
+        // Set up log path after we get nvid
+        if ( log_dest == DISK ) {
+            sprintf(log_path_prefix, "./");
+        } else if ( log_dest == DRAM_TMPFS ) {
+            sprintf(log_path_prefix, "/mnt/ramdisk/%d/", nvid);
+        }
+
         lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);
         return line;
     }
 
     // Set crashed flag to true if we can find a crash record in nvlib.crash
-    void setCrashedFlag(void){
+    void setCrashedFlag(void) {
         bool ret = false;
         int line;
 
@@ -303,6 +384,7 @@ public:
             crashed = true;
         } else {
             lprintf("Your program did not crash before.  Continue normal execution\n");
+            createLogPath();
             crashed = false;
         }
     }
@@ -321,6 +403,9 @@ public:
             while ((ent = readdir(dir)) != NULL) {
                 std::string *str = new std::string(ent->d_name);
                 std::size_t found = str->find(pattern);
+
+                lprintf("checking file: %s\n", str->c_str()); 
+
                 // Found match
                 if ( found != std::string::npos ) {
                     if ( strcmp(pattern, "varmap") == 0 ) {
@@ -333,6 +418,9 @@ public:
                 }
             }
             closedir(dir);
+        }
+        else{
+            lprintf("empty directory: %s\n", log_path_prefix); 
         }
     }
 
