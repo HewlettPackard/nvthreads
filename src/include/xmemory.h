@@ -81,8 +81,7 @@ private:
 
 public:
 
-    // Memory Log
-    static nvmemory *_localNvmLog;
+    // Memory and variable mapping logging
     static MemoryLog *_localMemoryLog;
     static nvrecovery *_localNvRecovery;
 
@@ -120,15 +119,12 @@ public:
         _heapid = id % xdefines::NUM_HEAPS;
     }
 
-    static void setThreadVarMapLog(nvmemory *NvmLog) {
-        _localNvmLog = NvmLog;
+    static void setThreadRecovery(nvrecovery *NvRecovery) {
+        _localNvRecovery = NvRecovery;
     }
 
     static void setThreadMemoryLog(MemoryLog *MemoryLog) {
         _localMemoryLog = MemoryLog;
-    }
-    static void setThreadRecovery(nvrecovery *NvRecovery) {
-        _localNvRecovery = NvRecovery;
     }
 
     static inline void* nvmalloc(size_t sz, char *name) {
@@ -139,8 +135,8 @@ public:
         }
 
 //      if ( MemoryLog::_logging_enabled ) {
-        lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvmLog->_varmap_filename);
-        _localNvmLog->AppendVarMapLog(ptr, sz, name);
+        lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvRecovery->_varmap_filename);
+        _localNvRecovery->AppendVarMapLog(ptr, sz, name);
 //      }
 
         return ptr;

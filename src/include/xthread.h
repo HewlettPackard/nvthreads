@@ -84,9 +84,6 @@ public:
     /* Memory log */
     static MemoryLog _localMemoryLog; 
     
-    /* Variable map */
-    static nvmemory _localNvmLog;
-    
     /* Recover interface */
     static nvrecovery _localNvRecovery;
 

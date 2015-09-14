@@ -115,13 +115,8 @@ public:
             xmemory::setThreadRecovery(&xthread::_localNvRecovery);
             
             // Initialize memory log
-            xthread::_localMemoryLog.initialize();
+            xthread::_localMemoryLog.initialize(xthread::_localNvRecovery.nvid);
             xmemory::setThreadMemoryLog(&xthread::_localMemoryLog);
-
-            // Initialize variable log
-            xthread::_localNvmLog.initialize();
-            xmemory::setThreadVarMapLog(&xthread::_localNvmLog);
-    
         } else {
             fprintf(stderr, "xrun reinitialized");
             ::abort();
@@ -152,7 +147,6 @@ public:
 //      if ( MemoryLog::_logging_enabled ) {
             // Finalize memory log
             xthread::_localMemoryLog.finalize();
-            xthread::_localNvmLog.finalize();
             xthread::_localNvRecovery.finalize();
 //      }
     }
@@ -169,7 +163,7 @@ public:
 
     // New created thread should call this.
     // Now only the current thread is active.
-    static inline int childRegister(int pid, int parentindex, MemoryLog *localMemoryLog, nvmemory *localNvmLog) {
+    static inline int childRegister(int pid, int parentindex, MemoryLog *localMemoryLog, nvrecovery *localNvRecovery) {
         int threads;
 
         // Get the global thread index for this thread, which will be used internally.
@@ -184,14 +178,14 @@ public:
         determ::getInstance().registerThread(_thread_index, pid, parentindex);
 
 //      if ( MemoryLog::_logging_enabled ) {
-            // Set correponding heap index.
-            xmemory::setThreadIndex(_thread_index);
+        // Set correponding heap index.
+        xmemory::setThreadIndex(_thread_index);
 
-            // Set memory pages logging
-            xmemory::setThreadMemoryLog(localMemoryLog);
+        // Set memory pages logging
+        xmemory::setThreadMemoryLog(localMemoryLog);
 
-            // Set variable mapping
-            xmemory::setThreadVarMapLog(localNvmLog);
+        // Set variable mapping
+        xmemory::setThreadRecovery(localNvRecovery);
 //      }
 
 #ifdef LAZY_COMMIT
@@ -226,9 +220,6 @@ public:
 
         // Finalize memory log
         xmemory::_localMemoryLog->finalize();
-
-        // Finalize variable log
-        xmemory::_localNvmLog->finalize();
 
         // Finalize varmap log
         xmemory::_localNvRecovery->finalize(); 

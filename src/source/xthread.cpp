@@ -34,7 +34,6 @@ unsigned int xthread::_nestingLevel = 0;
 int xthread::_tid;
 
 MemoryLog xthread::_localMemoryLog;
-nvmemory xthread::_localNvmLog;
 nvrecovery xthread::_localNvRecovery;
 
 void* xthread::spawn(threadFunction *fn, void *arg, int parent_index) {
@@ -128,13 +127,10 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
             xthread::_localNvRecovery.initialize(false);
 
             // Initialize memory log
-            xthread::_localMemoryLog.initialize();
-
-            // Initialize variable log
-            xthread::_localNvmLog.initialize();
+            xthread::_localMemoryLog.initialize(xthread::_localNvRecovery.nvid);
 //      }
 
-        int threadindex = xrun::childRegister(mypid, parent_index, &xthread::_localMemoryLog, &xthread::_localNvmLog);
+        int threadindex = xrun::childRegister(mypid, parent_index, &xthread::_localMemoryLog, &xthread::_localNvRecovery);
 
         t->threadIndex = threadindex;
         t->tid = mypid;
@@ -151,9 +147,6 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
             
             // Finalize memory log
             xthread::_localMemoryLog.finalize();
-
-            // Finalize variable log
-            xthread::_localNvmLog.finalize();
 
             // Finalize varmap log
             xthread::_localNvRecovery.finalize(); 

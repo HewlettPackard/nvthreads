@@ -117,6 +117,7 @@ public:
     LOG_DEST log_dest;
     bool _logging_enabled;
     
+    int nvid;    
     int threadID;
 
     /* For memory pages logging */
@@ -130,6 +131,7 @@ public:
     static int _DurableMethod;
     int _dirtiedPagesCount; 
     int _log_flags;
+    char log_path_prefix[FILENAME_MAX]; 
 
     /* For heap */
     int _heap_log_fd;
@@ -154,7 +156,7 @@ public:
     ~MemoryLog() {
     }
 
-    void initialize() {
+    void initialize(int _nvid) {
 #ifdef NVLOGGING
         _logging_enabled = true;
 #else
@@ -169,6 +171,7 @@ public:
         _mempages_file_count = 0;
         _logentry_count = 0;
         _dirtiedPagesCount = 0;
+        nvid = _nvid;
 //      sprintf(_heap_log_filename, "/mnt/ramdisk/MemLog_%d_Heap", threadID);
 //      sprintf(_global_log_filename, "/mnt/ramdisk/MemLog_%d_Global", threadID);
 //      _heap_log_fd = open(_heap_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
@@ -183,6 +186,10 @@ public:
         if ( !_logging_enabled ) {
             return;
         }
+    }
+
+    void setNVID(int _nvid){
+        nvid = _nvid;
     }
 
     static bool isCommentStmt(char *stmt) {
@@ -232,10 +239,13 @@ public:
         _logentry_count = 0;
 
         if ( log_dest == DISK ) {
+            sprintf(log_path_prefix, "/mnt/ssd/terry/tmp/%d", nvid);
             OpenDiskLog();
         } else if ( log_dest == DRAM_TMPFS ) {
+            sprintf(log_path_prefix, "/mnt/ramdisk/%d", nvid);
             OpenDramTmpfsLog();
         } else if ( log_dest == NVRAM_TMPFS ) {
+            sprintf(log_path_prefix, "/mnt/nvmfs/%d", nvid);
             OpenNvramTmpfsLog();
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
@@ -251,7 +261,7 @@ public:
     }
 
     void OpenDiskLog(void) {
-        sprintf(_mempages_filename, "/mnt/ssd/terry/tmp/MemLog_%d_%d_XXXXXXX", threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
@@ -263,7 +273,7 @@ public:
 
     /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
     void OpenDramTmpfsLog(void) {
-        sprintf(_mempages_filename, "/mnt/ramdisk/MemLog_%d_%d_XXXXXXX", threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
@@ -271,10 +281,11 @@ public:
             perror("mkstemp: ");
             abort();
         }
+        _mempages_offset = 0;
     }
 
     void OpenNvramTmpfsLog(void) {
-        sprintf(_mempages_filename, "/mnt/nvmfs/MemLog_%d_%d_XXXXXXX", threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
