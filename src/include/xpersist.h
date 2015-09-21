@@ -825,7 +825,7 @@ public:
         if ( _dirtiedPagesList.size() == 0 ) {
             return;
         }
-//      printf("%d: commit #dirtied pages: %d\n", getpid(), _dirtiedPagesList.size());
+        lprintf("%d: commit transaction #%ul #dirtied pages: %d\n", getpid(), _trans, _dirtiedPagesList.size());
 
         _trans++;
     
@@ -837,7 +837,7 @@ public:
         START_TIMER(logging);
 
         // Open a new log file if we have dirtied pages
-        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size());
+        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _trans);
 
         // Loop through all dirtied pages
         int page_count = 0;

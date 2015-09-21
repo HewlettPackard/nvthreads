@@ -123,6 +123,7 @@ public:
     /* For memory pages logging */
     int _mempages_fd;
     int _mempages_file_count;
+    unsigned long _transaction_id;
     unsigned long _mempages_offset;
     unsigned long _mempages_filesize;
     char _mempages_filename[FILENAME_MAX];
@@ -233,11 +234,11 @@ public:
         }
     }
 
-    void OpenMemoryLog(int dirtiedPagesCount) {
+    void OpenMemoryLog(int dirtiedPagesCount, unsigned long transid) {
         _dirtiedPagesCount = dirtiedPagesCount;
         _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
         _logentry_count = 0;
-
+        _transaction_id = transid;
         if ( log_dest == DISK ) {
             sprintf(log_path_prefix, "/mnt/ssd/terry/tmp/%d", nvid);
             OpenDiskLog();
@@ -260,8 +261,8 @@ public:
         }
     }
 
-    void OpenDiskLog(void) {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
+    void OpenDiskLog() {
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
@@ -273,7 +274,7 @@ public:
 
     /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
     void OpenDramTmpfsLog(void) {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
@@ -285,7 +286,7 @@ public:
     }
 
     void OpenNvramTmpfsLog(void) {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%d_XXXXXXX", log_path_prefix, threadID, _mempages_file_count);
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
         if ( _mempages_fd == -1 ) {
