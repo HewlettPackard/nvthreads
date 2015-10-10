@@ -44,10 +44,18 @@ void finalize()__attribute__((destructor));
 #endif
 
 runtime_data_t *global_data;
+runtime_metadata_t *global_metadata;
 
 static bool initialized = false;
 static int stats_fd;
 static char stats_filename[1024]; 
+
+// initialize metadata to 0
+void metadata_init(void){
+    memset(&global_metadata->metadata, 0, sizeof(struct metadata_t));
+    global_metadata->thread_index = 1;
+}
+
 void initialize() {
     DEBUG("intializing libdthread");
 
@@ -59,12 +67,14 @@ void initialize() {
     stats_fd = mkstemp(stats_filename);
 
     global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
+    global_metadata = (runtime_metadata_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
 
 #ifdef PAGE_DENSITY
     INIT_COUNTER_ARRAY(pagedensity, 4097UL);
 #endif
 
     global_data->thread_index = 1;
+    metadata_init();
     DEBUG("after mapping global data structure");
 
     xrun::initialize();

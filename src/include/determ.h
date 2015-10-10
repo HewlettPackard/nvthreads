@@ -373,8 +373,11 @@ public:
     if (_currthreads == 0) {
       _is_arrival_phase = true;
 
+      INC_METACOUNTER(globalTransactionCount);
+      lprintf("started new transaction %d\n", GET_METACOUNTER(globalTransactionCount));
+
       // Cleanup the bitmap here.
-      if(!keepBitmap)
+      if ( !keepBitmap )
         xbitmap::getInstance().cleanup();
 
       WRAP(pthread_cond_broadcast)(&cond);
@@ -421,6 +424,7 @@ public:
     if(next != NULL) {
       _tokenpos = next;
     }
+
     unlock();
   }
 
