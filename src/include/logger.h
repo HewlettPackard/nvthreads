@@ -123,7 +123,7 @@ public:
     /* For memory pages logging */
     int _mempages_fd;
     int _mempages_file_count;
-    unsigned long _transaction_id;
+    unsigned int _local_transaction_id;
     unsigned long _mempages_offset;
     unsigned long _mempages_filesize;
     char _mempages_filename[FILENAME_MAX];
@@ -234,24 +234,39 @@ public:
         }
     }
 
-    void OpenMemoryLog(int dirtiedPagesCount, unsigned long transid) {
+    /* Memory log filename: /path/to/MemLog_threadID_globalXactID_localXactID */
+    void OpenMemoryLog(int dirtiedPagesCount, unsigned int transid) {
         _dirtiedPagesCount = dirtiedPagesCount;
         _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
         _logentry_count = 0;
-        _transaction_id = transid;
+        _local_transaction_id = transid;
+        
+        // Update main thread's pid
+        if ( threadID == 0 ) {
+            threadID = getpid();
+        }
+
         if ( log_dest == DISK ) {
             sprintf(log_path_prefix, "/mnt/ssd/terry/tmp/%d", nvid);
-            OpenDiskLog();
         } else if ( log_dest == DRAM_TMPFS ) {
             sprintf(log_path_prefix, "/mnt/ramdisk/%d", nvid);
-            OpenDramTmpfsLog();
         } else if ( log_dest == NVRAM_TMPFS ) {
             sprintf(log_path_prefix, "/mnt/nvmfs/%d", nvid);
-            OpenNvramTmpfsLog();
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
             abort();
         }
+
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_%lu_XXXXXXX", 
+                log_path_prefix, threadID, GET_METACOUNTER(globalTransactionCount), _local_transaction_id);
+        _mempages_fd = mkostemp(_mempages_filename, _log_flags);
+
+        if ( _mempages_fd == -1 ) {
+            fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
+            perror("mkstemp: ");
+            abort();
+        }
+        _mempages_offset = 0;
 
         if ( _mempages_ptr == MAP_FAILED ) {
             lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
@@ -260,43 +275,6 @@ public:
             lprintf("Opened memory page log. fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
         }
     }
-
-    void OpenDiskLog() {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
-        _mempages_fd = mkostemp(_mempages_filename, _log_flags);
-
-        if ( _mempages_fd == -1 ) {
-            fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
-            perror("mkstemp: ");
-            abort();
-        }       
-    }
-
-    /* Create memory log files at tmpfs in ram (make sure the file system is mounted before running this) */
-    void OpenDramTmpfsLog(void) {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
-        _mempages_fd = mkostemp(_mempages_filename, _log_flags);
-
-        if ( _mempages_fd == -1 ) {
-            fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
-            perror("mkstemp: ");
-            abort();
-        }
-        _mempages_offset = 0;
-    }
-
-    void OpenNvramTmpfsLog(void) {
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_XXXXXXX", log_path_prefix, threadID, _transaction_id);
-        _mempages_fd = mkostemp(_mempages_filename, _log_flags);
-
-        if ( _mempages_fd == -1 ) {
-            fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
-            abort();
-        }
-        _mempages_offset = 0;
-        /***TODO finish open nvm log file: make sure there's delay */
-    }
-
 
     void WriteLogBeforeProtection(void *base, size_t size, bool isHeap){
         printf("heap?: %d, base %p, size: %zu\n", isHeap, base, size);

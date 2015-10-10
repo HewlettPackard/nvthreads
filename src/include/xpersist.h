@@ -825,16 +825,18 @@ public:
         if ( _dirtiedPagesList.size() == 0 ) {
             return;
         }
-        lprintf("%d: commit transaction #%ul #dirtied pages: %d\n", getpid(), _trans, _dirtiedPagesList.size());
 
+        // Increase local counter _trans
         _trans++;
     
-        INC_COUNTER(transactions);
-        
+        INC_COUNTER(transactions); // global transaction counter (debugging only)
+
 #ifdef ENABLE_PROFILING
         clock_t start_time = clock(), diff;
 #endif
         START_TIMER(logging);
+
+        lprintf("%d: commit transaction %u, #dirtied pages: %d\n", getpid(), _trans, _dirtiedPagesList.size());
 
         // Open a new log file if we have dirtied pages
         localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _trans);
@@ -1127,7 +1129,7 @@ private:
     /// The version numbers that are backed to disk.
     volatile unsigned long *_persistentVersions;
 
-    unsigned int _trans;
+    volatile unsigned int _trans;
 
 #ifdef LAZY_COMMIT
     // Every time when we are getting a super block, we will update this information.
