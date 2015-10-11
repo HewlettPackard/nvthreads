@@ -39,12 +39,26 @@
 
 #include "prof.h"
 
+#define METACOUNTER(x) volatile uint64_t x##_count;
+#define INC_METACOUNTER(x) global_metadata->metadata.x##_count++
+#define GET_METACOUNTER(x) global_metadata->metadata.x##_count
+
 typedef struct runtime_data {
   volatile unsigned long thread_index;
   struct runtime_stats stats;
 } runtime_data_t;
 
 extern runtime_data_t *global_data;
+
+struct metadata_t {
+    METACOUNTER(globalTransactionCount);
+};
+
+typedef struct runtime_metadata {
+    volatile unsigned long thread_index;
+    struct metadata_t metadata;
+} runtime_metadata_t;
+extern runtime_metadata_t *global_metadata;       
 
 class xdefines {
 public:
