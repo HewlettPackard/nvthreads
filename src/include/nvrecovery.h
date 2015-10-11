@@ -291,18 +291,6 @@ public:
     void delete_memlog(void) {
 
     }
-/*
-    // Flag file indicates the crash status of the application
-    int create_flag_file(char *filename) {
-        int fd = open(filename, O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-        if ( fd < 0 ) {
-            lprintf("Error opening %s\n", running_filename);
-            abort();
-        }
-        lprintf("Created %s\n", filename);
-        return fd;
-    }
-*/
 
     // Lookup the NVID (=PID) in the crash record and return the line number in nvlib to the caller
     // An existing entry in nvlib.crash means the corresponding exe has crashed before
