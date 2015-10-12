@@ -35,8 +35,5 @@ nvtests:
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test2.c -o nvtest2.o -rdynamic $(NVLIB)
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test3.c -o nvtest3.o -rdynamic $(NVLIB)
 
-recover_int:
-	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) recover_int.c -o recover_int.o -rdynamic $(NVLIB)
-
 clean:
 	rm *.o MemLog* varmap* _crashed _running /mnt/tmpfs/*
