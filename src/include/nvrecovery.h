@@ -123,10 +123,18 @@ public:
 
     // Store a list of varmap file names
     std::vector<std::string> *varmap_file_vector;
+    
+    // Store a list of temporary memory logs
+    std::vector<std::string> *tmp_mempage_file_vector;
 
-    // Hash map of the actual variable and address mapping
+    // Map of the actual variable and address mapping
     std::map<std::string, unsigned long> *varmap;
+   
+    // Unique list of PID
+    std::map<unsigned long, unsigned long> *PIDs;
 
+    // Unique list of GID
+    std::map<unsigned long, unsigned long> *GIDs;
 
     void initialize(bool main_thread) {
         _main_thread = main_thread;
@@ -151,28 +159,28 @@ public:
 //          log_dest = MemoryLog::log_dest;
             log_dest = DRAM_TMPFS;
             // Read the configuration file to decide where to log the
-            // <variable, address> mapping
+            
             mempage_file_vector = new std::vector<std::string>;
+            tmp_mempage_file_vector = new std::vector<std::string>;
             varmap = new std::map<std::string, unsigned long>;
             varmap_file_vector = new std::vector<std::string>;
+            PIDs = new std::map<unsigned long, unsigned long>;
+            GIDs = new std::map<unsigned long, unsigned long>;
 
             // Main thread checks whether the program crashed before and sets the crash flag
             if ( _main_thread ) {
-                setCrashedFlag();
+                SetCrashedFlag();
                 if ( isCrashed() ) {
                     // Recover the variable and address mapping and memory pages
-                    createRecoverHashMap();
+                    CreateVariableMap();
+
+                    // Collect all the file names of the memory log files
+                    CreateMemlogMap();
                 }
-                /*
-                else {
-                    running_fd = create_flag_file(running_filename);
-                }
-                */
             }
 
             // Create new VarMap file for current run
             OpenVarMap();
-
             _initialized = true;
         }
     }
@@ -186,13 +194,9 @@ public:
         _initialized = false;
         if ( _main_thread ) {
             lprintf("Main thread removing crash flag files\n");
-//          close(running_fd);
-//          close(crash_fd);
-//          unlink(running_filename);
-//          unlink(crash_filename);
-            delete_nvlibcrash_entry();
-            delete_varmap();
-            delete_memlog();
+            Delete_nvlibcrash_entry();
+            Delete_varmap();
+            Delete_memlog();
             CloseVarMap(); 
         }
 //      delete mempage_file_vector;
@@ -201,7 +205,7 @@ public:
     }
 
     // Create the path to store memory log and variable mapping
-    void createLogPath(void) {  
+    void CreateLogPath(void) {  
         // Create direcotry for current nvid to save varmap and MemLog
         if ( (mkdir(log_path_prefix, 0777)) == -1 ) {
             perror("Error when mkdir(log_path_prefix)");
@@ -257,7 +261,7 @@ public:
     }
 
     // Delete line number of the current program entry in nvlib.crash
-    void delete_nvlibcrash_entry(void) {
+    void Delete_nvlibcrash_entry(void) {
         int line = 0;
         char tmp[FILENAME_MAX];
         char buf[FILENAME_MAX];
@@ -284,17 +288,17 @@ public:
         unlink(tmp);
     }
 
-    void delete_varmap(void) {
+    void Delete_varmap(void) {
 
     }
 
-    void delete_memlog(void) {
+    void Delete_memlog(void) {
 
     }
 
     // Lookup the NVID (=PID) in the crash record and return the line number in nvlib to the caller
     // An existing entry in nvlib.crash means the corresponding exe has crashed before
-    int lookupCrashRecord(void) {
+    int LookupCrashRecord(void) {
         bool crashed = false;
         char exe[FILENAME_MAX];
         int ret = 0;
@@ -360,19 +364,19 @@ public:
     }
 
     // Set crashed flag to true if we can find a crash record in nvlib.crash
-    void setCrashedFlag(void) {
+    void SetCrashedFlag(void) {
         bool ret = false;
         int line;
 
         // Lookup the line number that contains current exe.
         // line >= 0 means there exists an entry in nvlib.crash
-        line = lookupCrashRecord();
+        line = LookupCrashRecord();
         if ( line >= 0 ) {
             lprintf("Your program crashed before.  Please recover your progress using libnvthread API\n");
             crashed = true;
         } else {
             lprintf("Your program did not crash before.  Continue normal execution\n");
-            createLogPath();
+            CreateLogPath();
             crashed = false;
         }
     }
@@ -383,29 +387,37 @@ public:
     }
 
     // Collect the file names that match pattern
-    void collectFiles(char *pattern) {
+    void CollectFiles(char *pattern, const char *path, std::vector<std::string> *container) {
         DIR *dir;
         struct dirent *ent;
-        lprintf("looking for file with pattern: %s\n", pattern);
-        if ( (dir = opendir(log_path_prefix)) != NULL ) {
+//      lprintf("looking for file with pattern: %s\n", pattern);
+        if ( (dir = opendir(path)) != NULL ) {
             while ((ent = readdir(dir)) != NULL) {
                 std::string *str = new std::string(ent->d_name);
                 std::size_t found = str->find(pattern);
 
-                lprintf("checking file: %s\n", str->c_str()); 
+//              lprintf("checking file: %s\n", str->c_str());
 
                 // Found match
                 if ( found != std::string::npos ) {
+                    // Variable mapping
                     if ( strcmp(pattern, "varmap") == 0 ) {
-                        varmap_file_vector->push_back(*str);
+                        container->push_back(*str);
                         lprintf("Push back variable mapping: %s\n", str->c_str());
-                    } else if ( strcmp(pattern, "MemLog") == 0 ) {
-                        mempage_file_vector->push_back(*str);
+                    } 
+                    // All memory log
+                    else if ( strcmp(pattern, "MemLog") == 0 ) {
+                        container->push_back(*str);
                         lprintf("Push back memory log: %s\n", str->c_str());
+                    }
+                    // Memory log of a PID with GID (w/ different LID)
+                    else {
+                        container->push_back(*str);
+                        lprintf("Push back memory log: %s\n", str->c_str());                        
                     }
                 }
             }
-            closedir(dir);
+//          closedir(dir);
         }
         else{
             lprintf("empty directory: %s\n", log_path_prefix); 
@@ -413,7 +425,7 @@ public:
     }
 
     // Build the variable address hash map for later query
-    void buildVarMap(void) {
+    void BuildVarMap(void) {
         for (std::vector<std::string>::iterator it = varmap_file_vector->begin(); it != varmap_file_vector->end(); ++it) {
             char fn[256];
             char *name;
@@ -433,102 +445,63 @@ public:
     // Create the hash map for heap (only!) variable and address.
     // Multiple threads will have the same address for the same
     // object.
-    void createRecoverHashMap(void) {
+    void CreateVariableMap(void) {
         lprintf("Building variable hash map for variables\n");
-        collectFiles((char *)"varmap");
-        buildVarMap();
-        dumpVarMap();
+        CollectFiles((char *)"varmap", log_path_prefix, varmap_file_vector);
+        BuildVarMap();
+        DumpVarMap();
         lprintf("Done with hash map.\n");
     }
 
-    void collectMemlogFileNames(void) {
-        collectFiles((char *)"MemLog");
+    // Put all MemLog files into a container and CreateMemlogMap() will
+    // put them into containers for future fast lookup
+    void CollectMemlogFileNames(void) {
+        CollectFiles((char *)"MemLog", log_path_prefix, mempage_file_vector);
     }
 
-    void recoverFromMemlog(void *dest, size_t size, unsigned long addr) {
+    // Get a list of PID, GID, LID from all the memory logs
+    void CreateMemlogMap(void){
+        // Get all the memory log file names
+        CollectMemlogFileNames();
+        
         for (std::vector<std::string>::iterator it = mempage_file_vector->begin(); it != mempage_file_vector->end(); ++it) {
-            char fn[256];
-            int fd;
-            unsigned long offset;
-            char *ptr;
+            char *token;
+            char buf[FILENAME_MAX];
+            unsigned long PID;
+            unsigned long GID;
+            unsigned long LID;
+            
+            // Parse PID and GID, file name format: MemLog_PID_GobalTransID_LocalTransID_random
+            strcpy(buf, (*it).c_str());
+            lprintf("memory log: %s\n", buf);
+            token = strtok(buf, "_"); //MemLog
+            token = strtok(NULL, "_");  // PID
+            PID = (unsigned long)strtoul(token, NULL, 10);
+            token = strtok(NULL, "_");  // Global transaction ID
+            GID = (unsigned long)strtoul(token, NULL, 10);
+            token = strtok(NULL, "_");  // Local transaction ID
+            LID = (unsigned long)strtoul(token, NULL, 10);
+            lprintf("PID: %lu, GID: %lu, LID: %lu\n", PID, GID, LID);
 
-            // Get memlog file name
-            sprintf(fn, "%s%s", log_path_prefix, (*it).c_str());
-//          lprintf("Memlog: %s\n", fn);
-
-            // Set pointer to the start of a memory page
-            fd = open(fn, O_RDONLY);
-            if ( fd == -1 ) {
-                lprintf("can't read memory page: %s\n", fn);
-                abort();
+            // Collect unique PID and GID, LocatePage() will later use it to quickly locate the latest memory log
+            std::pair<std::map<unsigned long, unsigned long>::iterator, bool> ret;
+            ret = PIDs->insert(std::pair<unsigned long, unsigned long>(PID, PID));            
+            if ( ret.second == false ) {    
+                // PID exists already
+                lprintf("PID %lu already exists, skip inserting to unqie PIDs list\n", PID);
             }
-            ptr = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-            if ( ptr == MAP_FAILED ) {
-                printf("can't mmap memory page %s\n", fn);
-                abort();
+            ret = GIDs->insert(std::pair<unsigned long, unsigned long>(GID, GID));
+            if ( ret.second == false ) {
+                // GID exists already
+                lprintf("GID %lu already exists, skip inserting to unique GIDs list\n", GID);                
             }
 
-            // Read address of the memory page
-            unsigned long paddr;
-            memcpy(&paddr, (char *)ptr, sizeof(unsigned long));
-//          lprintf("Checking page 0x%08lx\n", paddr);
-
-            // Found memory page, copy content to dest
-            if ( (addr & ~LogDefines::PAGE_SIZE_MASK) == paddr ) {
-//              lprintf("Located memory page: 0x%08lx\n", paddr);
-                if ( paddr > addr ) {
-                    offset = paddr - addr;
-                } else {
-                    offset = addr - paddr;
-                }
-
-                // Copy data
-                LogAtomic::add((int)sizeof(void *), &offset);
-                memcpy((char *)dest, (char *)(ptr + offset), size);
-//              lprintf("Memcpy starting from 0x%08lx, offset: 0x%lx\n", paddr, offset);
-                return;
-            }
+            // Restore pointer changed by strtok
+            lprintf("after: memory log: %s\n", (*it).c_str());
         }
     }
 
-    unsigned long recoverVarAddr(void *dest, size_t size, char *name) {
-        unsigned long addr = 0x00;
-        // Look for variable name
-        std::map<std::string, unsigned long>::iterator it;
-        it = varmap->find((std::string)name);
-        if ( it == varmap->end() ) {
-            lprintf("Cannot find %s\n", name);
-            return addr;
-        }
-
-        // Found variable name
-        addr = (unsigned long)it->second;
-        lprintf("Found %s at 0x%08lx\n", name, addr);
-
-        // Copy the memory page content to hint
-        collectMemlogFileNames();
-
-        // Actual recover work
-        recoverFromMemlog(dest, size, addr);
-
-        return addr;
-    }
-
-    unsigned long nvrecover(void *dest, size_t size, char *name) {
-        lprintf("Hint: 0x%p, size: %zu, name: %s\n", dest, size, name);
-        // Find the address of the variable in varmap log
-        unsigned long addr = recoverVarAddr(dest, size, name);
-        if ( !addr ) {
-            lprintf("Error, can't find variable named %s\n", name);
-            return 0;
-        }
-
-        // Find the data by address in memory pages
-//      printf("Recovered addr 0x%08lx %d\n", addr, *(int *)dest);
-        return addr;
-    }
-
-    void dumpVarMap(void) {
+    void DumpVarMap(void) {
         if ( varmap->size() ) {
             lprintf("walking varmap\n");
             lprintf("size of varmap: %zd\n", varmap->size());
@@ -541,6 +514,185 @@ public:
         }
     }
 
+    // Copy data from memory log to dest (if addr exists in memlog)
+    // Return 0 if successful, -1 if data aren't copied to dest
+    // Memlog Log entry format (one log may contain multiple entries):
+    // ----------------------------------------------
+    // | page addr |   data stored in memory page   | 
+    // ----------------------------------------------
+    // addr: 8 bytes; data: 4096 bytes, no space/symbol in between
+    int CopyFromMemlogToPtr(const char *memlog, void *dest, unsigned long addr){
+        int rv = -1;
+        int fd;
+        off_t fsize;
+        unsigned long offset;
+        char *ptr;
+        int EOFflag_bytes = 4;
+        int addr_bytes = sizeof(void*);
+        unsigned long nentry = 0;
+         
+        // Set pointer to the start of a memory page
+        fd = open(memlog, O_RDONLY);
+        if ( fd == -1 ) {
+            lprintf("can't read memory page: %s\n", memlog);
+            abort();
+        }
+
+        // TODO: check whether file is corrupted: 
+        // (EOF flag should be at the end of the log)
+
+        // Compute file size
+        fsize = lseek(fd, 0, SEEK_END) - EOFflag_bytes;
+        lseek(fd, 0, SEEK_SET);
+
+        // Map memory log file to process address space and read later
+        ptr = (char *)mmap(NULL, fsize, PROT_READ, MAP_PRIVATE, fd, 0);
+        if ( ptr == MAP_FAILED ) {
+            printf("can't mmap memory page %s\n", memlog);
+            abort();
+        }  
+        lprintf("memory log %s size %zu\n", memlog, fsize);
+
+        nentry = fsize / (addr_bytes + xdefines::PageSize);
+        unsigned long i;
+        while (i != nentry) {
+            // Read address of the memory page
+            unsigned long paddr;
+            memcpy(&paddr, (char *)ptr, sizeof(void*));
+            lprintf("checking entry %lu addr 0x%08lx\n", i, paddr);
+
+            // Check if address of this entry matches the addr we are searching
+            if ( (addr & ~LogDefines::PAGE_SIZE_MASK) == paddr ) {
+                // Found memory page, copy content to dest
+                lprintf("Located memory page: 0x%08lx\n", paddr);
+                if ( paddr > addr ) {
+                    offset = paddr - addr;
+                } else {
+                    offset = addr - paddr;
+                }
+
+                // Copy data
+                LogAtomic::add((int)sizeof(void *), &offset);
+                memcpy((char *)dest, (char *)(ptr + offset), xdefines::PageSize);
+                lprintf("Memcpy starting from 0x%08lx, offset: 0x%lx\n", paddr, offset);
+                return 0;
+            }
+            i++;
+            ptr = ptr + (addr_bytes + xdefines::PageSize);
+        }
+        return -1;
+    }
+
+    // Copy the latest memory page and return 0 if successfull, -1 if failed
+    int CopyOnePage(void *dest, unsigned long addr){
+        std::map<unsigned long, unsigned long>::reverse_iterator rito;
+        std::map<unsigned long, unsigned long>::reverse_iterator riti;
+        std::vector<std::string>::iterator rit;
+        char memlog[FILENAME_MAX];
+
+        // Find memory log 
+        // From the last PID to the first PID
+        for (rito = PIDs->rbegin(); rito != PIDs->rend(); ++rito) {
+            // From the last GID to the first GID
+            for (riti = GIDs->rbegin(); riti != GIDs->rend(); ++riti) {
+                lprintf("Searching PID: %lu, GID: %lu\n", rito->first, riti->first);
+                sprintf(memlog, "MemLog_%lu_%lu_", rito->first, riti->first);
+        
+                // From the last LID to the first LID    
+                CollectFiles(memlog, log_path_prefix, tmp_mempage_file_vector);
+                for (rit = tmp_mempage_file_vector->begin(); rit != tmp_mempage_file_vector->end(); rit++) {                    
+                    sprintf(memlog, "%s%s", log_path_prefix, (*rit).c_str());                                    
+                    lprintf("memlog: %s\n", memlog);                    
+                    
+                    // Copy data from memory log to dest if the log contains addr
+                    if ( CopyFromMemlogToPtr(memlog, dest, addr) == 0){
+                        lprintf("succefully copied one page from memlog %s for addr 0x%08lx\n", memlog, addr);
+                        return 0;
+                    }
+                }
+                tmp_mempage_file_vector->clear();
+            }
+        }
+    
+        return -1;
+    }               
+
+    // Copy memory pages from the memory log and return the actual number of pages copied
+    int CopyPagesFromMemLog(char *dest, unsigned long addr, unsigned long npages){
+        unsigned long copied = 0;
+        lprintf("copying %lu pages\n", npages);
+        for (unsigned long i = 0; i < npages; i++) {
+            if ( CopyOnePage(dest, addr) == 0 ) {
+                copied++;
+                lprintf("Copied page no. %lu starting at 0x%08lx\n", copied, addr);
+            }
+            else{
+                lprintf("Error: only copied %lu page (out of %lu pages) starting at 0x%08lx\n", copied, npages, addr);
+                return copied;
+            }
+
+            addr = addr + xdefines::PageSize;
+            dest = dest + xdefines::PageSize;
+        }
+        return copied;
+    }
+
+    unsigned long ComputeNumOfPagesNeeded(size_t size){
+        if (size % xdefines::PageSize == 0){
+            return size / xdefines::PageSize;
+        } else{
+            return size / xdefines::PageSize + 1;
+        }
+    }
+
+    // Return the address of the variable in nvm
+    unsigned long RecoverVarAddr(void *dest, size_t size, char *name) {
+        unsigned long addr = 0x00;
+
+        // Look for variable name
+        std::map<std::string, unsigned long>::iterator it;
+        it = varmap->find((std::string)name);
+        if ( it == varmap->end() ) {
+            lprintf("Cannot find %s\n", name);
+            return addr;
+        }
+
+        // Found variable name
+        addr = (unsigned long)it->second;
+        lprintf("Found %s at 0x%08lx\n", name, addr);
+
+        return addr;
+    }
+
+    unsigned long nvrecover(void *dest, size_t size, char *name) {
+        int rv;
+
+        lprintf("Hint: 0x%p, size: %zu, name: %s\n", dest, size, name);
+        // Find the address of the variable in varmap log
+        unsigned long addr = RecoverVarAddr(dest, size, name);
+        if ( !addr ) {
+            lprintf("Error, can't find variable named %s\n", name);
+            return 0;
+        }
+
+        // Calculate number of pages needed
+        unsigned long npages = ComputeNumOfPagesNeeded(size);
+        if ( npages <= 0 ) {
+            lprintf("Error, can't recover variable %s with size 0\n", name);
+            return 0;
+        }
+
+        // Copy data from memory pages to destination
+        rv = CopyPagesFromMemLog((char*)dest, addr, npages);
+        if ( rv != npages) {
+            lprintf("Error, should've copied %lu pages, but instead copied %lu pages for variable named %s\n", name, npages, rv);
+            return 0;            
+        }
+
+        // Find the data by address in memory pages
+        printf("Recovered addr 0x%08lx %d in %lu pages\n", addr, *(int *)dest, npages);
+        return addr;
+    }
 };
 
 #endif
