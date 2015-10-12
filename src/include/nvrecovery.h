@@ -525,10 +525,10 @@ public:
         int rv = -1;
         int fd;
         off_t fsize;
-        unsigned long offset;
         char *ptr;
+        size_t offset = 0;
         int EOFflag_bytes = 4;
-        int addr_bytes = sizeof(void*);
+        size_t addr_bytes = sizeof(void*);
         unsigned long nentry = 0;
          
         // Set pointer to the start of a memory page
@@ -560,11 +560,13 @@ public:
             unsigned long paddr;
             memcpy(&paddr, (char *)ptr, sizeof(void*));
             lprintf("checking entry %lu addr 0x%08lx\n", i, paddr);
+            ptr = ptr + addr_bytes;            
 
             // Check if address of this entry matches the addr we are searching
             if ( (addr & ~LogDefines::PAGE_SIZE_MASK) == paddr ) {
-                // Found memory page, copy content to dest
-                lprintf("Located memory page: 0x%08lx\n", paddr);
+                // Found memory page, calculate relative offset
+                // This is necessary because the destination may not be page aligned
+                lprintf("located memory page: 0x%08lx\n", paddr);
                 if ( paddr > addr ) {
                     offset = paddr - addr;
                 } else {
@@ -572,13 +574,14 @@ public:
                 }
 
                 // Copy data
-                LogAtomic::add((int)sizeof(void *), &offset);
-                memcpy((char *)dest, (char *)(ptr + offset), xdefines::PageSize);
-                lprintf("Memcpy starting from 0x%08lx, offset: 0x%lx\n", paddr, offset);
+                memcpy((char *)dest, (char *)(ptr+offset), xdefines::PageSize);
+                lprintf("Memcpy starting from 0x%08lx, offset %lx\n", paddr, offset);
+                lprintf("ptr %p\n", ptr);
+
                 return 0;
             }
             i++;
-            ptr = ptr + (addr_bytes + xdefines::PageSize);
+            ptr = ptr + xdefines::PageSize;
         }
         return -1;
     }
@@ -631,18 +634,37 @@ public:
                 return copied;
             }
 
+            // Page alignment after the first run
             addr = addr + xdefines::PageSize;
+            addr = addr & ~LogDefines::PAGE_SIZE_MASK;
             dest = dest + xdefines::PageSize;
+            dest = (char*)((unsigned long)dest & ~LogDefines::PAGE_SIZE_MASK);
+            lprintf("dest %p, addr 0x%08lx\n", dest, addr);
         }
         return copied;
     }
 
-    unsigned long ComputeNumOfPagesNeeded(size_t size){
-        if (size % xdefines::PageSize == 0){
-            return size / xdefines::PageSize;
-        } else{
+    // Computer number of pages needed for copying data.
+    // Note that addr may not be page aligned.
+    // Therefore we need to make sure that, for example, 4KB data that span multiple pages 
+    // will need 2 pages instead of 1 to copy the data
+    unsigned long ComputeNumOfPagesNeeded(unsigned long addr, size_t size){
+        if ( addr & 0x7 ) {
+            // Addr is page aligned
+            lprintf("addr 0x%08lx is page aligned\n", addr);
+            return size / xdefines::PageSize;            
+        }
+        else{
+            // Addr is not page aligned        
+            lprintf("addr 0x%08lx is not page aligned\n", addr);
             return size / xdefines::PageSize + 1;
         }
+
+//      if ( size % xdefines::PageSize == 0 ) {
+//          return size / xdefines::PageSize;
+//      } else{
+//          return size / xdefines::PageSize + 1;
+//      }
     }
 
     // Return the address of the variable in nvm
@@ -675,8 +697,8 @@ public:
             return 0;
         }
 
-        // Calculate number of pages needed
-        unsigned long npages = ComputeNumOfPagesNeeded(size);
+        // Calculate number of pages needed for copying data 
+        unsigned long npages = ComputeNumOfPagesNeeded(addr, size);
         if ( npages <= 0 ) {
             lprintf("Error, can't recover variable %s with size 0\n", name);
             return 0;
