@@ -57,6 +57,11 @@ int main(){
                 ascii = 97;
             }
             c[i] = ascii;
+
+            printf("c[%d] = %c\t", i, c[i]);
+            if ( i % 7 == 0 && i != 0) {
+                printf("\n");
+            }
         }
         printf("wrote c for %d bytes\n", touch_size);
         pthread_mutex_lock(&gm);
