@@ -495,9 +495,6 @@ public:
                 // GID exists already
                 lprintf("GID %lu already exists, skip inserting to unique GIDs list\n", GID);                
             }
-
-            // Restore pointer changed by strtok
-            lprintf("after: memory log: %s\n", (*it).c_str());
         }
     }
 
@@ -620,9 +617,10 @@ public:
         return -1;
     }               
 
-    // Copy memory pages from the memory log and return the actual number of pages copied
+    // Copy memory pages from the memory log and return the actual number of pages (checked + copied)
     int CopyPagesFromMemLog(char *dest, unsigned long addr, unsigned long npages){
         unsigned long copied = 0;
+        unsigned long checked = 0;
         lprintf("copying %lu pages\n", npages);
         for (unsigned long i = 0; i < npages; i++) {
             if ( CopyOnePage(dest, addr) == 0 ) {
@@ -630,8 +628,8 @@ public:
                 lprintf("Copied page no. %lu starting at 0x%08lx\n", copied, addr);
             }
             else{
-                lprintf("Error: only copied %lu page (out of %lu pages) starting at 0x%08lx\n", copied, npages, addr);
-                return copied;
+                checked++;
+                lprintf("addr %p is not dirtied so no record found\n", addr);
             }
 
             // Page alignment after the first run
@@ -641,7 +639,7 @@ public:
             dest = (char*)((unsigned long)dest & ~LogDefines::PAGE_SIZE_MASK);
             lprintf("dest %p, addr 0x%08lx\n", dest, addr);
         }
-        return copied;
+        return (copied+checked);
     }
 
     // Computer number of pages needed for copying data.
@@ -700,8 +698,8 @@ public:
 
         // Copy data from memory pages to destination
         rv = CopyPagesFromMemLog((char*)dest, addr, npages);
-        if ( rv != npages) {
-            lprintf("Error, should've copied %lu pages, but instead copied %lu pages for variable named %s\n", name, npages, rv);
+        if ( rv != npages ) {
+            lprintf("Error, should've copied %lu pages, but instead copied %lu pages for variable named %s\n", npages, rv, name);
             return 0;            
         }
 
