@@ -659,12 +659,6 @@ public:
             lprintf("addr 0x%08lx is not page aligned\n", addr);
             return size / xdefines::PageSize + 1;
         }
-
-//      if ( size % xdefines::PageSize == 0 ) {
-//          return size / xdefines::PageSize;
-//      } else{
-//          return size / xdefines::PageSize + 1;
-//      }
     }
 
     // Return the address of the variable in nvm
