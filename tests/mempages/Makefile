@@ -1,6 +1,6 @@
 NVTHREAD_HOME=../../
 CC = g++
-CFLAGS = -g -std=gnu++11 
+CFLAGS = -g  
 PLIB = -lpthread
 NVLIB = $(NVTHREAD_HOME)/src/libnvthread.so
 DLIB = $(NVTHREAD_HOME)/third-parties/dthreads/src/libdthread.so
@@ -12,7 +12,7 @@ SRC_DIR = $(NVTHREAD_HOME)/src/source
 NVINCLUDE_DIRS = -I$(INC_DIR)
 NVSRCS = $(SRC_DIR)/nvrecovery.cpp 
 
-all:	checkpages dtests nvtests forloop recover_int
+all:	checkpages dtests nvtests forloop recover_int nocriticalsection
 
 
 checkpages:	
@@ -34,6 +34,9 @@ nvtests:
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test1.c -o nvtest1.o -rdynamic $(NVLIB)
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test2.c -o nvtest2.o -rdynamic $(NVLIB)
 	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) test3.c -o nvtest3.o -rdynamic $(NVLIB)
+
+nocriticalsection:		
+	$(CC) $(CFLAGS) -DNVTHREAD $(NVINCLUDE_DIRS) $(NVSRCS) nocrtsection.c -o nocrtsection.o -rdynamic $(NVLIB)
 
 clean:
 	rm *.o MemLog* varmap* _crashed _running /mnt/tmpfs/*
