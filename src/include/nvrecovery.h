@@ -589,6 +589,7 @@ public:
         std::map<unsigned long, unsigned long>::reverse_iterator riti;
         std::vector<std::string>::iterator rit;
         char memlog[FILENAME_MAX];
+        unsigned long maxGID = 0;
 
         // Find memory log 
         // From the last PID to the first PID
@@ -598,22 +599,30 @@ public:
                 lprintf("Searching PID: %lu, GID: %lu\n", rito->first, riti->first);
                 sprintf(memlog, "MemLog_%lu_%lu_", rito->first, riti->first);
         
-                // From the last LID to the first LID    
-                CollectFiles(memlog, log_path_prefix, tmp_mempage_file_vector);
-                for (rit = tmp_mempage_file_vector->begin(); rit != tmp_mempage_file_vector->end(); rit++) {                    
-                    sprintf(memlog, "%s%s", log_path_prefix, (*rit).c_str());                                    
-                    lprintf("memlog: %s\n", memlog);                    
-                    
-                    // Copy data from memory log to dest if the log contains addr
-                    if ( CopyFromMemlogToPtr(memlog, dest, addr) == 0){
-                        lprintf("succefully copied one page from memlog %s for addr 0x%08lx\n", memlog, addr);
-                        return 0;
+                // Only check memory log if current GID is greater than the previously found GID
+                if ( riti->first > maxGID ) {
+                    // From the last LID to the first LID
+                    CollectFiles(memlog, log_path_prefix, tmp_mempage_file_vector);
+                    for (rit = tmp_mempage_file_vector->begin(); rit != tmp_mempage_file_vector->end(); rit++) {                    
+                        sprintf(memlog, "%s%s", log_path_prefix, (*rit).c_str());                                    
+                        lprintf("memlog: %s\n", memlog);                    
+                        
+                        // Copy data from memory log to dest if the log contains addr
+                        if ( CopyFromMemlogToPtr(memlog, dest, addr) == 0){
+                            maxGID = riti->first;                       
+                            lprintf("succefully copied one page from memlog %s for addr 0x%08lx, max GID %lu\n", memlog, addr, maxGID);
+                        }
                     }
+                    tmp_mempage_file_vector->clear();
                 }
-                tmp_mempage_file_vector->clear();
             }
         }
-    
+            
+        // Found page and copied data
+        if ( maxGID != 0 ) {
+            return 0;
+        }
+
         return -1;
     }               
 
