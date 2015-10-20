@@ -2,20 +2,20 @@
 #define _NVMEMORY_H_
 
 /*
-    This file is part of NVTREADS.
+    This file is part of NVTHREADS.
 
-    NVTREADS is free software: you can redistribute it and/or modify
+    NVTHREADS is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    NVTREADS is distributed in the hope that it will be useful,
+    NVTHREADS is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with NVTREADS.  If not, see <http://www.gnu.org/licenses/>.
+    along with NVTHREADS.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
@@ -27,6 +27,7 @@
  *  @author     Kimberly Keeton         <kimberly.keeton@hp.com>  
 */
 
+/*
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -34,7 +35,7 @@
 
 #define PATH_CONFIG "/home/terry/workspace/nvthreads/config/nvthread.config"
 
-/* Class for log entry to be appended to the end of per-thread MemoryLog */
+// Class for log entry to be appended to the end of per-thread MemoryLog 
 class varmap_entry{   
     enum {MaxVarNameLength = 1024};
 public:
@@ -56,7 +57,7 @@ public:
 
     int threadID;
 
-    /* For file mapped varmap log */
+    // For file mapped varmap log 
     FILE *_varmap_fptr;
     void *_varmap_ptr;
     int _varmap_fd;
@@ -131,7 +132,7 @@ public:
         }
 
         _varmap_offset = 0; 
-        /*
+        
         // Adjust the file size
         if ( ftruncate(_varmap_fd, nvmemory::MapSizeOfLog) ) {
             fprintf(stderr, "Error truncating varmap log file");
@@ -141,7 +142,7 @@ public:
         // Map the temp file to process memory space
         _varmap_ptr = (void *)mmap(NULL, nvmemory::MapSizeOfLog,
                                    PROT_READ | PROT_WRITE, MAP_SHARED, _varmap_fd, _varmap_offset); 
-        */
+        
     }
 
     void CloseVarMap(void){
@@ -179,4 +180,5 @@ public:
     }
 
 };
+*/
 #endif
