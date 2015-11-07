@@ -57,6 +57,8 @@ char buf1[4096];
 
 #define MAX_DIM 4
 
+pthread_mutex_t gm;
+
 typedef struct {
     int start_idx;
     int num_pts;
@@ -197,7 +199,9 @@ void* find_clusters(void *arg) {
         }
 
         if ( clusters[i] != min_idx ) {
+            pthread_mutex_lock(&gm);
             clusters[i] = min_idx;
+            pthread_mutex_unlock(&gm);
             modified = true;
         }
     }
@@ -236,7 +240,9 @@ void* calc_means(void *arg) {
         for (j = 0; j < dim; j++) {
             //dprintf("div sum = %d, grp size = %d\n", sum[j], grp_size);
             if ( grp_size != 0 ) {
+                pthread_mutex_lock(&gm);
                 means[i][j] = sum[j] / grp_size;
+                pthread_mutex_unlock(&gm);
             }
         }
     }
@@ -302,6 +308,7 @@ int main(int argc, char **argv) {
     printf("Number of points = %d\n", num_points);
     printf("Size of each dimension = %d\n", grid_size);
 
+ 	pthread_mutex_init(&gm, NULL);
     pthread_t tid;
     pthread_create(&tid, NULL, dummy_function, NULL);
 
@@ -427,8 +434,8 @@ int main(int argc, char **argv) {
 
 
 //  dprintf("\n\nFinal means:\n");
-    printf("\n\nFinal means:\n");
-    dump_points(means, num_means, dim);
+//  printf("\n\nFinal means:\n");
+//  dump_points(means, num_means, dim);
 
     for (i = 0; i < num_points; i++) free(points[i]);
     free(points);
