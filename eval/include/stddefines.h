@@ -65,7 +65,7 @@ inline void * REALLOC(void *ptr, size_t size)
 inline char * GETENV(char *envstr)
 {
    char *env = getenv(envstr);
-   if (!env) return "0";
+   if (!env) return (char*)"0";
    else return env;
 }
 
