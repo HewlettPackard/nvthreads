@@ -24,6 +24,20 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/* Author: Terry Hsu 
+   Description: This is a modified version of Phoenix kmeans that implements crash recovery
+                for pthreads and NVthreads.
+   Modifications: 
+            1. Change 2D arrays in means and clusters to 1D to reduce the amount of malloc call sites
+            2. Corresponding helper functions for the 2D arrays are changed to 1D
+            3. Insert dummy sync points for NVthreads to record dirty pages
+            4. NVthreads touches all data in means and clusters before crash to speedup dirty page lookup
+            5. Add helper functions for pthreads to persist data using FS
+            6. Insert elapsed time measurements
+            7. Add -a (abort) argument to specify which iteration to abort
+            8. Add -r (recover) argument for pthreads to specify recovery run
+
+*/
 #if defined(ENABLE_DMP)
 //#include "dmp.h"
 #endif
@@ -38,109 +52,119 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdint.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <fcntl.h> 
+#include <sys/mman.h>
 #include "stddefines.h"
 #include "MapReduceScheduler.h"
+#ifdef NVTHREADS
+#include "nvrecovery.h"
+#endif
 
+// Phoenix default input
 #define DEF_NUM_POINTS 100000
-//#define DEF_NUM_POINTS 100000
-//#define DEF_NUM_MEANS 1000
 #define DEF_NUM_MEANS 2000
 #define DEF_DIM 3
 #define DEF_GRID_SIZE 1000
 
+// Medium input
+//#define DEF_NUM_POINTS 10000000 // 10M
+//#define DEF_NUM_MEANS 100 // 100 centers
+//#define DEF_DIM 3
+//#define DEF_GRID_SIZE 1000
+
+// Larger input
+//#define DEF_NUM_POINTS 50000000 // 50M points (page fault handler cannot allocat this many page records)
+//#define DEF_NUM_MEANS 10  // 10 centers
+//#define DEF_DIM 3   // #dimension
+//#define DEF_GRID_SIZE 1000  // #grid size in each dimension
+
+#define DEF_ABORT_AT 0
 #define false 0
 #define true 1
 
-//int modified;
+//uint64_t modified;
 
 char buf1[4096];
+bool crashed;
+bool syncDummy;
 
 #define MAX_DIM 4
 
 pthread_mutex_t gm;
+pthread_mutex_t dm; //dummy mutex
+pthread_cond_t cond;
+
+#ifndef NVTHREADS
+#define nvmalloc(size, name) malloc(size)
+#define nvrecover(dest, size, name) 0
+#define isCrashed(void) 0
+#endif
+
+
+uint64_t num_threads;
+uint64_t num_means; // number of clusters
+uint64_t num_points;
+uint64_t dim;       // Dimension of each vector
 
 typedef struct {
-    int start_idx;
-    int num_pts;
-    int sum[MAX_DIM]; //max size EDB FIX ME
+    uint64_t start_idx;
+    uint64_t num_pts;
+    uint64_t sum[MAX_DIM]; //max size EDB FIX ME
                       // EDB all new below here
-    int dim;
-    int num_means;
-    int num_points;
-    int **means;
-    int **points;
-    int *clusters;
+    uint64_t dim;
+    uint64_t num_means;
+    uint64_t num_points;
+    uint64_t *points;
+    uint64_t *means;
+    uint64_t *clusters;
+    uint64_t thread_id;            
 } thread_arg;
 
+struct dummy_struct {
+    uint64_t *means;
+    uint64_t *clusters;
+    uint64_t *means_values;
+    uint64_t *clusters_values;
+    uint64_t *iterations;
+    uint64_t *iterations_value;
+};
+
+void dump_clusters(uint64_t *val, uint64_t size){
+    printf("clusters (size: %lu):\n", size);
+    for(uint64_t i = 0; i < size; i++){
+        if ( i % 20== 0) {
+            printf("\n[%lu]\t", i);
+        }
+        printf("%lu\t", val[i]);
+    }
+}
 /** dump_points()
  *  Helper function to print out the points
  */
-void dump_points(int **vals, int rows, int dim) {
-    int i, j;
+void dump_points(uint64_t *vals, uint64_t rows, uint64_t dim) {
+    uint64_t i, j;
 
     for (i = 0; i < rows; i++) {
+        printf("[%lu] ", i);
         for (j = 0; j < dim; j++) {
-            printf("%5d ", vals[i][j]);
+            printf("%lu ", vals[i*dim + j]);
         }
         printf("\n");
     }
 }
 
-/** parse_args()
- *  Parse the user arguments
- */
-#if 0
-void parse_args(int argc, char **argv) {
-    int c;
-    extern char *optarg;
-    extern int optind;
-
-    num_points = DEF_NUM_POINTS;
-    num_means = DEF_NUM_MEANS;
-    dim = DEF_DIM;
-    grid_size = DEF_GRID_SIZE;
-
-    while ((c = getopt(argc, argv, "d:c:p:s:")) != EOF) {
-        switch (c) {
-        case 'd':
-            dim = atoi(optarg);
-            break;
-        case 'c':
-            num_means = atoi(optarg);
-            break;
-        case 'p':
-            num_points = atoi(optarg);
-            break;
-        case 's':
-            grid_size = atoi(optarg);
-            break;
-        case '?':
-            printf("Usage: %s -d <vector dimension> -c <num clusters> -p <num points> -s <grid size>\n", argv[0]);
-            exit(1);
-        }
-    }
-
-    if (dim <= 0 || num_means <= 0 || num_points <= 0 || grid_size <= 0) {
-        printf("Illegal argument value. All values must be numeric and greater than 0\n");
-        exit(1);
-    }
-
-    printf("Dimension = %d\n", dim);
-    printf("Number of clusters = %d\n", num_means);
-    printf("Number of points = %d\n", num_points);
-    printf("Size of each dimension = %d\n", grid_size);
-}
-#endif
-
 /** generate_points()
  *  Generate the points
  */
-void generate_points(int **pts, int size, int dim, int grid_size) {
-    int i, j;
-
+void generate_points(uint64_t *pts, uint64_t size, uint64_t dim, uint64_t grid_size) {
+    uint64_t i, j, idx;
     for (i = 0; i < size; i++) {
         for (j = 0; j < dim; j++) {
-            pts[i][j] = rand() % grid_size;
+            idx = (i * dim) + j;
+            pts[idx] = rand() % grid_size;
         }
     }
 }
@@ -148,12 +172,13 @@ void generate_points(int **pts, int size, int dim, int grid_size) {
 /** get_sq_dist()
  *  Get the squared distance between 2 points
  */
-inline unsigned int get_sq_dist(int *v1, int *v2, int dim) {
-    int i;
+inline uint64_t get_sq_dist(uint64_t *v1, uint64_t *v2, uint64_t dim) {
+    uint64_t i;
 
-    unsigned int sum = 0;
+    uint64_t sum = 0;
     for (i = 0; i < dim; i++) {
         sum += ((v1[i] - v2[i]) * (v1[i] - v2[i]));
+        
     }
     return sum;
 }
@@ -161,8 +186,8 @@ inline unsigned int get_sq_dist(int *v1, int *v2, int dim) {
 /** add_to_sum()
  *	Helper function to update the total distance sum
  */
-void add_to_sum(int *sum, int *point, int dim) {
-    int i;
+void add_to_sum(uint64_t *sum, uint64_t *point, uint64_t dim) {
+    uint64_t i;
 
     for (i = 0; i < dim; i++) {
         sum[i] += point[i];
@@ -173,25 +198,25 @@ void add_to_sum(int *sum, int *point, int dim) {
  *  Find the cluster that is most suitable for a given set of points
  */
 void* find_clusters(void *arg) {
-    int modified = false;
+    uint64_t modified = false;
     thread_arg *t_arg = (thread_arg *)arg;
-    int i, j;
-    unsigned int min_dist, cur_dist;
-    int min_idx;
-    int start_idx = t_arg->start_idx;
-    int end_idx = start_idx + t_arg->num_pts;
-    int dim = t_arg->dim;
-    int num_means = t_arg->num_means;
-    int num_points = t_arg->num_points;
-    int **means = t_arg->means;
-    int **points = t_arg->points;
-    int *clusters = t_arg->clusters;
+    uint64_t i, j;
+    uint64_t min_dist, cur_dist;
+    uint64_t min_idx;
+    uint64_t start_idx = t_arg->start_idx;
+    uint64_t end_idx = start_idx + t_arg->num_pts;
+    uint64_t dim = t_arg->dim;
+    uint64_t num_means = t_arg->num_means;
+    uint64_t num_points = t_arg->num_points;
+    uint64_t *means = t_arg->means;
+    uint64_t *points = t_arg->points;
+    uint64_t *clusters = t_arg->clusters;
 
     for (i = start_idx; i < end_idx; i++) {
-        min_dist = get_sq_dist(points[i], means[0], dim);
+        min_dist = get_sq_dist(&points[i*dim], &means[0*dim], dim);
         min_idx = 0;
         for (j = 1; j < num_means; j++) {
-            cur_dist = get_sq_dist(points[i], means[j], dim);
+            cur_dist = get_sq_dist(&points[i*dim], &means[j*dim], dim);
             if ( cur_dist < min_dist ) {
                 min_dist = cur_dist;
                 min_idx = j;
@@ -199,85 +224,139 @@ void* find_clusters(void *arg) {
         }
 
         if ( clusters[i] != min_idx ) {
-            pthread_mutex_lock(&gm);
             clusters[i] = min_idx;
-            pthread_mutex_unlock(&gm);
             modified = true;
         }
     }
-
-    return (void *)modified;
+    return (void *)(intptr_t)modified;
 }
 
 /** calc_means()
  *  Compute the means for the various clusters
  */
 void* calc_means(void *arg) {
-    int i, j, grp_size;
-    int *sum;
+    uint64_t i, j, grp_size;
+    uint64_t *sum;
     thread_arg *t_arg = (thread_arg *)arg;
-    int start_idx = t_arg->start_idx;
-    int end_idx = start_idx + t_arg->num_pts;
-    int dim = t_arg->dim;
-    int num_points = t_arg->num_points;
-    int **means = t_arg->means;
-    int *clusters = t_arg->clusters;
-    int **points = t_arg->points;
+    uint64_t start_idx = t_arg->start_idx;
+    uint64_t end_idx = start_idx + t_arg->num_pts;
+    uint64_t dim = t_arg->dim;
+    uint64_t num_points = t_arg->num_points;
+    uint64_t *clusters = t_arg->clusters;
+    uint64_t *means = t_arg->means;
+    uint64_t *points = t_arg->points;
 
     sum = t_arg->sum;
 
     for (i = start_idx; i < end_idx; i++) {
-        memset(sum, 0, dim * sizeof(int));
+        memset(sum, 0, dim * sizeof(uint64_t));
         grp_size = 0;
 
         for (j = 0; j < num_points; j++) {
             if ( clusters[j] == i ) {
-                add_to_sum(sum, points[j], dim);
+                add_to_sum(sum, &points[j*dim], dim);
                 grp_size++;
             }
         }
-
+        
         for (j = 0; j < dim; j++) {
-            //dprintf("div sum = %d, grp size = %d\n", sum[j], grp_size);
             if ( grp_size != 0 ) {
-                pthread_mutex_lock(&gm);
-                means[i][j] = sum[j] / grp_size;
-                pthread_mutex_unlock(&gm);
+                means[(i*dim) + j] = sum[j] / grp_size;
             }
         }
     }
-    //   free(sum);
     return (void *)0;
 }
 
-void *dummy_function(void* arg){
+void *touch_pages_function(void *args){
+    struct dummy_struct *t_args = (struct dummy_struct*)args;
+    uint64_t *means_values = t_args->means_values;
+    uint64_t *clusters_values = t_args->clusters_values;
+    uint64_t *iterations_value = t_args->iterations_value;
+    uint64_t *means = t_args->means;
+    uint64_t *clusters = t_args->clusters;
+    uint64_t *iterations = t_args->iterations;
+
+    printf("touching pages for means and clusters\n");
+    memcpy(means, means_values, sizeof(uint64_t) * num_means * dim);
+    memcpy(clusters, clusters_values, sizeof(uint64_t) * num_points);
+    memcpy(iterations, iterations_value, sizeof(uint64_t));
     pthread_exit(NULL);
-    return NULL;
+}
+
+void *dummy_function(void* arg){
+    pthread_mutex_lock(&dm);
+    while (!syncDummy) {
+        pthread_cond_wait(&cond, &dm);
+    }
+    fprintf(stderr, "dummy sync point\n");
+    pthread_mutex_unlock(&dm);
+    pthread_exit(NULL);
+}
+
+void pthread_persistent_data(void *data, size_t size, const char *filename){
+    int fd = open(filename, O_WRONLY|O_CREAT, 0666);
+    if ( fd == -1 ) {
+        perror("can't open file\n");
+        printf("file: %s\n", filename);
+        abort();
+    }
+    ssize_t sz;
+    sz = write(fd, (char*)data, size);
+    if (sz != size) {
+        perror("write error: ");
+    }
+    close(fd);
+}
+
+void pthread_recover_data(void *data, size_t size, const char *filename){
+    int fd = open(filename, O_RDONLY, 0666);
+    if ( fd == -1 ) {
+        perror("can't read recover file\n");
+        printf("file: %s\n", filename);
+        abort();
+    }
+    off_t fsize = lseek(fd, 0, SEEK_END);
+    lseek(fd, 0, SEEK_SET);
+    printf("fsize %zu bytes\n",fsize);
+    char *ptr = (char *)mmap(NULL, fsize, PROT_READ, MAP_PRIVATE, fd, 0);
+    memcpy((char *)data, (char *)(ptr), fsize);
+
+    close(fd);
 }
 
 int main(int argc, char **argv) {
 
-    int num_points; // number of vectors
-    int num_means; // number of clusters
-    int dim;       // Dimension of each vector
-    int grid_size; // size of each dimension of vector space
-    int num_procs, curr_point;
-    int i;
+    uint64_t grid_size; // size of each dimension of vector space
+    uint64_t abort_at = -1; // abort at iteration
+    uint64_t start_at = 0;
+    uint64_t num_procs, curr_point;
+    uint64_t i;
     pthread_t pid[256];
     pthread_attr_t attr;
-    int num_per_thread, excess;
+    uint64_t num_per_thread, excess;
+    double time_per_iteration;
+    crashed = isCrashed();
+    char means_filename[128];    
+    char clusters_filename[128];    
+    char iterations_filename[128];    
+    bool recover_pthread = false;
 
     num_points = DEF_NUM_POINTS;
     num_means = DEF_NUM_MEANS;
     dim = DEF_DIM;
     grid_size = DEF_GRID_SIZE;
-
+    abort_at = DEF_ABORT_AT;
+    srand(0);
+    struct timeval iteration_before, iteration_after, iteration_result;
+    struct timeval main_before, main_after, main_result;
+    struct timeval nvrecover_before, nvrecover_after, nvrecover_result;
     {
         int c;
         extern char *optarg;
         extern int optind;
 
-        while ((c = getopt(argc, argv, "d:c:p:s:")) != EOF) {
+        while ((c = getopt(argc, argv, "d:c:p:s:a:r:")) != EOF) {
             switch (c) {
             case 'd':
                 dim = atoi(optarg);
@@ -291,8 +370,14 @@ int main(int argc, char **argv) {
             case 's':
                 grid_size = atoi(optarg);
                 break;
+            case 'a':
+                abort_at = atoi(optarg);
+                break;
+            case 'r':
+                recover_pthread = true;
+                break;
             case '?':
-                printf("Usage: %s -d <vector dimension> -c <num clusters> -p <num points> -s <grid size>\n", argv[0]);
+                printf("Usage: %s -d <vector dimension> -c <num clusters> -p <num points> -s <grid size> -a [abort at iteration a]\n", argv[0]);
                 exit(1);
             }
         }
@@ -303,36 +388,96 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("Dimension = %d\n", dim);
-    printf("Number of clusters = %d\n", num_means);
-    printf("Number of points = %d\n", num_points);
-    printf("Size of each dimension = %d\n", grid_size);
+    gettimeofday(&main_before, NULL);
 
+    if (recover_pthread) {
+        printf("Recover for pthread\n");
+    }
+    printf("Dimension = %lu\n", dim);
+    printf("Number of clusters = %lu\n", num_means);
+    printf("Number of points = %lu\n", num_points);
+    printf("Size of each dimension = %lu\n", grid_size);
+    printf("Abort at iteration = %lu\n", abort_at);
  	pthread_mutex_init(&gm, NULL);
-    pthread_t tid;
-    pthread_create(&tid, NULL, dummy_function, NULL);
 
-    int **points = (int **)malloc(sizeof(int *) * num_points);
-    for (i = 0; i < num_points; i++) {
-        points[i] = (int *)malloc(sizeof(int) * dim);
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_init(&dm, NULL);
+    pthread_t tid;
+
+    sprintf(means_filename, "%s", "/mnt/ssd/tmp/means.txt");
+    sprintf(clusters_filename, "%s", "/mnt/ssd/tmp/clusters.txt");
+    sprintf(iterations_filename, "%s", "/mnt/ssd/tmp/iterations.txt");
+    if (!recover_pthread) {
+        unlink(means_filename);
+        unlink(clusters_filename);
+        unlink(iterations_filename);
     }
 
-    dprintf("Generating points\n");
+    /// Points (1-D)
+    uint64_t *points = (uint64_t*)malloc(sizeof(uint64_t) * num_points * dim);
     generate_points(points, num_points, dim, grid_size);
 
-    int **means;
-
-    means = (int **)malloc(sizeof(int *) * num_means);
-    for (i = 0; i < num_means; i++) {
-        //   means[i] = (int *)malloc(sizeof(int) * dim);
-        means[i] = (int *)malloc(128);
+    // For dummy sync point
+    if (!crashed && !recover_pthread) {
+        syncDummy = false;
+        pthread_create(&tid, NULL, dummy_function, NULL);
     }
-    dprintf("Generating means\n");
-    generate_points(means, num_means, dim, grid_size);
+    else{
+        gettimeofday(&nvrecover_before, NULL);     
+    }
 
-    int *clusters = (int *)malloc(sizeof(int) * num_points);
-    memset(clusters, -1, sizeof(int) * num_points);
+    /// Means (1-D)
+    uint64_t *means = (uint64_t*)nvmalloc(sizeof(uint64_t) * num_means * dim, (char*)"means");
+    if (crashed) {
+        nvrecover(means, sizeof(uint64_t) * num_means * dim, (char*)"means");
+    } else if (recover_pthread) {
+        pthread_recover_data(means, sizeof(uint64_t) * num_means * dim, means_filename);
+    } else {
+        generate_points(means, num_means, dim, grid_size);
+    }
+//  dump_points(means, num_means, dim);
+    uint64_t *saved_means = (uint64_t*)malloc(sizeof(uint64_t) * num_means * dim);
 
+    /// Clusters
+    uint64_t *clusters = (uint64_t *)nvmalloc(sizeof(uint64_t) * num_points, (char*)"clusters");
+    if (crashed) {
+        nvrecover(clusters, sizeof(uint64_t) * num_points, (char*)"clusters");
+    } else if (recover_pthread) {
+        pthread_recover_data(clusters, sizeof(uint64_t) * num_points, clusters_filename);
+    } else{
+        memset(clusters, -1, sizeof(uint64_t) * num_points);
+    }
+//  dump_clusters(clusters, num_points);
+    uint64_t *saved_clusters = (uint64_t *)malloc(sizeof(uint64_t) * num_points);
+    
+    /// Iterations    
+    uint64_t *iterations = (uint64_t *)nvmalloc(sizeof(uint64_t), (char*)"iterations");
+    if (crashed) {
+        nvrecover(iterations, sizeof(uint64_t), (char*)"iterations");
+        start_at = (*iterations);
+        printf("starts from iteration %lu\n", *iterations);
+    } else if (recover_pthread) {
+        pthread_recover_data(iterations, sizeof(uint64_t), iterations_filename);
+        start_at = (*iterations);
+        printf("starts from iteration %lu\n", *iterations);
+    } else{
+        (*iterations) = 0;
+        printf("init iterations to %lu\n", *iterations);
+    }
+    uint64_t *saved_iterations = (uint64_t *)malloc(sizeof(uint64_t));
+
+    if (!crashed && !recover_pthread) {
+        pthread_mutex_unlock(&dm);
+        syncDummy = true;
+        pthread_cond_signal(&cond);
+        pthread_mutex_unlock(&dm);
+        pthread_join(tid, NULL);
+    }
+    else{
+        gettimeofday(&nvrecover_after, NULL);
+        timersub(&nvrecover_after, &nvrecover_before, &nvrecover_result);
+        printf("nvrecover time: ------------[%ld.%06ld]--------------\n", (long int)nvrecover_result.tv_sec, (long int)nvrecover_result.tv_usec);
+     }
 
     pthread_attr_init(&attr);
     pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
@@ -342,22 +487,57 @@ int main(int argc, char **argv) {
     //   CHECK_ERROR( (pid = (pthread_t *)malloc(sizeof(pthread_t) * num_procs)) == NULL);
 
 
-    int modified = true;
-
-    printf("Starting iterative algorithm!!!!!!\n");
+    uint64_t modified = true;
 
     /* Create the threads to process the distances between the various
     points and repeat until modified is no longer valid */
-    int num_threads;
     thread_arg arg[256];
-    unsigned long iterations = 0;
+    time_per_iteration = 0;
     while (modified) {
+        gettimeofday(&iteration_before, NULL);
+        
         num_per_thread = num_points / num_procs;
         excess = num_points % num_procs;
         modified = false;
         dprintf(".");
         curr_point = 0;
         num_threads = 0;
+        
+        if (abort_at != 0 && (*iterations) == abort_at) {
+            // quick hack: touch dirty pages
+            memcpy(saved_means, means, sizeof(uint64_t) * num_means * dim);
+            memcpy(saved_clusters, clusters, sizeof(uint64_t) * num_points);
+            memcpy(saved_iterations, iterations, sizeof(uint64_t));
+
+            // Set means and clusters to 0 (dirty it!)
+            memset(means, 0, sizeof(uint64_t) * num_means * dim);
+            memset(clusters, 0, sizeof(uint64_t) * num_points);
+            (*iterations) = 0;
+
+            struct dummy_struct dummy_args;
+            dummy_args.means_values = saved_means;
+            dummy_args.clusters_values = saved_clusters;
+            dummy_args.iterations_value = saved_iterations;
+            dummy_args.means = means;
+            dummy_args.clusters = clusters;
+            dummy_args.iterations = iterations;
+            // Ask child thread to restore the values in means and cluster
+            pthread_create(&tid, NULL, touch_pages_function, (void*) &dummy_args);
+            pthread_join(tid, NULL);
+ 
+            
+//          dump_points(means, num_means, dim);
+//          dump_clusters(clusters, num_points);
+            printf("intentionally abort!\n");
+            gettimeofday(&main_after, NULL);
+            timersub(&main_after, &main_before, &main_result);
+            time_per_iteration = (double) time_per_iteration / (*iterations);
+            printf("Time (Per iteration):\t-------------%lf-------------\n", time_per_iteration);
+            printf("Time (Start to crash):\t-------------[%ld.%06ld]------------\n", (long int)main_result.tv_sec, (long int)main_result.tv_usec);
+//          dump_points(means, num_means, dim);
+//          dump_clusters
+            abort();
+        }
 
         while (curr_point < num_points) {
             //	CHECK_ERROR((arg = (thread_arg *)malloc(sizeof(thread_arg))) == NULL);
@@ -378,19 +558,26 @@ int main(int argc, char **argv) {
             num_threads++;
         }
 
-//	  printf("in this run, num_threads is %d, num_per_thread is %d\n", num_threads, num_per_thread);
+//      printf("in this run, num_threads is %lu, num_per_thread is %lu\n", num_threads, num_per_thread);
 
         for (i = 0; i < num_threads; i++) {
+            arg[i].thread_id = i + 1;            
             CHECK_ERROR((pthread_create(&(pid[i]), &attr, find_clusters,
                                         (void *)(&arg[i]))) != 0);
             // EDB - with hierarchical commit we would not have had to
             // "localize" num_threads.
         }
 
+        // Log iteration, must be inbetween sync point
+//      printf("iteration %lu\n", *iterations);
+        (*iterations)++;
+
         assert(num_threads == num_procs);
         for (i = 0; i < num_threads; i++) {
-            int m;
-            pthread_join(pid[i], (void *)&m);
+            void *rt = 0;
+            uint64_t m;
+            pthread_join(pid[i], &rt);
+            m = (uint64_t)(intptr_t)rt;
             modified |= m;
         }
 
@@ -400,12 +587,11 @@ int main(int argc, char **argv) {
         num_threads = 0;
 
         assert(dim <= MAX_DIM);
-        //  printf("in this run again, num_threads is %d, num_per_thread is %d\n", num_threads, num_per_thread);
 
         while (curr_point < num_means) {
             //	CHECK_ERROR((arg = (thread_arg *)malloc(sizeof(thread_arg))) == NULL);
             arg[num_threads].start_idx = curr_point;
-            //	arg[num_threads].sum = (int *)malloc(dim * sizeof(int));
+            //	arg[num_threads].sum = (uint64_t *)malloc(dim * sizeof(uint64_t));
             arg[num_threads].num_pts = num_per_thread;
             if ( excess > 0 ) {
                 arg[num_threads].num_pts++;
@@ -416,36 +602,54 @@ int main(int argc, char **argv) {
         }
 
         for (i = 0; i < num_threads; i++) {
-            CHECK_ERROR((pthread_create(&(pid[i]), &attr, calc_means,
-                                        (void *)(&arg[i]))) != 0);
+//          CHECK_ERROR((pthread_create(&(pid[i]), &attr, calc_means,
+//                                      (void *)(&arg[i]))) != 0);
+            arg[i].thread_id = i + 1;
+            pthread_create(&(pid[i]), &attr, calc_means,
+                                        (void *)(&arg[i]));
         }
-
-//      printf ("num threads = %d\n", num_threads);
-//      printf ("num procs = %d\n", num_procs);
 
         assert(num_threads == num_procs);
         for (i = 0; i < num_threads; i++) {
             pthread_join(pid[i], NULL);
             //	 free (arg[i].sum);
         }
-        printf("iteration %ld\n", iterations);
-        iterations++;
+
+        gettimeofday(&iteration_after, NULL);
+        timersub(&iteration_after, &iteration_before, &iteration_result);
+        time_per_iteration = time_per_iteration + (double)iteration_result.tv_sec + (double)(iteration_result.tv_usec * 0.000001);
+//      printf("iteration %lu\t%ld.%06ld\n", *iterations, (long int)iteration_result.tv_sec, (long int)iteration_result.tv_usec);
+
+        // Pthreads persistent data 
+#ifdef PTHREADS
+        pthread_persistent_data(means, sizeof(uint64_t) * num_means * dim, means_filename);
+        pthread_persistent_data(clusters,  sizeof(uint64_t) * num_points, clusters_filename);
+        pthread_persistent_data(iterations, sizeof(*iterations), iterations_filename);
+#endif
     }
 
-
-//  dprintf("\n\nFinal means:\n");
 //  printf("\n\nFinal means:\n");
 //  dump_points(means, num_means, dim);
 
-    for (i = 0; i < num_points; i++) free(points[i]);
     free(points);
-
-    for (i = 0; i < num_means; i++) {
-        free(means[i]);
-    }
     free(means);
     free(clusters);
 
-    pthread_join(tid, NULL);
+    gettimeofday(&main_after, NULL);
+    timersub(&main_after, &main_before, &main_result);
+    time_per_iteration = (double) time_per_iteration / (*iterations);
+    printf("-------------------\n");
+    printf("Kmeans done\n");
+    printf("#points: %lu\n", num_points);
+    printf("Abort at iteration: %lu\n", abort_at);
+    printf("Start from iteration: %lu\n", start_at);
+    printf("Final iterations: %lu\n", *iterations);
+    printf("Time (Per iteration):\t-------------%lf-------------\n", time_per_iteration);
+    if (abort_at == 0) {
+        printf("Time (Start to end):\t-------------[%ld.%06ld]------------\n", (long int)main_result.tv_sec, (long int)main_result.tv_usec);
+    } else{
+        printf("Time (Recover to end):\t-------------[%ld.%06ld]------------\n", (long int)main_result.tv_sec, (long int)main_result.tv_usec);
+    }
+    printf("-------------------\n");
     return 0;
 }
