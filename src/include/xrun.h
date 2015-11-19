@@ -257,9 +257,9 @@ public:
             atomicBegin(true);
         }
 
-        if ( _protection_again ) {
-            atomicBegin(true);         
-        }
+//      if ( _protection_again ) {
+//          atomicBegin(true);
+//      }
 
         atomicEnd(false);
 
@@ -344,8 +344,8 @@ public:
         // Check whether we can close protection at all.
         // If current thread is the only alive thread, then close the protection.
         if ( determ::getInstance().isSingleAliveThread() ) {
-//          closeMemoryProtection();
-            _protection_again = true; //begin another atomic transaction for future spawn
+            closeMemoryProtection();
+//          _protection_again = true; //begin another atomic transaction for future spawn
 
             // Do some cleanup for fence.
             closeFence();
