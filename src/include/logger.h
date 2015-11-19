@@ -77,9 +77,8 @@ enum DurableMethod{
 
 #define PATH_CONFIG "/home/terry/workspace/nvthreads/config/nvthread.config"
 enum LOG_DEST {
-    DISK,
-    DRAM_TMPFS,
-    NVRAM_TMPFS
+    SSD,
+    NVM_RAMDISK,
 };
 
 class LogAtomic {
@@ -108,6 +107,7 @@ public:
     }
 };
 
+#define MAX_PID 32768
 /* Class for logging memory operations */
 class MemoryLog {
 public:
@@ -166,9 +166,11 @@ public:
         if ( !_logging_enabled ) {
             return;
         }
-        lprintf("----------initializing memorylog class--------------\n");
+//      lprintf("----------initializing memorylog class--------------\n");
         ReadConfig();
-        threadID = getpid();
+//      threadID = getpid();
+        threadID = GET_METACOUNTER(globalThreadCount);
+        INC_METACOUNTER(globalThreadCount);
         _mempages_file_count = 0;
         _logentry_count = 0;
         _dirtiedPagesCount = 0;
@@ -183,7 +185,7 @@ public:
     }
 
     void finalize() {
-        lprintf("----------finalizing memorylog class--------------\n");
+//      lprintf("----------finalizing memorylog class--------------\n");
         if ( !_logging_enabled ) {
             return;
         }
@@ -202,12 +204,11 @@ public:
     }
 
     void ReadConfig(void) {
-        log_dest = DRAM_TMPFS;
-//      log_dest = DISK;
+        log_dest = SSD;
+//      log_dest = NVM_RAMDISK;
         _DurableMethod = FSYNC;
         _eol_size = 4;
         _log_flags = O_RDWR | O_ASYNC | O_APPEND;
-//      log_dest = DISK;
         return;
 
         char *field;
@@ -220,10 +221,10 @@ public:
             if ( isCommentStmt(field) ) {
                 continue;
             } else if ( strcmp("LOG_DEST", field) == 0 ) {
-                if ( strcmp(token, "DISK") == 0 ) {
-                    log_dest = DISK;
-                } else if ( strcmp(token, "DRAM_TMPFS") == 0 ) {
-                    log_dest = DRAM_TMPFS;
+                if ( strcmp(token, "SSD") == 0 ) {
+                    log_dest = SSD;
+                } else if ( strcmp(token, "NVM_RAMDISK") == 0 ) {
+                    log_dest = NVM_RAMDISK;
                 }
 
                 lprintf("Log destination: %s, log_dest = %d\n", token, log_dest);
@@ -243,21 +244,21 @@ public:
         
         // Update main thread's pid
         if ( threadID == 0 ) {
-            threadID = getpid();
+//          threadID = getpid();    
+            threadID = GET_METACOUNTER(globalThreadCount);
+            INC_METACOUNTER(globalThreadCount);
         }
 
-        if ( log_dest == DISK ) {
-            sprintf(log_path_prefix, "/mnt/ssd/terry/tmp/%d", nvid);
-        } else if ( log_dest == DRAM_TMPFS ) {
+        if ( log_dest == SSD ) {
+            sprintf(log_path_prefix, "/mnt/ssd2/tmp/%d", nvid);
+        } else if ( log_dest == NVM_RAMDISK ) {
             sprintf(log_path_prefix, "/mnt/ramdisk/%d", nvid);
-        } else if ( log_dest == NVRAM_TMPFS ) {
-            sprintf(log_path_prefix, "/mnt/nvmfs/%d", nvid);
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
             abort();
         }
 
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_%lu_XXXXXXX", 
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_%u_XXXXXXX", 
                 log_path_prefix, threadID, GET_METACOUNTER(globalTransactionCount), _local_transaction_id);
         _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
@@ -272,7 +273,7 @@ public:
             lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
             abort();
         } else {
-            lprintf("Opened memory page log. fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
+//          lprintf("Opened memory page log. fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
         }
     }
 
@@ -368,7 +369,7 @@ public:
         struct LogEntry::log_t newLE;
         newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
         newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
-        lprintf("Appending log at file %s for addr 0x%08lx\n", _mempages_filename, newLE.addr); 
+//      lprintf("Appending log at file %s for addr 0x%08lx\n", _mempages_filename, newLE.addr);
         
         size_t sz;
         sz = write(_mempages_fd, &newLE.addr, sizeof(void*));
@@ -446,13 +447,11 @@ public:
     }
 
     void CloseMemoryLog(void) {
-        if ( log_dest == DISK ) {
+        if ( log_dest == SSD ) {
             /* Close the memory mapping log */
             CloseDiskMemoryLog();
-        } else if ( log_dest == DRAM_TMPFS ) {
+        } else if ( log_dest == NVM_RAMDISK ) {
             CloseDramTmpfsMemoryLog();
-        } else if ( log_dest == NVRAM_TMPFS ) {
-            CloseNvramTmpfsMemoryLog();
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
             abort();
@@ -498,16 +497,14 @@ public:
     
     // Write an end of log flag to file.  It has to be ordered after the actual logs.
     void WriteEndOfLog(void){
-        if ( log_dest == DISK ) {
-            WriteEOLDiskLog();
-        } else if ( log_dest == DRAM_TMPFS ) {
+//      if ( log_dest == SSD ) {
+//          WriteEOLDiskLog();
+//      } else if ( log_dest == NVM_RAMDISK ) {
             WriteEOLDramTmpfsLog();
-        } else if ( log_dest == NVRAM_TMPFS ) {
-            WriteEOLNvramTmpfsLog();
-        } else {
-            fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
-            abort();             
-        }
+//      } else {
+//          fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
+//          abort();
+//      }
     }
 
     /* Allocate one log entry using Hoard memory allocator (overloaded new) */

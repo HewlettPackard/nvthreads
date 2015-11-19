@@ -52,6 +52,7 @@ extern runtime_data_t *global_data;
 
 struct metadata_t {
     METACOUNTER(globalTransactionCount);
+    METACOUNTER(globalThreadCount);
 };
 
 typedef struct runtime_metadata {
