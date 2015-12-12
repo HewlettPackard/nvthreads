@@ -1030,18 +1030,27 @@ public:
         unsigned short threadID = _pageLookupHeap[pageNo].threadID;
         unsigned long memlogOffset = _pageLookupHeap[pageNo].memlogOffset;
 
+/*
+        if ( !_pageLookupHeap[pageNo].dirtied ) {
+            pageOffset = v->pageOffset;
+            int tmp = remaining_bytes - (xdefines::PageSize - pageOffset);
+            if ( tmp >= 0 ) {
+                bytes = xdefines::PageSize - pageOffset;
+            }
+            else{
+                bytes = remaining_bytes;
+            }            
+            lprintf("pageNo %d is not dritied, checked %zu bytes, skip recoverying this page\n", pageNo, bytes);
+            return bytes;
+        }
+*/
         lprintf("copying pageNo %d, memlogOffset: %lu\n", pageNo, memlogOffset);
 
-        // Get the file name of memory log
-        sprintf(memlogFn, "%sMemLog_%d_%d", logPath, threadID, xactID);
-        memlogFd = open(memlogFn, O_RDONLY);
-        if ( memlogFd == -1 ) {
-            perror("RecoverOnePage open()");
-            abort();
-        }
-    
         // First page, take care of offset to prevent overflow
         if ( remaining_bytes == total_size ) {
+            // calculate offset within a page
+            pageOffset = v->pageOffset;
+
             // Only need 1 page
             if ( pageOffset + total_size <= xdefines::PageSize ) {
                 bytes = total_size;
@@ -1052,12 +1061,10 @@ public:
                 bytes = xdefines::PageSize - pageOffset;
                 lprintf("First page (need more than 1 page), starting from pageOffset: %d, copy %zu bytes\n", pageOffset, bytes);                
             }
-
-            // calculate offset within a page
-            pageOffset = v->pageOffset;
         }
         else{
-            // Last page, take care of offset to prevent overflow
+            // Last page, take care of #bytes to copy to prevent overflow
+            pageOffset = 0;
             if (remaining_bytes < xdefines::PageSize){
                 bytes = remaining_bytes;
                 lprintf("Last page, starting from pageOffset: 0, copy %zu bytes\n", bytes);
@@ -1066,21 +1073,37 @@ public:
                 bytes = xdefines::PageSize;
                 lprintf("Middle page, starting from pageOffset: 0, copy %zu bytes\n", bytes);
             }
-            pageOffset = 0;
         }
         lprintf("memlogOffset: %lu, pageOffset: %d\n", memlogOffset, pageOffset);
 
-        // Move file descriptor to correct offset
-        memlogOffset += pageOffset;
-        lseek(memlogFd, memlogOffset, SEEK_SET);
-        size_t sz;
-        sz = read(memlogFd, dest, bytes);
-        if ( sz != bytes ) {
-            lprintf("Error: copy only %zu bytes, should've copied %zu bytes\n", sz, bytes);
+
+        if ( _pageLookupHeap[pageNo].dirtied ) {
+
+            // Get the file name of memory log
+            sprintf(memlogFn, "%sMemLog_%d_%d", logPath, threadID, xactID);
+            memlogFd = open(memlogFn, O_RDONLY);
+            if ( memlogFd == -1 ) {
+                perror("RecoverOnePage open()");
+                abort();
+            }    
+
+            // Move file descriptor to correct offset
+            memlogOffset += pageOffset;
+            lseek(memlogFd, memlogOffset, SEEK_SET);
+            size_t sz;
+
+            // Recover data from page
+            sz = read(memlogFd, dest, bytes);
+            if ( sz != bytes ) {
+                lprintf("Error: copy only %zu bytes, should've copied %zu bytes\n", sz, bytes);
+            }
+            close(memlogFd);
+            lprintf("copied %zu bytes for pageNo %d from %s, memlogOffset: %lu\n", sz, pageNo, memlogFn, memlogOffset);
+        }
+        else{
+            lprintf("pageNo %d is not dritied, checked %zu bytes, skip recoverying this page\n", pageNo, bytes);
         }
 
-        lprintf("copied %zu bytes for pageNo %d from %s, memlogOffset: %lu\n", sz, pageNo, memlogFn, memlogOffset);
-        close(memlogFd);
         
         return bytes;
     }
