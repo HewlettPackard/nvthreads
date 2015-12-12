@@ -118,7 +118,7 @@ public:
         // Calculate the sub-heapid by the global thread index.
         _heapid = id % xdefines::NUM_HEAPS;
     }
-
+    
     static void setThreadRecovery(nvrecovery *NvRecovery) {
         _localNvRecovery = NvRecovery;
     }
@@ -126,6 +126,17 @@ public:
     static void setThreadMemoryLog(MemoryLog *MemoryLog) {
         _localMemoryLog = MemoryLog;
     }
+
+    static void setLogPath(char *path){
+        _globals.setLogPath(path);
+        _pheap.setLogPath(path);
+    }
+    
+    static void createLookupInfo(void){
+        _globals.createLookupInfo();
+        _pheap.createLookupInfo();
+    }
+    
 
     static inline void* nvmalloc(size_t sz, char *name) {
         void *ptr = _pheap.malloc(_heapid, sz);
@@ -135,10 +146,13 @@ public:
         }
 
 //      if ( MemoryLog::_logging_enabled ) {
-        lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvRecovery->_varmap_filename);
-        _localNvRecovery->AppendVarMapLog(ptr, sz, name);
+//      lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvRecovery->_varmap_filename);
+        int pageNo = _pheap.computePageNo(ptr);
+        int pageOffset = _pheap.computePageOffset(ptr);
+        _localNvRecovery->AppendVarMapLog(ptr, sz, name, pageNo, pageOffset);
 //      }
 
+        lprintf("nvmalloc %s for %zu bytes starting at %p with pageNo: %d, page offset: %d\n", name, sz, ptr, pageNo, pageOffset);
         return ptr;
     }
 
@@ -255,7 +269,6 @@ public:
     static void segvHandle(int signum, siginfo_t *siginfo, void *context) {
         void *addr = siginfo->si_addr; // address of access
 
-        /* Record memory writes */
 //      fprintf(stderr, "%d: Page fault at: %p\n", getpid(), addr);
         // Check if this was a SEGV that we are supposed to trap.
         if ( siginfo->si_code == SEGV_ACCERR ) {

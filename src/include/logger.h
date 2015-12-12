@@ -132,7 +132,7 @@ public:
     static int _DurableMethod;
     int _dirtiedPagesCount; 
     int _log_flags;
-    char log_path_prefix[FILENAME_MAX]; 
+    char logPath[FILENAME_MAX]; 
 
     /* For heap */
     int _heap_log_fd;
@@ -204,8 +204,8 @@ public:
     }
 
     void ReadConfig(void) {
-        log_dest = SSD;
-//      log_dest = NVM_RAMDISK;
+//      log_dest = SSD;
+        log_dest = NVM_RAMDISK;
         _DurableMethod = FSYNC;
         _eol_size = 4;
         _log_flags = O_RDWR | O_ASYNC | O_APPEND;
@@ -236,31 +236,30 @@ public:
     }
 
     /* Memory log filename: /path/to/MemLog_threadID_globalXactID_localXactID */
-    void OpenMemoryLog(int dirtiedPagesCount, unsigned int transid) {
+    void OpenMemoryLog(int dirtiedPagesCount, bool isHeap) {
         _dirtiedPagesCount = dirtiedPagesCount;
         _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
         _logentry_count = 0;
-        _local_transaction_id = transid;
+//      _local_transaction_id = transid;
         
-        // Update main thread's pid
-        if ( threadID == 0 ) {
-//          threadID = getpid();    
-            threadID = GET_METACOUNTER(globalThreadCount);
-            INC_METACOUNTER(globalThreadCount);
-        }
-
         if ( log_dest == SSD ) {
-            sprintf(log_path_prefix, "/mnt/ssd2/tmp/%d", nvid);
+            sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
-            sprintf(log_path_prefix, "/mnt/ramdisk/%d", nvid);
+            sprintf(logPath, "/mnt/ramdisk/%d", nvid);
         } else {
             fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
             abort();
         }
 
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu_%u_XXXXXXX", 
-                log_path_prefix, threadID, GET_METACOUNTER(globalTransactionCount), _local_transaction_id);
-        _mempages_fd = mkostemp(_mempages_filename, _log_flags);
+        // Random file name
+//      sprintf(_mempages_filename, "%s/MemLog_%d_%lu_%d_XXXXXXX",
+//              logPath, threadID, GET_METACOUNTER(globalTransactionCount), isHeap);
+//      _mempages_fd = mkostemp(_mempages_filename, _log_flags);
+
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu", 
+                logPath, threadID, GET_METACOUNTER(globalTransactionCount));
+
+        _mempages_fd = open(_mempages_filename, O_RDWR | O_ASYNC | O_CREAT, 0644);
 
         if ( _mempages_fd == -1 ) {
             fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
@@ -273,7 +272,7 @@ public:
             lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
             abort();
         } else {
-//          lprintf("Opened memory page log. fd: %d, filename: %s, LogEntry::LogEntrySize: %d\n", _mempages_fd, _mempages_filename, LogEntry::LogEntrySize);
+            lprintf("Opened memory page log. fd: %d, filename: %s\n", _mempages_fd, _mempages_filename);
         }
     }
 
@@ -367,26 +366,27 @@ public:
         */
         
         struct LogEntry::log_t newLE;
-        newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
+//      newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
         newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
 //      lprintf("Appending log at file %s for addr 0x%08lx\n", _mempages_filename, newLE.addr);
         
         size_t sz;
-        sz = write(_mempages_fd, &newLE.addr, sizeof(void*));
-        if ( sz == -1 ) {
-            fprintf(stderr, "%d: write addr %p error fd: %d, filename: %s\n", getpid(), (void *)newLE.addr, _mempages_fd, _mempages_filename);
-            perror("write (addr): ");
-
-            close(_mempages_fd);
-            _mempages_fd = open(_mempages_filename, _log_flags);
-            if ( _mempages_fd == -1 ) {
-                fprintf(stderr, "%d: Still open error, cannot create new log, abort\n", getpid());
-                abort();
-            } else {
-                fprintf(stderr, "opened a file descriptor %d\n", _mempages_fd);
-            }
-        }
-        sz = write(_mempages_fd, (void *)newLE.after_image, LogDefines::PageSize);
+//      sz = write(_mempages_fd, &newLE.addr, sizeof(void*));
+//      if ( sz == -1 ) {
+//          fprintf(stderr, "%d: write addr %p error fd: %d, filename: %s\n", getpid(), (void *)newLE.addr, _mempages_fd, _mempages_filename);
+//          perror("write (addr): ");
+//
+//          close(_mempages_fd);
+//          _mempages_fd = open(_mempages_filename, _log_flags);
+//          if ( _mempages_fd == -1 ) {
+//              fprintf(stderr, "%d: Still open error, cannot create new log, abort\n", getpid());
+//              abort();
+//          } else {
+//              fprintf(stderr, "opened a file descriptor %d\n", _mempages_fd);
+//          }
+//      }
+//      sz = write(_mempages_fd, (void *)newLE.after_image, LogDefines::PageSize);
+        sz = write(_mempages_fd, (void *)newLE.after_image, xdefines::PageSize);
         if ( sz == -1 ) {
             fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.after_image, _mempages_fd, _mempages_filename);
             perror("write (page): ");

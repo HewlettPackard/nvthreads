@@ -67,6 +67,8 @@ int madvise(caddr_t addr, size_t len, int advice);
 
 //#define fprintf(...)
 
+#include "nvrecovery.h"
+
 /**
  * @class xpersist
  * @brief Makes a range of memory persistent and consistent.
@@ -203,7 +205,8 @@ public:
         if ( _transientMemory == MAP_FAILED ||
              _persistentVersions == MAP_FAILED ||
              _pageUsers == MAP_FAILED ||
-             _persistentMemory == MAP_FAILED ) {
+             _persistentMemory == MAP_FAILED ||
+             _pageLookup == MAP_FAILED) {
             fprintf(stderr, "xpersist: mmap error with %s\n", strerror(errno));
             // If we couldn't map it, something has seriously gone wrong. Bail.
             ::abort();
@@ -219,6 +222,10 @@ public:
 //          printf("created globals!\n");
         }
 
+        // Set up lookup info
+//      createLookupInfo();
+
+        lprintf("initialized xpersist, dirtyListPages: %p, is_Heap: %d\n", &_dirtiedPagesList, _isHeap);
     }
 
     void initialize() {
@@ -367,6 +374,56 @@ public:
 
     void setThreadIndex(int index) {
         _threadindex = index;
+    }
+    
+    void setLogPath(char *path){
+        logPath = path;
+    }
+
+    void createLookupInfo(void){
+        if ( !logPath ) {
+            lprintf("logPath not ready yet %s\n", logPath);
+            return;
+        }
+        if ( _pageLookup ) {
+            lprintf("_pageLookup is already set at %p\n", _pageLookup);
+            return;
+        }
+        lprintf("Creating lookup info at %s\n", logPath);
+        // Quick look up metadata for heap and global 
+        char _lookupFname[1024];
+        if ( _isHeap ) {        
+            sprintf(_lookupFname, "%slookup_heap", logPath);
+        }
+        else{
+            sprintf(_lookupFname, "%slookup_globals", logPath);
+        }
+
+        // Check if file exists.  If so, rename file to "recover" first
+        if ( access(_lookupFname, F_OK) != -1 ) {
+            char _recoverFname[1024];
+            sprintf(_recoverFname, "%s_recover", _lookupFname);
+            if ( rename(_lookupFname, _recoverFname) != 0 ){
+                lprintf("error: unable to rename file\n");
+            }
+            lprintf("File %s exists, rename to %s\n", _lookupFname, _recoverFname);
+        }
+
+        _lookupFd = open(_lookupFname, O_RDWR | O_SYNC | O_CREAT, 0644);
+        if ( _lookupFd == -1 ) {
+            fprintf(stderr, "Failed to make persistent file.\n");
+            ::abort();
+        }
+        // Set the files to the sizes of the desired object.
+        if ( ftruncate(_lookupFd, TotalPageNums * sizeof(struct lookupinfo)) ) {
+            fprintf(stderr, "Mysterious error with ftruncate.NElts %ld\n", NElts);
+            ::abort();
+        }
+
+        _pageLookup = (struct lookupinfo *)mmap(NULL, TotalPageNums * sizeof(struct lookupinfo),
+                                              PROT_READ | PROT_WRITE, MAP_SHARED, _lookupFd, 0);
+        memset((void*)_pageLookup, 0, TotalPageNums * sizeof(struct lookupinfo));
+        lprintf("lookup file: %s, base(): %p, isHeap %d\n", _lookupFname, base(), _isHeap);
     }
 
     /// @return true iff the address is in this space.
@@ -518,7 +575,7 @@ public:
 
         // Then add current page to dirty list.
         _dirtiedPagesList.insert(std::pair<int, void *>(pageNo, curr));
-//printf("%d page fault: %p, dirtiedPagesList: %p\n", getpid(), pageStart, &_dirtiedPagesList);
+//      lprintf("Page fault pageNo %d\n", pageNo);
 //      dumpDirtiedPages();
         return;
     }
@@ -810,6 +867,13 @@ public:
         printf("-----------%d end of dirtied pages--------------\n\n", getpid());
     }
 
+    void recordlookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied){        
+        _pageLookup[pageNo].xactID = globalXactID;
+        _pageLookup[pageNo].threadID = threadID;
+        _pageLookup[pageNo].memlogOffset = offset;
+        _pageLookup[pageNo].dirtied = dirtied;
+    }
+    
     // Commit local modifications to shared mapping
     inline void checkandcommit(bool update, MemoryLog *localMemoryLog) {
         struct shareinfo *shareinfo = NULL;
@@ -819,13 +883,17 @@ public:
         unsigned long *local;
         int mypid = getpid();
         bool logged = false;
-
+        unsigned long globalXactID = GET_METACOUNTER(globalTransactionCount);
+        unsigned long memlogOffset;
         INC_COUNTER(commit);
 
         if ( _dirtiedPagesList.size() == 0 ) {
             return;
         }
 
+//      lprintf("Dirty pages: %zu, isHeap: %d, pghtable: %p\n", _dirtiedPagesList.size(), _isHeap, pghtable);
+//      lprintf("dirtyPagesList: %p, thread index: %d\n", &_dirtiedPagesList, _threadindex);
+//      pghtable->addDirtyPagesList(&_dirtiedPagesList);
         // Increase local counter _trans
         _trans++;
     
@@ -836,10 +904,10 @@ public:
 #endif
         START_TIMER(logging);
 
-        lprintf("%d: commit transaction %u, #dirtied pages: %d\n", getpid(), _trans, _dirtiedPagesList.size());
+//      lprintf("%d: commit transaction %u, #dirtied pages: %zu\n", getpid(), _trans, _dirtiedPagesList.size());
 
         // Open a new log file if we have dirtied pages
-        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _trans);
+        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap);
 
         // Loop through all dirtied pages
         int page_count = 0;
@@ -869,8 +937,23 @@ public:
                 unsigned long *twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
                 ProfileDiffs(local, twin);
 #endif
+
+                // Log dirty page
                 localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-                lprintf("Logged page %d at %p\n", page_count, pageinfo->pageStart);
+
+                // Update lookup info
+                memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+                if ( _pageLookup[pageNo].dirtied ) {
+                    lprintf("addr: 0x%08lx update pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
+                            (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+                }
+                else{
+                    lprintf("addr: 0x%08lx insert pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
+                            (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+                }
+                recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
+
+//              lprintf("Trancation %lu: logged page %d at %p\n", GET_METACOUNTER(globalTransactionCount), page_count, pageinfo->pageStart);
                 page_count++;
 #ifdef PAGE_DENSITY
                 // Counter sanity checks
@@ -1039,9 +1122,7 @@ public:
                 _persistentVersions[pageNo]++;
             }
 
-        }
-
-
+        }        
     }
 
     /// @brief Update every page frame from the backing file if necessary.
@@ -1074,7 +1155,21 @@ public:
         xatomic::memoryBarrier();
     }
 
+    inline size_t computePageNo(void* addr){
+        return computePage((size_t)addr - (size_t)base());
+    }
+
+    inline int computePageOffset(void *addr){
+        return (size_t)addr % (size_t)xdefines::PageSize;
+    }
+
 private:
+    // The objects are pairs, mapping void * pointers to sizes.
+    typedef std::pair<int, void *> objType;
+    typedef HL::STLAllocator<objType, privateheap> dirtyListTypeAllocator;
+    typedef std::less<int> localComparator;
+    typedef std::multimap<int, void *, localComparator, dirtyListTypeAllocator> dirtyListType;
+
 
     inline size_t computePage(size_t index) {
         return (index * sizeof(Type)) / xdefines::PageSize;
@@ -1099,15 +1194,6 @@ private:
 
     /// The size of the region.
     const size_t _startsize;
-
-    typedef std::pair<int, void *> objType;
-
-    // The objects are pairs, mapping void * pointers to sizes.
-    typedef HL::STLAllocator<objType, privateheap> dirtyListTypeAllocator;
-
-    typedef std::less<int> localComparator;
-
-    typedef std::multimap<int, void *, localComparator, dirtyListTypeAllocator> dirtyListType;
 
     /// A map of dirtied pages.
     dirtyListType _dirtiedPagesList;
@@ -1153,7 +1239,6 @@ private:
 
     struct shareinfo *_pageUsers;
 
-
     /// The length of the version array.
     enum {TotalPageNums = sizeof(Type) * NElts / xdefines::PageSize };
 
@@ -1166,6 +1251,11 @@ private:
 #endif
 
     int _threadindex;
+
+    // Fast page lookup
+    struct lookupinfo *_pageLookup;
+    int _lookupFd;  
+    char *logPath;
 };
 
 #endif
