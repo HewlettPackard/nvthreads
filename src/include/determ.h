@@ -239,11 +239,6 @@ public:
         _maxthreads--;
 
         if ( _currthreads >= _maxthreads ) {
-            lprintf("------------end of transaction %lu------------\n", GET_METACOUNTER(globalTransactionCount));
-
-            INC_METACOUNTER(globalTransactionCount);
-//          pghtable->cleanupDirtyPagesList();
-
             // Change phase if necessary
             if ( _is_arrival_phase && _maxthreads != 0 ) {
                 _is_arrival_phase = false;
@@ -379,6 +374,9 @@ public:
         // When all threads leave the barrier, entering into the new arrival phase.
         if ( _currthreads == 0 ) {
             _is_arrival_phase = true;
+
+//          lprintf("------------end of transaction %lu------------\n", GET_METACOUNTER(globalTransactionCount));
+            INC_METACOUNTER(globalTransactionCount);
 
             // Cleanup the bitmap here.
             if ( !keepBitmap )
