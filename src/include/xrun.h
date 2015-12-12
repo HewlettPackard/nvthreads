@@ -77,11 +77,20 @@ private:
 #endif
 
 public:
+    static char *logPath;
+    
+    xrun(){
+        lprintf("constructor of xrun\n");
+    }
+
+    ~xrun(){
+        lprintf("destructor of xrun\n");
+    }
 
     /// @brief Initialize the system.
     static void initialize(void) {
         DEBUG("initializing xrun");
-
+        
         _initialized = false;
         _protection_enabled = false;
         _protection_again = false;
@@ -116,7 +125,13 @@ public:
             
             // Initialize memory log
             xthread::_localMemoryLog.initialize(xthread::_localNvRecovery.nvid);
-            xmemory::setThreadMemoryLog(&xthread::_localMemoryLog);
+            xmemory::setThreadMemoryLog(&xthread::_localMemoryLog);                       
+
+            // Set up lookup info
+            xmemory::setLogPath(xthread::_localNvRecovery.GetLogPath());
+            xmemory::createLookupInfo();
+
+            lprintf("xrun initialized\n");
         } else {
             fprintf(stderr, "xrun reinitialized");
             ::abort();
@@ -140,7 +155,10 @@ public:
         xmemory::closeProtection();
         _protection_enabled = false;
     }
-
+    
+    static char *getLogPathPrefix(void){
+        return logPath;
+    }
     static void finalize(void) {
         xmemory::finalize();
 
@@ -166,6 +184,8 @@ public:
     static inline int childRegister(int pid, int parentindex, MemoryLog *localMemoryLog, nvrecovery *localNvRecovery) {
         int threads;
 
+//      lprintf("pid %d\n", pid);
+
         // Get the global thread index for this thread, which will be used internally.
         _thread_index = xatomic::increment_and_return(&global_data->thread_index);
         _lock_count = 0;
@@ -177,7 +197,6 @@ public:
 
         determ::getInstance().registerThread(_thread_index, pid, parentindex);
 
-//      if ( MemoryLog::_logging_enabled ) {
         // Set correponding heap index.
         xmemory::setThreadIndex(_thread_index);
 
@@ -186,7 +205,6 @@ public:
 
         // Set variable mapping
         xmemory::setThreadRecovery(localNvRecovery);
-//      }
 
 #ifdef LAZY_COMMIT
         // New thread will not own any blocks in the beginning

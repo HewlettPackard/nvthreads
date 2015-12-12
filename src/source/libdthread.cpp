@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include "debug.h"
 #include "prof.h"
@@ -49,6 +50,8 @@ runtime_metadata_t *global_metadata;
 static bool initialized = false;
 static int stats_fd;
 static char stats_filename[1024]; 
+static int metadata_fd;
+static char metadata_filename[1024];
 
 // initialize metadata to 0
 void metadata_init(void){
@@ -65,10 +68,13 @@ void initialize() {
 
     sprintf(stats_filename, "/tmp/statsXXXXXX");
     stats_fd = mkstemp(stats_filename);
-
     global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
-    global_metadata = (runtime_metadata_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
 
+    // Global data shared among threads
+    sprintf(metadata_filename, "/tmp/metadataXXXXXX");
+    metadata_fd = mkstemp(metadata_filename);
+    global_metadata = (runtime_metadata_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, metadata_fd, 0);
+    
 #ifdef PAGE_DENSITY
     INIT_COUNTER_ARRAY(pagedensity, 4097UL);
 #endif
@@ -116,7 +122,7 @@ void finalize() {
     fclose(fp);
 #endif
     unlink(stats_filename);
-
+    unlink(metadata_filename);
 }
 
 extern "C"
@@ -128,6 +134,7 @@ extern "C"
     void* nvmalloc(size_t size, char *name) {
         void *ptr;
         ptr = xrun::nvmalloc(size, name);
+        lprintf("nvmalloc-ed %s for %zu bytes at %p\n", name, size, ptr);
         return ptr;
     }
 

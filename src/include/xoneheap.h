@@ -35,94 +35,117 @@
 template<class SourceHeap>
 class xoneheap {
 public:
-  xoneheap() {
-  }
+    xoneheap() {
+    }
 
-  void initialize(void) {
-    getHeap()->initialize();
-  }
-  void finalize(void) {
-    getHeap()->finalize();
-  }
-  void begin(bool cleanup) {
-    getHeap()->begin(cleanup);
-  }
-
-#ifdef LAZY_COMMIT
-  void finalcommit(bool release) {
-    getHeap()->finalcommit(release);
-  }
-
-  void forceCommit(int pid, void * end) {
-    getHeap()->forceCommitOwnedPages(pid, end);
-  }
-#endif
-  
-  void checkandcommit(bool update, MemoryLog *localMemoryLog) {
-    getHeap()->checkandcommit(update, localMemoryLog);
-  }
-
-  void * getend(void) {
-    return getHeap()->getend();
-  }
-
-  void stats(void) {
-    getHeap()->stats();
-  }
-
-  void openProtection(void *end, MemoryLog *localMemoryLog) {
-    getHeap()->openProtection(end, localMemoryLog);
-  }
-  void closeProtection(void) {
-    getHeap()->closeProtection();
-  }
-
-  bool nop(void) {
-    return getHeap()->nop();
-  }
-
-  bool inRange(void * ptr) {
-    return getHeap()->inRange(ptr);
-  }
-  void handleWrite(void * ptr) {
-    getHeap()->handleWrite(ptr);
-  }
+    void initialize(void) {
+        getHeap()->initialize();
+    }
+    void finalize(void) {
+        getHeap()->finalize();
+    }
+    void begin(bool cleanup) {
+        getHeap()->begin(cleanup);
+    }
 
 #ifdef LAZY_COMMIT
-  void cleanupOwnedBlocks(void) {
-    getHeap()->cleanupOwnedBlocks();
-  } 
+    void finalcommit(bool release) {
+        getHeap()->finalcommit(release);
+    }
 
-  void commitOwnedPage(int page_no, bool set_shared) {
-    getHeap()->commitOwnedPage(page_no, set_shared);
-  }
+    void forceCommit(int pid, void *end) {
+        getHeap()->forceCommitOwnedPages(pid, end);
+    }
 #endif
-  
-  bool mem_write(void * dest, void *val) {
-    return getHeap()->mem_write(dest, val);
-  }
 
-  void setThreadIndex(int index) {
-    return getHeap()->setThreadIndex(index);
-  }
+    void checkandcommit(bool update, MemoryLog *localMemoryLog) {
+        getHeap()->checkandcommit(update, localMemoryLog);
+    }
 
-  void * malloc(size_t sz) {
-    return getHeap()->malloc(sz);
-  }
-  void free(void * ptr) {
-    getHeap()->free(ptr);
-  }
-  size_t getSize(void * ptr) {
-    return getHeap()->getSize(ptr);
-  }
+    void* getend(void) {
+        return getHeap()->getend();
+    }
+
+    void stats(void) {
+        getHeap()->stats();
+    }
+
+    void openProtection(void *end, MemoryLog *localMemoryLog) {
+        getHeap()->openProtection(end, localMemoryLog);
+    }
+    void closeProtection(void) {
+        getHeap()->closeProtection();
+    }
+
+    bool nop(void) {
+        return getHeap()->nop();
+    }
+
+    bool inRange(void *ptr) {
+        return getHeap()->inRange(ptr);
+    }
+    void handleWrite(void *ptr) {
+        getHeap()->handleWrite(ptr);
+    }
+
+#ifdef LAZY_COMMIT
+    void cleanupOwnedBlocks(void) {
+        getHeap()->cleanupOwnedBlocks();
+    }
+
+    void commitOwnedPage(int page_no, bool set_shared) {
+        getHeap()->commitOwnedPage(page_no, set_shared);
+    }
+#endif
+
+    bool mem_write(void *dest, void *val) {
+        return getHeap()->mem_write(dest, val);
+    }
+
+    void setThreadIndex(int index) {
+        return getHeap()->setThreadIndex(index);
+    }
+    
+    void createLookupInfo(void){
+        getHeap()->createLookupInfo();
+    }
+
+    size_t computePageNo(void* addr){
+        return getHeap()->computePageNo(addr);
+    }
+    
+    int computePageOffset(void* addr){
+        return getHeap()->computePageOffset(addr);
+    }
+//  size_t computePage(size_t index) {
+//      return getHeap()->computePage(index);
+//  }
+//
+//  void *base(void){
+//      return getHeap()->base();
+//  }
+
+    void setLogPath(char *path){
+        getHeap()->setLogPath(path);
+    }
+
+    void* malloc(size_t sz) {
+        return getHeap()->malloc(sz);
+    }
+    void free(void *ptr) {
+        getHeap()->free(ptr);
+    }
+    size_t getSize(void *ptr) {
+        return getHeap()->getSize(ptr);
+    }
 private:
 
-  SourceHeap * getHeap(void) {
-    static char heapbuf[sizeof(SourceHeap)];
-    static SourceHeap * _heap = new (heapbuf) SourceHeap;
-    //fprintf (stderr, "heapbuf is %p\n", _heap);
-    return _heap;
-  }
+    SourceHeap* getHeap(void) {
+        static char heapbuf[sizeof(SourceHeap)];
+        static SourceHeap *_heap = new(heapbuf) SourceHeap;
+        //fprintf (stderr, "heapbuf is %p\n", _heap);
+        return _heap;
+    }
 
 };
 
