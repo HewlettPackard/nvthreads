@@ -39,7 +39,12 @@ void *t(void *args){
     pthread_mutex_lock(&gm);
     tmp->b.c[97+tid] = 97+tid;    // 97 is 'a'
     tmp->b.c[10000] = '!'+tid;
-    
+    if (tid == 0) {
+        tmp->b.c[13000] = '@';
+        printf("tid %d wrote %c at f->b.c[13000]\n", tid, tmp->b.c[13000]);   
+    }
+  
+    printf("tid %d wrote %c at f->b.c[10000]\n", tid, tmp->b.c[10000]);   
     pthread_mutex_unlock(&gm);
  
     free(args);
@@ -62,15 +67,16 @@ int main(){
         printf("f->b.c[98] = %c\n", f->b.c[98]);        
         printf("f->b.c[99] = %c\n", f->b.c[99]);        
         printf("f->b.c[10000] = %c\n", f->b.c[10000]);        
+        printf("f->b.c[30000] = %c\n", f->b.c[13000]);        
         printf("f->id = %d\n", f->id);
         free(f);
     }
     else{    
         printf("Program did not crash before, continue normal execution.\n");
-        
+       
         // Assign magic numbers and character to the aggregate data structure
         struct foo *f = (struct foo*)nvmalloc(sizeof(struct foo), (char*)"f");
-        memset(f->b.c, 0, 15000);
+        memset(f->b.c, 0, sizeof(struct foo));
         printf("finish writing to values\n");
                 
         int i;
@@ -84,22 +90,24 @@ int main(){
         pthread_mutex_lock(&gm);
         f->id = 12345;
         f->b.c[10000] = '$';
-        printf("main wrote $ to %p\n", &f->b.c[10000]);
+        printf("main wrote $ to f->b.c[10000]\n");
         pthread_mutex_unlock(&gm);
 
         pthread_mutex_lock(&gm);
         f->b.c[10000] = '$';
-        printf("main wrote $ to %p again\n", &f->b.c[10000]);
+        printf("main wrote $ to f->b.c[10000] again\n");
         pthread_mutex_unlock(&gm);
 
         for (i = 0; i < 3; i++) {
             pthread_join(tid[i], NULL);
         }
 
-        printf("f->b.c[97]: %c\n", f->b.c[97]);
-        printf("f->b.c[98]: %c\n", f->b.c[98]);
-        printf("f->b.c[99]: %c\n", f->b.c[99]);
-        printf("f->b.c[10000]: %c\n", f->b.c[10000]);
+        printf("f->b.c[97] = %c\n", f->b.c[97]);        
+        printf("f->b.c[98] = %c\n", f->b.c[98]);        
+        printf("f->b.c[99] = %c\n", f->b.c[99]);        
+        printf("f->b.c[10000] = %c\n", f->b.c[10000]);        
+        printf("f->b.c[13000] = %c\n", f->b.c[13000]);        
+        printf("f->id = %d\n", f->id);
 
         // Crash the program
         printf("internally abort!\n");
