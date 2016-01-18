@@ -12,11 +12,13 @@ SRC_DIR = $(NVTHREAD_HOME)/src/source
 NVINCLUDE_DIRS = -I$(INC_DIR)
 NVSRCS = $(SRC_DIR)/nvrecovery.cpp 
 
-all:	condvar
+all:	condvar nested_locks
 
 
 condvar:	
-	$(CC) $(CFLAGS) condvar.c -o condvar.o
+	$(CC) $(CFLAGS) condvar.c -o condvar.o -rdynamic $(NVLIB) -ldl
+nested_locks:
+	$(CC) $(CFLAGS) nested_locks.c -o nested_locks.o -rdynamic $(NVLIB) -ldl
 
 clean:
 	rm *.o /mnt/tmpfs/*
