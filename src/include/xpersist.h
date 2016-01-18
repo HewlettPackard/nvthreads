@@ -380,6 +380,92 @@ public:
         logPath = path;
     }
 
+    // Create shared mapping file and return the corresponding file descriptor
+    int createSharedMapFile(char *fn, size_t npages, size_t sz){
+        int fd = 0;
+        lprintf("Creating shared mmap file at %s\n", fn);
+
+        // Check if file exists.  If so, rename file to "recover" first
+        if ( access(fn, F_OK) != -1 ) {
+            char _recoverFname[1024];
+            sprintf(_recoverFname, "%s_recover", fn);
+            if ( rename(fn, _recoverFname) != 0 ){
+                lprintf("error: unable to rename file\n");
+            }
+            lprintf("File %s exists, rename to %s\n", fn, _recoverFname);
+        }
+
+        // Create file for mmap
+        fd = open(fn, O_RDWR | O_SYNC | O_CREAT, 0644);
+        if ( fd == -1 ) {
+            fprintf(stderr, "Failed to make persistent file.\n");
+            ::abort();
+        }
+
+        // Set the files to the sizes of the desired object.
+        if ( ftruncate(fd, npages * sz) ) {
+            fprintf(stderr, "Mysterious error with ftruncate.NElts %ld\n", NElts);
+            ::abort();
+        }
+
+        return fd;
+    }
+
+    void createPageNoTmp(void){
+        if ( !logPath ) {
+            lprintf("logPath not ready yet %s\n", logPath);
+            return;
+        }
+        if ( _pageNoTmp ) {
+            lprintf("_pageNoTmp is already set at %p\n", _pageNoTmp);
+            return;
+        }
+        lprintf("Creating lookup info at %s\n", logPath);
+        // Quick look up metadata for heap and global 
+        char _lookupTmpFname[1024];
+        if ( _isHeap ) {        
+            sprintf(_lookupTmpFname, "%slookup_heap_tmp", logPath);
+            SET_METACOUNTER(globalBufferedHeapPageNoCount, 0);
+        }
+        else{
+            sprintf(_lookupTmpFname, "%slookup_globals_tmp", logPath);
+            SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
+        }
+
+        _pageNoTmpFd = createSharedMapFile(_lookupTmpFname, TotalPageNums, sizeof(int));
+        _pageNoTmp = (int*)mmap(NULL, TotalPageNums * sizeof(int),
+                                              PROT_READ | PROT_WRITE, MAP_SHARED, _pageNoTmpFd, 0);
+
+        memset((void*)_pageNoTmp, 0, TotalPageNums * sizeof(int));
+    }
+
+    void createLookupInfoTmp(void){
+        if ( !logPath ) {
+            lprintf("logPath not ready yet %s\n", logPath);
+            return;
+        }
+        if ( _pageLookupTmp ) {
+            lprintf("_pageLookupTmp is already set at %p\n", _pageLookupTmp);
+            return;
+        }
+        lprintf("Creating tmp lookup info at %s\n", logPath);
+        // Quick look up metadata for heap and global 
+        char _lookupTmpFname[1024];
+        if ( _isHeap ) {        
+            sprintf(_lookupTmpFname, "%slookup_heap_tmp", logPath);
+        }
+        else{
+            sprintf(_lookupTmpFname, "%slookup_globals_tmp", logPath);
+        }
+
+        // Create shared file map
+        _lookupTmpFd = createSharedMapFile(_lookupTmpFname, TotalPageNums, sizeof(struct lookupinfo));
+        _pageLookupTmp = (struct lookupinfo *)mmap(NULL, TotalPageNums * sizeof(struct lookupinfo),
+                                              PROT_READ | PROT_WRITE, MAP_SHARED, _lookupTmpFd, 0);
+        memset((void*)_pageLookupTmp, 0, TotalPageNums * sizeof(struct lookupinfo));
+        lprintf("lookup file: %s, base(): %p, isHeap %d\n", _lookupTmpFname, base(), _isHeap);       
+    }
+
     void createLookupInfo(void){
         if ( !logPath ) {
             lprintf("logPath not ready yet %s\n", logPath);
@@ -399,31 +485,84 @@ public:
             sprintf(_lookupFname, "%slookup_globals", logPath);
         }
 
-        // Check if file exists.  If so, rename file to "recover" first
-        if ( access(_lookupFname, F_OK) != -1 ) {
-            char _recoverFname[1024];
-            sprintf(_recoverFname, "%s_recover", _lookupFname);
-            if ( rename(_lookupFname, _recoverFname) != 0 ){
-                lprintf("error: unable to rename file\n");
-            }
-            lprintf("File %s exists, rename to %s\n", _lookupFname, _recoverFname);
-        }
-
-        _lookupFd = open(_lookupFname, O_RDWR | O_SYNC | O_CREAT, 0644);
-        if ( _lookupFd == -1 ) {
-            fprintf(stderr, "Failed to make persistent file.\n");
-            ::abort();
-        }
-        // Set the files to the sizes of the desired object.
-        if ( ftruncate(_lookupFd, TotalPageNums * sizeof(struct lookupinfo)) ) {
-            fprintf(stderr, "Mysterious error with ftruncate.NElts %ld\n", NElts);
-            ::abort();
-        }
-
+        // Create shared file map
+        _lookupFd = createSharedMapFile(_lookupFname, TotalPageNums, sizeof(struct lookupinfo));
         _pageLookup = (struct lookupinfo *)mmap(NULL, TotalPageNums * sizeof(struct lookupinfo),
                                               PROT_READ | PROT_WRITE, MAP_SHARED, _lookupFd, 0);
         memset((void*)_pageLookup, 0, TotalPageNums * sizeof(struct lookupinfo));
         lprintf("lookup file: %s, base(): %p, isHeap %d\n", _lookupFname, base(), _isHeap);
+
+        // Create a tmp lookup info to buffer unready pageInfo in a nested section
+        createLookupInfoTmp();
+
+        // Create a quick reference to lookup the buffered unready pageInfo when commit the tmp pageInfo
+        createPageNoTmp();
+    }
+    
+    void createDependenceInfo(void){
+        if ( !logPath ) {
+            lprintf("logPath not ready yet %s\n", logPath);
+            return;
+        }
+        if ( _pageDependence ) {
+            lprintf("_pageDependence is already set at %p\n", _pageDependence);
+            return;
+        }
+        lprintf("Creating dependence info at %s\n", logPath);
+
+        // Quick look up metadata for heap and global 
+        char _pageDependenceFname[1024];
+        if ( _isHeap ) {        
+            sprintf(_pageDependenceFname, "%sdependence_heap", logPath);
+        }
+        else{
+            sprintf(_pageDependenceFname, "%sdependence_globals", logPath);
+        }
+
+        _pageDependenceFd = createSharedMapFile(_pageDependenceFname, TotalPageNums, sizeof(struct pageDependence));
+        _pageDependence = (struct pageDependence *)mmap(NULL, TotalPageNums * sizeof(struct pageDependence),
+                                              PROT_READ | PROT_WRITE, MAP_SHARED, _pageDependenceFd, 0);
+        memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
+        lprintf("page dependence file: %s, base(): %p, isHeap %d\n", _pageDependenceFname, base(), _isHeap);
+        _pageDependenceSize = TotalPageNums * sizeof(struct pageDependence);
+    
+    }
+
+    // Copy pageInfo from tmp cache buffer to the real pageInfo used by recovery code
+    void commitCacheBuffer(void){
+        unsigned long i;
+        unsigned long nBufferedPages;
+        if(_isHeap){
+            nBufferedPages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+            lprintf("commit %zu pages to pageInfo (heap)\n", nBufferedPages);
+        }else{
+            nBufferedPages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+            lprintf("commit %zu pages to pageInfo (global)\n", nBufferedPages);
+        }
+
+        if ( nBufferedPages == 0 ) {
+            lprintf("No buffered pages to commit, return\n");
+        }
+
+        for (i = 0; i < nBufferedPages; i++ ) {
+            memcpy(&_pageLookup[_pageNoTmp[i]], &_pageLookupTmp[_pageNoTmp[i]], sizeof(struct lookupinfo)); 
+            lprintf("committed _pageLookup %d\n", _pageNoTmp[i]);    
+        }
+    }
+
+    void cleanupDependence(void){
+        // Clear tmp pageInfo
+        memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
+
+        // Clear tmp pageNo
+        memset((void*)_pageNoTmp, 0, TotalPageNums * sizeof(int));
+        
+        if ( _isHeap ) {
+            SET_METACOUNTER(globalBufferedHeapPageNoCount, 0);
+        } else{
+            SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
+        }        
+        lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
     }
 
     /// @return true iff the address is in this space.
@@ -868,12 +1007,66 @@ public:
     }
 
     void recordlookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied){        
-        _pageLookup[pageNo].xactID = globalXactID;
-        _pageLookup[pageNo].threadID = threadID;
-        _pageLookup[pageNo].memlogOffset = offset;
-        _pageLookup[pageNo].dirtied = dirtied;
+        // No other thread has touched this page, safe to record pageInfo 
+        if (_pageDependence[pageNo].threadID == 0){
+            lprintf("First time touching this page %d, no other thread has touched this page, not sure if there will be, so log to tmp\n", pageNo);
+//          _pageLookup[pageNo].xactID = globalXactID;
+//          _pageLookup[pageNo].threadID = threadID;
+//          _pageLookup[pageNo].memlogOffset = offset;
+//          _pageLookup[pageNo].dirtied = dirtied;
+            _pageLookupTmp[pageNo].xactID = globalXactID;
+            _pageLookupTmp[pageNo].threadID = threadID;
+            _pageLookupTmp[pageNo].memlogOffset = offset;
+            _pageLookupTmp[pageNo].dirtied = dirtied;
+        }
+        // Page dependence detected
+        else if ( _pageDependence[pageNo].threadID != 0 ) {
+            // This thread touched this page before
+            if (  _pageDependence[pageNo].threadID == threadID ) {
+                lprintf("Thread %d touched this page %d again\n", (int)threadID, pageNo);                
+                _pageLookupTmp[pageNo].xactID = globalXactID;
+                _pageLookupTmp[pageNo].threadID = threadID;
+                _pageLookupTmp[pageNo].memlogOffset = offset;
+                _pageLookupTmp[pageNo].dirtied = dirtied;
+            }
+            // Other thread has touched this page, store page lookup info to cache, commit once we exit the outermost nested section
+            else if ( _pageDependence[pageNo].threadID != threadID ) {
+                lprintf("Page %d not ready yet, store page lookup info in cache, commit later\n", pageNo);
+
+                // Add this pageNo to commit later (only once!) if this is the first this page is modified
+                if ( _pageLookupTmp[pageNo].threadID ==  0) {
+                    unsigned long npages;
+                    if ( _isHeap ) {
+                        npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+                        INC_METACOUNTER(globalBufferedHeapPageNoCount);
+                        lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);                                
+                    } else{
+                        npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+                        INC_METACOUNTER(globalBufferedGlobalPageNoCount);
+                        lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+                    }
+                    _pageNoTmp[npages] = pageNo;
+                }
+
+                // Buffer the pageInfo, commit when we exit the outermost nested section
+                _pageLookupTmp[pageNo].xactID = globalXactID;
+                _pageLookupTmp[pageNo].threadID = threadID;
+                _pageLookupTmp[pageNo].memlogOffset = offset;
+                _pageLookupTmp[pageNo].dirtied = dirtied;                       
+            }
+        }     
+
+        lprintf("Page %d modified by thread %d at Xact %d\n", pageNo, threadID, globalXactID);
     }
-    
+    void recordDependence(int pageNo, unsigned short threadID, void *pageStart){
+        if ( _pageDependence[pageNo].threadID != 0 && _pageDependence[pageNo].threadID != threadID) {
+            lprintf("Page %d (addr: %p) previously modified by thread %lu, I am thread %d\n", 
+                    pageNo, pageStart, _pageDependence[pageNo].threadID, threadID);          
+        }
+        lprintf("Page %d (addr: %p) is now dirtied by thread %d\n", pageNo, pageStart, threadID);
+        _pageDependence[pageNo].threadID = threadID;
+    }
+
     // Commit local modifications to shared mapping
     inline void checkandcommit(bool update, MemoryLog *localMemoryLog) {
         struct shareinfo *shareinfo = NULL;
@@ -906,83 +1099,87 @@ public:
 
 //      lprintf("%d: commit transaction %u, #dirtied pages: %zu\n", getpid(), _trans, _dirtiedPagesList.size());
 
-        // Open a new log file if we have dirtied pages
-        localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap);
+        // Log pages if it's heap data
+        if ( _isHeap ) {
+            
+            // Open a new log file if we have dirtied pages
+            localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap);
 
-        // Loop through all dirtied pages
-        int page_count = 0;
-        for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
-            bool needsModify = false;
-            pageinfo = (struct xpageinfo *)i->second;
-            pageNo = pageinfo->pageNo; 
-            shareinfo = &_pageUsers[pageNo];
-            local = (unsigned long *)pageinfo->pageStart; 
+            // Loop through all dirtied pages
+            int page_count = 0;
+            for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
+                bool needsModify = false;
+                pageinfo = (struct xpageinfo *)i->second;
+                pageNo = pageinfo->pageNo; 
+                shareinfo = &_pageUsers[pageNo];
+                local = (unsigned long *)pageinfo->pageStart; 
 
-            // Check if we can skip this log entry
-            if ( update ) {
-                if ( pageinfo->version != _persistentVersions[pageNo] ) {
-                    needsModify = true;
-                }
-            }
-            else{
-                if ( !pageinfo->isUpdated ) {
-                    needsModify = true;
-                }
-            }
-
-            // Perform actual logging
-            if ( needsModify ) {
-                // Profile dirty page density
-#ifdef PAGE_DENSITY
-                unsigned long *twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
-                ProfileDiffs(local, twin);
-#endif
-
-                // Log dirty page
-                localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
-
-                // Update lookup info
-                memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
-                if ( _pageLookup[pageNo].dirtied ) {
-                    lprintf("addr: 0x%08lx update pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
-                            (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+                // Check if we can skip this log entry
+                if ( update ) {
+                    if ( pageinfo->version != _persistentVersions[pageNo] ) {
+                        needsModify = true;
+                    }
                 }
                 else{
-                    lprintf("addr: 0x%08lx insert pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
-                            (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+                    if ( !pageinfo->isUpdated ) {
+                        needsModify = true;
+                    }
                 }
-                recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
 
-//              lprintf("Trancation %lu: logged page %d at %p\n", GET_METACOUNTER(globalTransactionCount), page_count, pageinfo->pageStart);
-                page_count++;
+                // Perform actual logging
+                if ( needsModify ) {
+                    // Profile dirty page density
 #ifdef PAGE_DENSITY
-                // Counter sanity checks
-                if ( global_data->stats.pdcount_count != global_data->stats.loggedpages_count ) {
-                    fprintf(stderr, "pdcount: %lu != loggedpages: %lu\n", (unsigned long)global_data->stats.pdcount_count, (unsigned long)global_data->stats.loggedpages_count);
-                    abort();
-                }
+                    unsigned long *twin = (unsigned long *)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
+                    ProfileDiffs(local, twin);
 #endif
+
+                    // Log dirty page
+                    localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+
+                    // Update lookup info
+                    memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+    //              if ( _pageLookup[pageNo].dirtied ) {
+    //                  lprintf("addr: 0x%08lx update pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
+    //                          (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+    //              }
+    //              else{
+    //                  lprintf("addr: 0x%08lx insert pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
+    //                          (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
+    //              }
+                    recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
+                    recordDependence(pageNo, localMemoryLog->threadID, pageinfo->pageStart);
+    //              lprintf("Trancation %lu: logged page %d at %p\n", GET_METACOUNTER(globalTransactionCount), page_count, pageinfo->pageStart);
+                    page_count++;
+#ifdef PAGE_DENSITY
+                    // Counter sanity checks
+                    if ( global_data->stats.pdcount_count != global_data->stats.loggedpages_count ) {
+                        fprintf(stderr, "pdcount: %lu != loggedpages: %lu\n", (unsigned long)global_data->stats.pdcount_count, (unsigned long)global_data->stats.loggedpages_count);
+                        abort();
+                    }
+#endif
+                }
             }
-        }
 
-        // Flush log
-        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
+            // Flush log
+            localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
 
-        // Write an end of log
-        localMemoryLog->WriteEndOfLog();
+            // Write an end of log
+            localMemoryLog->WriteEndOfLog();
 
-        // Flush end of log
-        localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
+            // Flush end of log
+            localMemoryLog->MakeDurable(localMemoryLog->_mempages_ptr, localMemoryLog->_mempages_filesize); 
 
-        // Close log
-        localMemoryLog->CloseMemoryLog();
+            // Close log
+            localMemoryLog->CloseMemoryLog();
 
-        STOP_TIMER(logging); 
+            STOP_TIMER(logging); 
 
 #ifdef ENABLE_PROFILING
-        diff = clock() - start_time;;
+            diff = clock() - start_time;;
 #endif
-        ADD_COUNTER(logtimer, (double)diff);
+            ADD_COUNTER(logtimer, (double)diff);
+        }
 
         // Check all pages in the dirty list
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
@@ -1252,10 +1449,24 @@ private:
 
     int _threadindex;
 
+    char *logPath;
     // Fast page lookup
     struct lookupinfo *_pageLookup;
     int _lookupFd;  
-    char *logPath;
+
+    // Tmp page lookup to buffer unready pageInfo in a nested section
+    struct lookupinfo *_pageLookupTmp;
+    int _lookupTmpFd;   
+
+    // Quick reference to record the pageNo of the unready pageInfo
+    int *_pageNoTmp;
+    int _pageNoTmpFd;
+
+    // Page dependence tracking
+    struct pageDependence *_pageDependence;
+    int _pageDependenceFd;    
+    size_t _pageDependenceSize;  
+
 };
 
 #endif

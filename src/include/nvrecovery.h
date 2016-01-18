@@ -76,7 +76,11 @@ struct lookupinfo {
     unsigned short xactID;
     unsigned short threadID;
     unsigned long memlogOffset;    
-    bool dirtied;
+    bool dirtied;   
+};
+
+struct pageDependence {
+    unsigned long threadID; //record the threadID last touched this page
 };
 
 /* struct for log entry to be appended to the end of per-thread MemoryLog */
@@ -947,7 +951,8 @@ public:
         // Open lookup record stored in file
         int _lookupFd = open(_lookupFname, O_RDONLY, 0644);
         if ( _lookupFd == -1 ) {
-            fprintf(stderr, "Failed to make persistent file.\n");
+            fprintf(stderr, "Failed to make persistent file at %s.\n", _lookupFname);
+            perror("open failed: ");
             ::abort();
         }
 
@@ -972,10 +977,10 @@ public:
             numPagesGlobals = fsize / sizeof(struct lookupinfo);        
         }
 
-        lprintf("recovered from file: %s, size: %zu, _pageLookup: %p\n", _lookupFname, fsize, _pageLookup);        
+//      lprintf("recovered from file: %s, size: %zu, _pageLookup: %p\n", _lookupFname, fsize, _pageLookup);
         close(_lookupFd);
 
-        dumpLookup(true);
+//      dumpLookup(true);
     }
 
     // Read the variable mapping info from file
@@ -987,7 +992,7 @@ public:
             recoveredVarmap = new std::map<std::string, struct varmap_entry>;
         }
         if ( recoveredVarmap->size() != 0 ) {
-            lprintf("recoveredVarmap already set with %zu records\n", recoveredVarmap->size());
+//          lprintf("recoveredVarmap already set with %zu records\n", recoveredVarmap->size());
             return;
         }
 
@@ -1013,7 +1018,7 @@ public:
             token = strtok(NULL, ":");
             v.pageOffset = atoi(token);
 
-            lprintf("inserting %s size %zu at pageNo: %d pageOffset: %d\n", v.name, v.size, v.pageNo, v.pageOffset);
+//          lprintf("inserting %s size %zu at pageNo: %d pageOffset: %d\n", v.name, v.size, v.pageNo, v.pageOffset);
             recoveredVarmap->insert(std::make_pair((std::string)v.name, v));
         }
         
@@ -1030,20 +1035,6 @@ public:
         unsigned short threadID = _pageLookupHeap[pageNo].threadID;
         unsigned long memlogOffset = _pageLookupHeap[pageNo].memlogOffset;
 
-/*
-        if ( !_pageLookupHeap[pageNo].dirtied ) {
-            pageOffset = v->pageOffset;
-            int tmp = remaining_bytes - (xdefines::PageSize - pageOffset);
-            if ( tmp >= 0 ) {
-                bytes = xdefines::PageSize - pageOffset;
-            }
-            else{
-                bytes = remaining_bytes;
-            }            
-            lprintf("pageNo %d is not dritied, checked %zu bytes, skip recoverying this page\n", pageNo, bytes);
-            return bytes;
-        }
-*/
         lprintf("copying pageNo %d, memlogOffset: %lu\n", pageNo, memlogOffset);
 
         // First page, take care of offset to prevent overflow
@@ -1059,7 +1050,7 @@ public:
             // Need more than 1 page
             else{
                 bytes = xdefines::PageSize - pageOffset;
-                lprintf("First page (need more than 1 page), starting from pageOffset: %d, copy %zu bytes\n", pageOffset, bytes);                
+                lprintf("First page (need more than 1 page), starting from pageOffset: %d, copy %zu bytes\n", pageOffset, bytes);
             }
         }
         else{
@@ -1075,7 +1066,6 @@ public:
             }
         }
         lprintf("memlogOffset: %lu, pageOffset: %d\n", memlogOffset, pageOffset);
-
 
         if ( _pageLookupHeap[pageNo].dirtied ) {
 
@@ -1104,7 +1094,6 @@ public:
             lprintf("pageNo %d is not dritied, checked %zu bytes, skip recoverying this page\n", pageNo, bytes);
         }
 
-        
         return bytes;
     }
 
@@ -1121,7 +1110,7 @@ public:
             rv = RecoverOnePage(dest, v, size - bytes, size, pagecount);
             bytes += rv;
 
-            lprintf("dest: %p, checked %zu bytes\n", dest, bytes);             
+//          lprintf("dest: %p, checked %zu bytes\n", dest, bytes);
 
             // Advance page aligned address
             dest = dest + xdefines::PageSize;
@@ -1213,7 +1202,7 @@ public:
         }
 
         // Find the data by address in memory pages
-//      lprintf("nvrecover-ed %s at old addr 0x%08lx in %lu pages\n", name, addr, npages);
+        lprintf("nvrecover-ed %s at old addr 0x%08lx\n", name, addr);
         
         return addr;
     }

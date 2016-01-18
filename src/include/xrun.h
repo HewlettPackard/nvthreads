@@ -130,6 +130,7 @@ public:
             // Set up lookup info
             xmemory::setLogPath(xthread::_localNvRecovery.GetLogPath());
             xmemory::createLookupInfo();
+            xmemory::createDependenceInfo();
 
             lprintf("xrun initialized\n");
         } else {
@@ -534,10 +535,10 @@ public:
     // New optimization here.
     // We will add one parallel commit phase before one can get token.
     static void waitToken(void) {
-//      printf("%d: waiting on fence\n", getpid());
+//      lprintf("%d: waiting for token\n", getpid());
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
-//      printf("%d: Yeah I'm holding the token!\n", getpid());
+//      lprintf("%d: got the token!\n", getpid());
     }
 
     // If those threads sending out condsignal or condbroadcast,
@@ -545,7 +546,7 @@ public:
     static void putToken(void) {
         // release the token and pass the token to next.
         //fprintf(stderr, "%d: putToken\n", _thread_index);
-//      printf("%d: releasing token\n", getpid());
+        lprintf("%d: releasing token\n", getpid());
         determ::getInstance().putToken(_thread_index);
 //      printf("%d: released token\n", getpid());
         //fprintf(stderr, "%d: putToken\n", getpid());
@@ -556,6 +557,7 @@ public:
     // cause the dead-lock().
     static void mutex_lock(pthread_mutex_t *mutex) {
 
+        lprintf("locking... _lock_count: %zu\n", _lock_count);
         if ( !_fence_enabled ) {
             if ( _children_threads_count == 0 ) {
                 return;
@@ -572,6 +574,7 @@ public:
         // the transaction in the beginning and close the transaction
         // when lock_count equals to 0.
         _lock_count++;
+        updateLockCount();
 
         if ( determ::getInstance().lock_isowner(mutex) || determ::getInstance().isSingleWorkingThread() ) {
             // Then there is no need to acquire the lock.
@@ -613,15 +616,26 @@ public:
             }
 
         }
+        lprintf("locked... _lock_count: %zu\n", _lock_count);
+    }
+
+    static void commitCacheBuffer(void){
+        xmemory::commitCacheBuffer();
+    }
+
+    static void cleanupDependence(void){
+        xmemory::cleanupDependence();
     }
 
     static void mutex_unlock(pthread_mutex_t *mutex) {
         if ( !_fence_enabled )
             return;
 
+        lprintf("unlocking... _lock_count: %zu\n", _lock_count);
+
         // Decrement the lock account
         _lock_count--;
-
+        updateLockCount();
 
         // Unlock current lock.
         determ::getInstance().lock_release(mutex);
@@ -638,6 +652,36 @@ public:
 
             atomicBegin(true);
             waitFence();
+        }
+        lprintf("unlocked... _lock_count: %zu\n", _lock_count);
+    }
+    
+    static void updateLockCount(){
+        int threadID = xmemory::_localMemoryLog->threadID;
+        if ( _lock_count > GET_METACOUNTER(globalLockCountMax) ) {
+            SET_METACOUNTER(globalLockCountMax, _lock_count);
+            SET_METACOUNTER(globalLockCountMaxHolder, threadID);
+
+            lprintf("increased global lock count to: %zu, threadID: %d\n", 
+                    GET_METACOUNTER(globalLockCountMax), threadID);
+        } else if (_lock_count < GET_METACOUNTER(globalLockCountMax) ){
+            if ( GET_METACOUNTER(globalLockCountMaxHolder) == threadID ) {
+                SET_METACOUNTER(globalLockCountMax, _lock_count);
+
+                lprintf("decreased global lock count to: %zu, threadID: %d\n", 
+                        GET_METACOUNTER(globalLockCountMax), threadID);
+            }
+        }
+    }
+
+    static bool readyToCommitCache(void){
+        int threadID = xmemory::_localMemoryLog->threadID;
+        if ( GET_METACOUNTER(globalLockCountMax) == 0 && 
+             GET_METACOUNTER(globalLockCountMaxHolder) == threadID) {        
+            return true;
+        }
+        else{
+            return false;
         }
     }
 
@@ -716,7 +760,7 @@ public:
     static void cond_signal(void *cond) {
         if ( !_fence_enabled )
             return;
-
+        
         if ( !_token_holding ) {
             waitToken();
         }
@@ -741,6 +785,7 @@ public:
 
         // Now start.
         TRACE("=========%d: starts a Xact ==============\n", getpid());
+//      lprintf("---------%d: starts a Xact---------\n", getpid());
         xmemory::begin(cleanup);
     }
 
@@ -754,6 +799,7 @@ public:
 
         // Commit all private modifications to shared mapping
         TRACE("=========%d: ending a Xact ===============\n", getpid());
+//      lprintf("---------%d: ending a Xact---------\n", getpid());
         xmemory::commit(update);
     }
 };

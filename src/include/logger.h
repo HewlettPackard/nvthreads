@@ -169,8 +169,8 @@ public:
 //      lprintf("----------initializing memorylog class--------------\n");
         ReadConfig();
 //      threadID = getpid();
-        threadID = GET_METACOUNTER(globalThreadCount);
         INC_METACOUNTER(globalThreadCount);
+        threadID = GET_METACOUNTER(globalThreadCount);
         _mempages_file_count = 0;
         _logentry_count = 0;
         _dirtiedPagesCount = 0;
@@ -256,7 +256,15 @@ public:
 //              logPath, threadID, GET_METACOUNTER(globalTransactionCount), isHeap);
 //      _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu", 
+        if ( isHeap ) {
+            sprintf(_mempages_filename, "%s/MemLog_%d_%lu_heap",
+                    logPath, threadID, GET_METACOUNTER(globalTransactionCount));
+        } else{
+            sprintf(_mempages_filename, "%s/MemLog_%d_%lu_global",
+                logPath, threadID, GET_METACOUNTER(globalTransactionCount));            
+        }
+
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu",
                 logPath, threadID, GET_METACOUNTER(globalTransactionCount));
 
         _mempages_fd = open(_mempages_filename, O_RDWR | O_ASYNC | O_CREAT, 0644);

@@ -110,6 +110,17 @@ public:
         getHeap()->createLookupInfo();
     }
 
+    void createDependenceInfo(void){
+        getHeap()->createDependenceInfo();
+    }
+
+    void commitCacheBuffer(void){
+        getHeap()->commitCacheBuffer();
+    }
+
+    void cleanupDependence(void){
+        getHeap()->cleanupDependence();
+    }
     size_t computePageNo(void* addr){
         return getHeap()->computePageNo(addr);
     }

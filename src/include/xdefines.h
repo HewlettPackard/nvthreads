@@ -41,7 +41,9 @@
 
 #define METACOUNTER(x) volatile uint64_t x##_count;
 #define INC_METACOUNTER(x) global_metadata->metadata.x##_count++
+#define DEC_METACOUNTER(x) global_metadata->metadata.x##_count--
 #define GET_METACOUNTER(x) global_metadata->metadata.x##_count
+#define SET_METACOUNTER(x, y) global_metadata->metadata.x##_count=y
 
 typedef struct runtime_data {
   volatile unsigned long thread_index;
@@ -53,6 +55,10 @@ extern runtime_data_t *global_data;
 struct metadata_t {
     METACOUNTER(globalTransactionCount);
     METACOUNTER(globalThreadCount);
+    METACOUNTER(globalLockCountMax);
+    METACOUNTER(globalLockCountMaxHolder);
+    METACOUNTER(globalBufferedGlobalPageNoCount);
+    METACOUNTER(globalBufferedHeapPageNoCount);
 };
 
 typedef struct runtime_metadata {

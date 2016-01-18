@@ -277,11 +277,11 @@ extern "C"
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
-//      printf("%d: pthread locking %p\n", getpid(), mutex);
+        lprintf("%d: pthread locking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_lock(mutex);
         }
-//      printf("%d: pthread locked %p\n", getpid(), mutex);
+        lprintf("%d: pthread locked %p\n", getpid(), mutex);
         return 0;
     }
 
@@ -295,6 +295,12 @@ extern "C"
             xrun::mutex_unlock(mutex);
         }
 //      printf("%d: pthread unlocked %p\n", getpid(), mutex);
+        
+        if ( xrun::readyToCommitCache() ) {
+            lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
+            xrun::commitCacheBuffer();
+            xrun::cleanupDependence(); // only clean when lock count == 0
+        }
         return 0;
     }
 
@@ -363,6 +369,7 @@ extern "C"
 
     int pthread_cond_signal(pthread_cond_t *cond) {
         //assert(initialized);
+        lprintf("pthread_cond_signal cv: %p\n", cond);
         if ( initialized ) {
             xrun::cond_signal((void *)cond);
         }
@@ -371,6 +378,7 @@ extern "C"
 
     int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
         //assert(initialized);
+        lprintf("pthread_cond_wait cv: %p, mutex: %p\n", cond, mutex);
         if ( initialized ) {
             xrun::cond_wait((void *)cond, (void *)mutex);
         }
