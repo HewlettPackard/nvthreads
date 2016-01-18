@@ -234,7 +234,7 @@ public:
     }
 
     // Decrease the fence when one thread exits.
-    // We assume that the gobal lock is held now.
+    // We assume that the global lock is held now.
     void decrFence(void) {
         _maxthreads--;
 
@@ -791,7 +791,7 @@ public:
 
         // Release token to next active thread.
         _tokenpos = next;
-
+//      lprintf("release token to next active thread\n");
         // Wait until it is signaled (status are changed to STATUS_READY)
         // We are using busy wait method to avoid un-determinism caused by OS.
         // Linux cann't guarantee the FIFO order.
@@ -799,9 +799,12 @@ public:
             __asm__ __volatile__("mfence");
 
             // Release current lock.
+//          lprintf("release lock %p\n", thelock);
             lock_release(thelock);
             WRAP(pthread_cond_wait)(&condentry->realcond, &_mutex);
         }
+//      lprintf("cond_wait after wakingup\n");
+
         //fprintf(stderr, "%d: cond_wait after wakingup\n", getpid());
 
         // Here, we don't need to wait on fence anymore because this can put current
@@ -820,6 +823,7 @@ public:
         //  fprintf(stderr, "%d: cond_wait after getting token\n", getpid());
 
         // Now means we have already acquired the lock.
+//      lprintf("acquired the lock %p\n", thelock);
         lock_acquire(thelock);
 
         START_TIMER(serial);
@@ -1127,10 +1131,12 @@ private:
         xmemory::mem_write(*dest, NULL);
     }
     inline void lock(void) {
+//      lprintf("locking global lock\n");
         WRAP(pthread_mutex_lock)(&_mutex);
     }
 
     inline void unlock(void) {
+//      lprintf("unlocking global lock\n");
         WRAP(pthread_mutex_unlock)(&_mutex);
     }
 };
