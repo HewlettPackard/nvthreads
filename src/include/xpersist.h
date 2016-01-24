@@ -545,24 +545,22 @@ public:
         }
 
         for (i = 0; i < nBufferedPages; i++ ) {
+            // Copy pageInfo from tmp to the actual pageInfo
             memcpy(&_pageLookup[_pageNoTmp[i]], &_pageLookupTmp[_pageNoTmp[i]], sizeof(struct lookupinfo)); 
-            lprintf("committed _pageLookup %d\n", _pageNoTmp[i]);    
+            lprintf("committed _pageLookup[%d]\n", _pageNoTmp[i]);    
+            // Clean used tmp pageInfo
+            memset(&_pageLookupTmp[_pageNoTmp[i]], 0, sizeof(struct lookupinfo));
+            // Clean pageNoTmp
+            _pageNoTmp[i] = 0;
         }
-    }
 
-    void cleanupDependence(void){
-        // Clear tmp pageInfo
-        memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
-
-        // Clear tmp pageNo
-        memset((void*)_pageNoTmp, 0, TotalPageNums * sizeof(int));
-        
         if ( _isHeap ) {
             SET_METACOUNTER(globalBufferedHeapPageNoCount, 0);
         } else{
             SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
         }        
         lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
+
     }
 
     /// @return true iff the address is in this space.
