@@ -296,11 +296,12 @@ extern "C"
         }
 //      printf("%d: pthread unlocked %p\n", getpid(), mutex);
         
+
         if ( xrun::readyToCommitCache() ) {
             lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
             xrun::commitCacheBuffer();
-            xrun::cleanupDependence(); // only clean when lock count == 0
         }
+        
         return 0;
     }
 

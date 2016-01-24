@@ -622,11 +622,7 @@ public:
     static void commitCacheBuffer(void){
         xmemory::commitCacheBuffer();
     }
-
-    static void cleanupDependence(void){
-        xmemory::cleanupDependence();
-    }
-
+   
     static void mutex_unlock(pthread_mutex_t *mutex) {
         if ( !_fence_enabled )
             return;

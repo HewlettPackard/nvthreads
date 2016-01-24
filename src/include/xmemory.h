@@ -147,10 +147,6 @@ public:
         _pheap.commitCacheBuffer();
     }
 
-    static void cleanupDependence(void){
-        _globals.cleanupDependence();
-        _pheap.cleanupDependence();
-    }
     static inline void* nvmalloc(size_t sz, char *name) {
         void *ptr = _pheap.malloc(_heapid, sz);
         if ( !ptr ) {
