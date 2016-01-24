@@ -1,0 +1,766 @@
+#### Ruby version 1.9.3
+#### Cleaning memory
+#### make clean_memory
+make[1]: Entering directory `/mnt/ssd/terry/workspace/atlas'
+rm -f -rf /dev/shm/regions /dev/shm/__nvm_system_region_table
+make[1]: Leaving directory `/mnt/ssd/terry/workspace/atlas'
+#### #################################
+#### ---- Making and testing target all ----
+#### make clean all
+make[1]: Entering directory `/mnt/ssd/terry/workspace/atlas'
+rm -f /mnt/ssd/terry/workspace/atlas/lib/libatlas.a /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o /mnt/ssd/terry/workspace/atlas/src/util/util.o /mnt/ssd/terry/workspace/atlas/src/recover/recover.o /mnt/ssd/terry/workspace/atlas/tools/recover \
+	/mnt/ssd/terry/workspace/atlas/examples/queue_orig.o /mnt/ssd/terry/workspace/atlas/examples/cow_array_list.o /mnt/ssd/terry/workspace/atlas/examples/sll.o /mnt/ssd/terry/workspace/atlas/examples/sll_ll.o /mnt/ssd/terry/workspace/atlas/examples/stores.o /mnt/ssd/terry/workspace/atlas/examples/alarm_clock.o /mnt/ssd/terry/workspace/atlas/examples/queue_nvm.o /mnt/ssd/terry/workspace/atlas/examples/test_memfns.o /mnt/ssd/terry/workspace/atlas/examples/cow_array_list_nvm.o /mnt/ssd/terry/workspace/atlas/examples/sll_nvm.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt_ll.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt_nvm.o /mnt/ssd/terry/workspace/atlas/examples/stores_nvm.o /mnt/ssd/terry/workspace/atlas/examples/alarm_clock_nvm.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/hashtable.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/hashtable_itr.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/tester.o /mnt/ssd/terry/workspace/atlas/examples/queue_nvm /mnt/ssd/terry/workspace/atlas/examples/queue_orig /mnt/ssd/terry/workspace/atlas/examples/test_memfns /mnt/ssd/terry/workspace/atlas/examples/cow_array_list /mnt/ssd/terry/workspace/atlas/examples/cow_array_list_nvm /mnt/ssd/terry/workspace/atlas/examples/sll /mnt/ssd/terry/workspace/atlas/examples/sll_ll /mnt/ssd/terry/workspace/atlas/examples/sll_nvm /mnt/ssd/terry/workspace/atlas/examples/sll_mt /mnt/ssd/terry/workspace/atlas/examples/sll_mt_ll /mnt/ssd/terry/workspace/atlas/examples/sll_mt_nvm /mnt/ssd/terry/workspace/atlas/examples/stores /mnt/ssd/terry/workspace/atlas/examples/stores_nvm /mnt/ssd/terry/workspace/atlas/examples/alarm_clock /mnt/ssd/terry/workspace/atlas/examples/alarm_clock_nvm /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/tester 
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.cpp -o /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o
+In file included from /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.cpp:16:0:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_alloc(size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_alloc_cache_line_aligned(size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_calloc(size_t, size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:32:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:4:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h: In function ‘void DeleteEntry(CbListNode<T>*, T*) [with T = LogEntry]’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.5()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.5()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:5:0:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/helper.h: In function ‘void CreateVersions(const DirectedGraph&, LogVersions*, const LogEntryVec&, Log2Bool*, const Log2Bool&, const OcsMap&)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/helper.h:58:16: warning: inlining failed in call to ‘LogVer::~LogVer()’: call is unlikely and code size would grow [-Winline]
+ typedef struct LogVer
+                ^
+/mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:602:12: warning: called from here [-Winline]
+     LogVer log_ver;
+            ^
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘int NVM_GetCacheLineSize()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1553:32: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+         fscanf(fp, "%d", &size);
+                                ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void PublishLogEntry(LogEntry*)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void AddLockCount(void*, uint64_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:32:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h: In function ‘CbLog<T>* GetNewCb(uint32_t, uint32_t, CbLog<T>**, CbListNode<T>* volatile*) [with T = LogEntry; uint32_t = unsigned int]’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_end_durable()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void nvm_store(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memmove(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memset(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memcpy(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_release(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1071:17: warning: inlining failed in call to ‘void _Z10RemoveLockPv.part.46()’: call is unlikely and code size would grow [-Winline]
+ inline uint64_t RemoveLock(void *lock_address)
+                 ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1053:13: warning: inlining failed in call to ‘void _Z13FinishReleaseP8LogEntryRKSt3mapIPvmSt4lessIS2_ESaISt4pairIKS2_mEEE.part.56()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishRelease(LogEntry *le, const MapOfLockInfo & undo_locks)
+             ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_unlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1071:17: warning: inlining failed in call to ‘void _Z10RemoveLockPv.part.46()’: call is unlikely and code size would grow [-Winline]
+ inline uint64_t RemoveLock(void *lock_address)
+                 ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1053:13: warning: inlining failed in call to ‘void _Z13FinishReleaseP8LogEntryRKSt3mapIPvmSt4lessIS2_ESaISt4pairIKS2_mEEE.part.56()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishRelease(LogEntry *le, const MapOfLockInfo & undo_locks)
+             ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_begin_durable()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:724:19: warning: inlining failed in call to ‘OwnerInfo* FindOwnerOfLock(void*)’: call is unlikely and code size would grow [-Winline]
+ inline OwnerInfo *FindOwnerOfLock(void *lock_address)
+                   ^
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:991:53: warning: called from here [-Winline]
+         OwnerInfo *oi = FindOwnerOfLock(lock_address);
+                                                     ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_acquire(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_rdlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_wrlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/util/util.cpp -o /mnt/ssd/terry/workspace/atlas/src/util/util.o
+/mnt/ssd/terry/workspace/atlas/src/util/util.cpp: In function ‘void NVM_CreateLogDir()’:
+/mnt/ssd/terry/workspace/atlas/src/util/util.cpp:27:40: warning: ignoring return value of ‘int system(const char*)’, declared with attribute warn_unused_result [-Wunused-result]
+     system("mkdir -p /dev/shm/regions");
+                                        ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/src/internal_includes/util.h:9,
+                 from /mnt/ssd/terry/workspace/atlas/src/util/util.cpp:11:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void NVM_CowAddToMapInterval(MapInterval* volatile*, uint64_t, uint64_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void NVM_CowDeleteFromMapInterval(MapInterval* volatile*, uint64_t, uint64_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+ar cru /mnt/ssd/terry/workspace/atlas/lib/libatlas.a /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o /mnt/ssd/terry/workspace/atlas/src/util/util.o
+ar: /mnt/ssd/terry/workspace/atlas/lib/libatlas.a: No such file or directory
+make[1]: *** [/mnt/ssd/terry/workspace/atlas/lib/libatlas.a] Error 1
+make[1]: Leaving directory `/mnt/ssd/terry/workspace/atlas'
+#### ---- Making failed ----
+#### ---- Retesting after crash/recovery testing ----
+#### make clean all
+make[1]: Entering directory `/mnt/ssd/terry/workspace/atlas'
+rm -f /mnt/ssd/terry/workspace/atlas/lib/libatlas.a /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o /mnt/ssd/terry/workspace/atlas/src/util/util.o /mnt/ssd/terry/workspace/atlas/src/recover/recover.o /mnt/ssd/terry/workspace/atlas/tools/recover \
+	/mnt/ssd/terry/workspace/atlas/examples/queue_orig.o /mnt/ssd/terry/workspace/atlas/examples/cow_array_list.o /mnt/ssd/terry/workspace/atlas/examples/sll.o /mnt/ssd/terry/workspace/atlas/examples/sll_ll.o /mnt/ssd/terry/workspace/atlas/examples/stores.o /mnt/ssd/terry/workspace/atlas/examples/alarm_clock.o /mnt/ssd/terry/workspace/atlas/examples/queue_nvm.o /mnt/ssd/terry/workspace/atlas/examples/test_memfns.o /mnt/ssd/terry/workspace/atlas/examples/cow_array_list_nvm.o /mnt/ssd/terry/workspace/atlas/examples/sll_nvm.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt_ll.o /mnt/ssd/terry/workspace/atlas/examples/sll_mt_nvm.o /mnt/ssd/terry/workspace/atlas/examples/stores_nvm.o /mnt/ssd/terry/workspace/atlas/examples/alarm_clock_nvm.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/hashtable.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/hashtable_itr.o /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/tester.o /mnt/ssd/terry/workspace/atlas/examples/queue_nvm /mnt/ssd/terry/workspace/atlas/examples/queue_orig /mnt/ssd/terry/workspace/atlas/examples/test_memfns /mnt/ssd/terry/workspace/atlas/examples/cow_array_list /mnt/ssd/terry/workspace/atlas/examples/cow_array_list_nvm /mnt/ssd/terry/workspace/atlas/examples/sll /mnt/ssd/terry/workspace/atlas/examples/sll_ll /mnt/ssd/terry/workspace/atlas/examples/sll_nvm /mnt/ssd/terry/workspace/atlas/examples/sll_mt /mnt/ssd/terry/workspace/atlas/examples/sll_mt_ll /mnt/ssd/terry/workspace/atlas/examples/sll_mt_nvm /mnt/ssd/terry/workspace/atlas/examples/stores /mnt/ssd/terry/workspace/atlas/examples/stores_nvm /mnt/ssd/terry/workspace/atlas/examples/alarm_clock /mnt/ssd/terry/workspace/atlas/examples/alarm_clock_nvm /mnt/ssd/terry/workspace/atlas/examples/c-hashtable-nvm/tester 
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.cpp -o /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o
+In file included from /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.cpp:16:0:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_alloc(size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_alloc_cache_line_aligned(size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h: In function ‘void* nvm_calloc(size_t, size_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:76:13: warning: inlining failed in call to ‘void _Z22AcquireRegionAllocLockj.part.3()’: call is unlikely and code size would grow [-Winline]
+ inline void AcquireRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/region_internal.h:86:13: warning: inlining failed in call to ‘void _Z22ReleaseRegionAllocLockj.part.4()’: call is unlikely and code size would grow [-Winline]
+ inline void ReleaseRegionAllocLock(uint32_t rid)
+             ^
+cc1plus: warning: called from here [-Winline]
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:32:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:4:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h: In function ‘void DeleteEntry(CbListNode<T>*, T*) [with T = LogEntry]’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.5()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.5()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:5:0:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/helper.h: In function ‘void CreateVersions(const DirectedGraph&, LogVersions*, const LogEntryVec&, Log2Bool*, const Log2Bool&, const OcsMap&)’:
+/mnt/ssd/terry/workspace/atlas/src/internal_includes/helper.h:58:16: warning: inlining failed in call to ‘LogVer::~LogVer()’: call is unlikely and code size would grow [-Winline]
+ typedef struct LogVer
+                ^
+/mnt/ssd/terry/workspace/atlas/src/consistency/consistency.cpp:602:12: warning: called from here [-Winline]
+     LogVer log_ver;
+            ^
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp -o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘int NVM_GetCacheLineSize()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1553:32: warning: ignoring return value of ‘int fscanf(FILE*, const char*, ...)’, declared with attribute warn_unused_result [-Wunused-result]
+         fscanf(fp, "%d", &size);
+                                ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void PublishLogEntry(LogEntry*)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void AddLockCount(void*, uint64_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:32:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h: In function ‘CbLog<T>* GetNewCb(uint32_t, uint32_t, CbLog<T>**, CbListNode<T>* volatile*) [with T = LogEntry; uint32_t = unsigned int]’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/int_atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL12AO_int_storePVjj.part.1()’: call is unlikely and code size would grow [-Winline]
+ AO_int_store(volatile unsigned *addr, unsigned new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_end_durable()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void nvm_store(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memmove(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memset(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_memcpy(void*, size_t)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:528:19: warning: inlining failed in call to ‘void _Z14CreateLogEntryPvm7LE_TYPE.part.10()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry * CreateLogEntry(void * addr, size_t sz, LE_TYPE le_type)
+                   ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1183:13: warning: inlining failed in call to ‘void _Z11FinishWriteP8LogEntryPv.isra.6.part.7()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishWrite(LogEntry * le, void * addr)
+             ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_release(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1071:17: warning: inlining failed in call to ‘void _Z10RemoveLockPv.part.46()’: call is unlikely and code size would grow [-Winline]
+ inline uint64_t RemoveLock(void *lock_address)
+                 ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1053:13: warning: inlining failed in call to ‘void _Z13FinishReleaseP8LogEntryRKSt3mapIPvmSt4lessIS2_ESaISt4pairIKS2_mEEE.part.56()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishRelease(LogEntry *le, const MapOfLockInfo & undo_locks)
+             ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_unlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1071:17: warning: inlining failed in call to ‘void _Z10RemoveLockPv.part.46()’: call is unlikely and code size would grow [-Winline]
+ inline uint64_t RemoveLock(void *lock_address)
+                 ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:1053:13: warning: inlining failed in call to ‘void _Z13FinishReleaseP8LogEntryRKSt3mapIPvmSt4lessIS2_ESaISt4pairIKS2_mEEE.part.56()’: call is unlikely and code size would grow [-Winline]
+ inline void FinishRelease(LogEntry *le, const MapOfLockInfo & undo_locks)
+             ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_begin_durable()’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:724:19: warning: inlining failed in call to ‘OwnerInfo* FindOwnerOfLock(void*)’: call is unlikely and code size would grow [-Winline]
+ inline OwnerInfo *FindOwnerOfLock(void *lock_address)
+                   ^
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:991:53: warning: called from here [-Winline]
+         OwnerInfo *oi = FindOwnerOfLock(lock_address);
+                                                     ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_acquire(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_rdlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp: In function ‘void nvm_rwlock_wrlock(void*)’:
+/mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:457:18: warning: inlining failed in call to ‘void _Z14CreateLogEntryPv7LE_TYPE.part.8()’: call is unlikely and code size would grow [-Winline]
+ inline LogEntry *CreateLogEntry(void *lock_address, LE_TYPE le_type)
+                  ^
+cc1plus: warning: called from here [-Winline]
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/include/atlas_api.h:7,
+                 from /mnt/ssd/terry/workspace/atlas/src/consistency/logging.cpp:13:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+g++ -g -O3 -Wall -Winline   -I/mnt/ssd/terry/workspace/atlas/include -I/mnt/ssd/terry/workspace/atlas/src/internal_includes -I/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include -pthread -DDEBUG -DALLOC_DUMP  -c /mnt/ssd/terry/workspace/atlas/src/util/util.cpp -o /mnt/ssd/terry/workspace/atlas/src/util/util.o
+/mnt/ssd/terry/workspace/atlas/src/util/util.cpp: In function ‘void NVM_CreateLogDir()’:
+/mnt/ssd/terry/workspace/atlas/src/util/util.cpp:27:40: warning: ignoring return value of ‘int system(const char*)’, declared with attribute warn_unused_result [-Wunused-result]
+     system("mkdir -p /dev/shm/regions");
+                                        ^
+In file included from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_atomic_load_store.h:29:0,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../all_aligned_atomic_load_store.h:31,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/x86.h:24,
+                 from /mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops.h:241,
+                 from /mnt/ssd/terry/workspace/atlas/src/internal_includes/util.h:9,
+                 from /mnt/ssd/terry/workspace/atlas/src/util/util.cpp:11:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void NVM_CowAddToMapInterval(MapInterval* volatile*, uint64_t, uint64_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h: In function ‘void NVM_CowDeleteFromMapInterval(MapInterval* volatile*, uint64_t, uint64_t, uint32_t)’:
+/mnt/ssd/terry/workspace/atlas/libs/libatomic_ops-7.4.0-build/include/atomic_ops/sysdeps/gcc/../loadstore/atomic_store.h:28:1: warning: inlining failed in call to ‘void _ZL8AO_storePVmm.part.0()’: call is unlikely and code size would grow [-Winline]
+ AO_store(volatile AO_t *addr, AO_t new_val)
+ ^
+cc1plus: warning: called from here [-Winline]
+ar cru /mnt/ssd/terry/workspace/atlas/lib/libatlas.a /mnt/ssd/terry/workspace/atlas/src/alloc/alloc.o /mnt/ssd/terry/workspace/atlas/src/consistency/consistency.o /mnt/ssd/terry/workspace/atlas/src/consistency/helper_driver.o /mnt/ssd/terry/workspace/atlas/src/consistency/logging.o /mnt/ssd/terry/workspace/atlas/src/util/util.o
+ar: /mnt/ssd/terry/workspace/atlas/lib/libatlas.a: No such file or directory
+make[1]: *** [/mnt/ssd/terry/workspace/atlas/lib/libatlas.a] Error 1
+make[1]: Leaving directory `/mnt/ssd/terry/workspace/atlas'
+#### ---- Making failed ----
+#### -----------------------
+#### Total number of tests: 16
+#### Number of tests passed: 0
+#### Number of tests failed: 16
+#### Number of possible performance regressions: 1
+#### -----------------------
+#### See summary.txt, log, and *.out files in ./tests/ for further details
