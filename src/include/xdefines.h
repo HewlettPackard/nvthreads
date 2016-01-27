@@ -75,11 +75,13 @@ public:
   enum { PROTECTEDHEAP_SIZE = 1048576UL * 1024 * 2 }; // FIX ME 512 };
 #else
   enum { PROTECTEDHEAP_SIZE = 1048576UL * 4096 * 2 }; // FIX ME 512 };
+//enum { PROTECTEDHEAP_SIZE = 1048576UL * 4096 * 256 };
 #endif
   enum { PROTECTEDHEAP_CHUNK = 10485760 };
   
   enum { MAX_GLOBALS_SIZE = 1048576UL * 40 };
-  enum { INTERNALHEAP_SIZE = 1048576UL * 100 }; // FIXME 10M 
+//enum { INTERNALHEAP_SIZE = 1048576UL * 100 }; // FIXME 10M
+  enum { INTERNALHEAP_SIZE = 1048576UL * 1000 }; // FIXME 10M 
   enum { PageSize = 4096UL };
   enum { PAGE_SIZE_MASK = (PageSize-1) };
   enum { NUM_HEAPS = 32 }; // was 16
