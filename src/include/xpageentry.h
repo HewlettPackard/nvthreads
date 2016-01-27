@@ -45,10 +45,11 @@
  * for one process only, memory can be allocated from private heap.
  */
 class xpageentry {
-//  enum {
-//      PAGE_ENTRY_NUM = 800000
-//  };
-    unsigned long long PAGE_ENTRY_NUM;
+	enum {
+		PAGE_ENTRY_NUM = 800000
+//		PAGE_ENTRY_NUM = 2000000
+	};
+//    unsigned long long PAGE_ENTRY_NUM;
 public:
 	xpageentry() {
 		_start = NULL;
@@ -68,7 +69,8 @@ public:
 		int i = 0;
 		unsigned long pagestart;
 
-        PAGE_ENTRY_NUM = 0xffffff;
+//  	PAGE_ENTRY_NUM = 0xffffff;
+//        PAGE_ENTRY_NUM = 0xfffffff; // hang
 		// We don't need to allocate all pages, only the difference between newnum and oldnum.
 		start = mmap(NULL, PAGE_ENTRY_NUM * sizeof(xpageinfo), PROT_READ
 				| PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);

@@ -42,7 +42,8 @@ class xbitmap {
 		BITMAP_SIZE_PER_PAGE = 4096
 	};
 	enum {
-		INITIAL_PAGES = 81920
+//  	INITIAL_PAGES = 81920
+		INITIAL_PAGES = 81920 * 10
 	};
 
 public:
@@ -58,9 +59,8 @@ public:
 	void initialize(void) {
 		int offset = 0;
 		char * ptr;
-
-		ptr = (char *) mmap(NULL, BITMAP_SIZE_PER_PAGE * (INITIAL_PAGES + 10),
-				PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+		const size_t length = (size_t)BITMAP_SIZE_PER_PAGE * (size_t)(INITIAL_PAGES + 10);
+		ptr = (char *) mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
 		if (ptr == NULL) {
 			fprintf(stderr, "%d fail to initialize bit map: %s\n", getpid(),
