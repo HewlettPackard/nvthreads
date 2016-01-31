@@ -321,7 +321,7 @@ public:
             fprintf(stderr, "%d: join with invalid parameter\n", getpid());
             return;
         }
-
+    
         // Wait on token if the fence is already started.
         // It is important to maitain the determinism by waiting.
         // No need to wait when fence is not started since join is the first
@@ -334,6 +334,9 @@ public:
         atomicEnd(false);
 #ifdef LAZY_COMMIT
         xmemory::finalcommit(true);
+
+        // Commit pageInfo
+        commitCacheBuffer();
 #endif
 
         if ( !_fence_enabled ) {
@@ -368,7 +371,7 @@ public:
 
             // Do some cleanup for fence.
             closeFence();
-        }
+        }       
     }
 
     /// @brief Do a pthread_cancel
