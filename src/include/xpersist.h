@@ -93,6 +93,7 @@ public:
         // Check predefined globals size is large enough or not.
         if ( _startsize > 0 ) {
             if ( _startsize > size() ) {
+                fprintf(stderr, "This persistent region size(): (%zu), _startsize (%zu).\n", size(), _startsize);
                 fprintf(stderr, "This persistent region (%ld) is too small (%ld).\n", size(), _startsize);
                 ::abort();
             }
@@ -104,13 +105,16 @@ public:
         _backingFd = mkstemp(_backingFname);
         if ( _backingFd == -1 ) {
             fprintf(stderr, "Failed to make persistent file.\n");
+            perror("mkstemp(): ");
             ::abort();
         }
         DEBUG("_backingFd: %d, %s\n", _backingFd, _backingFname);
 
         // Set the files to the sizes of the desired object.
         if ( ftruncate(_backingFd, size()) ) {
+            fprintf(stderr, "file: %s, fd: %d, size(): %zu\n", _backingFname, _backingFd, size());
             fprintf(stderr, "Mysterious error with ftruncate.NElts %ld\n", NElts);
+            perror("ftruncate(): ");
             ::abort();
         }
 
@@ -217,13 +221,6 @@ public:
                                                      TotalPageNums * sizeof(struct pagechangeinfo),
                                                      PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 #endif
-        // Protect globals
-        if ( !_isHeap ) {
-//          printf("created globals!\n");
-        }
-
-        // Set up lookup info
-//      createLookupInfo();
 
         lprintf("initialized xpersist, dirtyListPages: %p, is_Heap: %d\n", &_dirtiedPagesList, _isHeap);
     }
@@ -283,13 +280,6 @@ public:
         void *area;
         size_t offset = (intptr_t)start - (intptr_t)base();
 
-//      if ( _isHeap ) {
-//          printf("%d: removing protection for heap!\n", getpid());
-//      } else {
-//          printf("%d: removing protection for globals!\n", getpid());
-//      }
-//      printf("%d: start %p, size: %zu\n", getpid(), start, size);
-
         // Map to writable share area.
         area = mmap(start, size, PROT_READ | PROT_WRITE, MAP_SHARED
                     | MAP_FIXED, _backingFd, offset);
@@ -302,12 +292,7 @@ public:
     }
 
     void openProtection(void *end, MemoryLog *localMemoryLog) {
-//      if ( _isHeap ) {
-//          printf("%d: protecting heap!\n", getpid());
-//      }
-//      else{
-//          printf("%d: protecting globals!\n", getpid());
-//      }
+    
 #ifdef LAZY_COMMIT
         // We will set the used area as R/W, while those un-used area will be set to PROT_NONE.
         // For globals, all pages are set to SHARED in the beginning.
@@ -320,8 +305,11 @@ public:
                 _pageInfo[i] = PAGE_ACCESS_READ;
             }
         } else {
+#ifdef X86_32BIT
             int allocSize = (intptr_t)end - (intptr_t)base();
-
+#else
+            unsigned long allocSize = (unsigned long)end - (unsigned long)base();
+#endif
             // For those allocated pages, we set to READ_ONLY.
             if ( allocSize > 0 ) {
                 writeProtect(base(), allocSize);
@@ -602,12 +590,18 @@ public:
 
     // Change the page to writable mode.
     inline void mprotectWrite(void *addr, int pageNo) {
+        int rv;
 #ifdef LAZY_COMMIT
         if ( _pageOwner[pageNo] == getpid() ) {
             _pageInfo[pageNo] = PAGE_ACCESS_WRITE;
         }
 #endif
-        mprotect(addr, xdefines::PageSize, PROT_READ | PROT_WRITE);
+        rv = mprotect(addr, xdefines::PageSize, PROT_READ | PROT_WRITE);
+        if ( rv != 0 ) {
+            fprintf(stderr, "mprotect(%p, %d, PROT_READ|PROT_WRITE) failed...\n", addr,  xdefines::PageSize);
+            perror("mprotect() in mprotectWrite");
+            exit(-1);
+        }
     }
 
 #ifdef LAZY_COMMIT
@@ -622,14 +616,17 @@ public:
     inline void setOwnedPage(void *addr, size_t size) {
         if ( !_isProtected )
             return;
-
+        
         int pid = getpid();
         size_t startPage = computePage((intptr_t)addr - (intptr_t)base());
         size_t pages = size / xdefines::PageSize;
         char *pageStart = (char *)addr;
         int blocks = _ownedblocks;
 
-        mprotect(addr, size, PROT_READ);
+        if( mprotect(addr, size, PROT_READ)){
+            perror("mprotect: PROT_READ");
+            exit(-1);
+        }       
 
         for (int i = startPage; i < startPage + pages; i++) {
             _pageOwner[i] = pid;
@@ -652,7 +649,11 @@ public:
     void handleWrite(void *addr) {
         // Compute the page number of this item
         int pageNo = computePage((size_t)addr - (size_t)base());
+#ifdef X86_32BIT
         unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + xdefines::PageSize * pageNo);
+#else
+        unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + (unsigned long)xdefines::PageSize * pageNo);
+#endif
         struct xpageinfo *curr = NULL;
 
 #ifdef LAZY_COMMIT
@@ -1007,11 +1008,18 @@ public:
     void recordlookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied){        
         // No other thread has touched this page, safe to record pageInfo 
         if (_pageDependence[pageNo].threadID == 0){
+            unsigned long npages;
             lprintf("First time touching this page %d, no other thread has touched this page, not sure if there will be, so log to tmp\n", pageNo);
-//          _pageLookup[pageNo].xactID = globalXactID;
-//          _pageLookup[pageNo].threadID = threadID;
-//          _pageLookup[pageNo].memlogOffset = offset;
-//          _pageLookup[pageNo].dirtied = dirtied;
+            if ( _isHeap ) {
+                npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+                INC_METACOUNTER(globalBufferedHeapPageNoCount);
+                lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);
+            } else {
+                npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+                INC_METACOUNTER(globalBufferedGlobalPageNoCount);
+                lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+            }
+            _pageNoTmp[npages] = pageNo;
             _pageLookupTmp[pageNo].xactID = globalXactID;
             _pageLookupTmp[pageNo].threadID = threadID;
             _pageLookupTmp[pageNo].memlogOffset = offset;
@@ -1043,10 +1051,13 @@ public:
                         INC_METACOUNTER(globalBufferedGlobalPageNoCount);
                         lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
                     }
-                    _pageNoTmp[npages] = pageNo;
+                    _pageNoTmp[npages] = pageNo;                    
+                } else {
+                    lprintf("Page %d was touched by %d\n", pageNo, _pageLookupTmp[pageNo].threadID);
                 }
 
                 // Buffer the pageInfo, commit when we exit the outermost nested section
+
                 _pageLookupTmp[pageNo].xactID = globalXactID;
                 _pageLookupTmp[pageNo].threadID = threadID;
                 _pageLookupTmp[pageNo].memlogOffset = offset;
@@ -1096,6 +1107,7 @@ public:
         START_TIMER(logging);
 
 //      lprintf("%d: commit transaction %u, #dirtied pages: %zu\n", getpid(), _trans, _dirtiedPagesList.size());
+//      fprintf(stderr, "%d: commit global transaction %lu, #dirtied pages: %zu, isHeap: %d\n", getpid(), globalXactID, _dirtiedPagesList.size(), _isHeap);
 
         // Log pages if it's heap data
         if ( _isHeap ) {
@@ -1177,7 +1189,7 @@ public:
             diff = clock() - start_time;;
 #endif
             ADD_COUNTER(logtimer, (double)diff);
-        }
+        } // end of _isHeap
 
         // Check all pages in the dirty list
         for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
@@ -1197,7 +1209,7 @@ public:
 
             TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
-//          printf("%d: commits local modification to shared mapping, xact %d, pageNo %d, pageAddr: %p\n", getpid(), _trans, pageNo,pageinfo->pageStart);
+//          fprintf(stderr, "%d: commits local modification to shared mapping, xact %d, pageNo %d, pageAddr: %p\n", getpid(), _trans, pageNo,pageinfo->pageStart);
         
 #ifdef LAZY_COMMIT
             // update is true before entering into the critical sections.
