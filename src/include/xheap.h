@@ -116,12 +116,12 @@ public:
     *_remaining -= sz;
     *_position += sz;
 
-//  printf("%d: allocated %zu bytes, remaining: %zu bytes\n", getpid(), sz, *_remaining);
+//  fprintf(stderr, "\n%d: allocated %zu bytes, remaining: %zu bytes\n", getpid(), sz, *_remaining);
 
     void * newptr = (void*)*_position;
     //__asm__ __volatile__ ("mfence": : :"memory");
 		
-    //		fprintf(stderr, "%d: xheapmalloc %p ~ %p. sz %x\n", getpid(),p, newptr, sz);
+    //fprintf(stderr, "%d: xheapmalloc %p ~ %p. sz: %zu bytes\n", getpid(),p, newptr, sz);
 #ifdef DETERM_MEMORY_ALLOC
     pthread_mutex_unlock(_mutex);
 #else
