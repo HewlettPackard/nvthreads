@@ -16,6 +16,8 @@ import subprocess
 import multiprocessing
 import time
 import csv
+from subprocess import check_output
+from multiprocessing import Process
 
 print (sys.version)
 print '[NVthread-eval] ----------------------------------------------------Welcome-------------------------------------------------------'
@@ -27,16 +29,18 @@ runs = 1
 start_time = 0
 disk = 0
 pagedensity = 0
+memory_overhead = 0
 #input_size = 'simsmall'
-#input_size = 'simlarge'
-input_size = 'native'
+input_size = 'simlarge'
+#input_size = 'native'
 
 pwd = os.getcwd()
 
 # Define becnhmarks directories
 phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'reverse_index', 'string_match', 'word_count']
-#phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'string_match', 'word_count']
+#phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'string_match']
 parsec_benchmarks = ['blackscholes', 'canneal', 'dedup', 'ferret', 'streamcluster', 'swaptions']
+#parsec_benchmarks = ['blackscholes', 'canneal', 'dedup', 'streamcluster', 'swaptions']
 #parsec_benchmarks = ['ferret', 'streamcluster', 'swaptions']
 
 # Benchmarks available to run
@@ -110,6 +114,18 @@ if len(configs) == 0:
 
 data = {}
 
+def memloop (cmd, progname):
+	memcmd = 'sudo ./ps_mem.py | grep ' + progname 
+	print 'memcmd: ' + str(memcmd)
+	while 1:
+		os.system(memcmd)
+		time.sleep(1)
+	print 'memloop done, return'
+	return
+
+def mysleep (sec):
+	time.sleep(sec)
+
 def sim(delay):
 	print '[NVthread-eval] Input: '+input_size
 	print '[NVthread-eval] #cores in use: ' + str(cores)
@@ -130,9 +146,11 @@ def sim(delay):
 		print '[NVthread-eval] ----------------' + bench + '----------------'
 		for config in configs:
 			data[bench][config] = []
+			args = str()
 			print 'running ' + config + '.' + bench
 			#------------phoenix------------------
 			exe = pwd+'/tests/'+bench+'/'+bench+'-'+config+'.out'
+			exeps = bench + '-' + config + '.out'
 			if bench == 'histogram':
 				inp = pwd+'/datasets/histogram_datafiles/large.bmp'
 				cmd = exe + ' ' + inp
@@ -235,7 +253,18 @@ def sim(delay):
 				# Run and measure time
 				print '[NVthread-eval] Executing: '+cmd
 				start_time = os.times()[4]
+
+# measure memory overhead, don't care about runtime (not accurate when measuring memory overhead)
+				if (memory_overhead == 1):
+					p = Process(target=memloop, args=(cmd, exeps))
+					p.start()
+					mysleep(1)
+
 				rv = os.system(cmd)
+# wait for memory overhead thread
+				if (memory_overhead == 1):
+					p.terminate()
+
 				if rv != 0 :
 					print 'Error, rerun'
 					killcmd = 'ps ax | grep ' + exe + ' | awk \'{print $1}\' | xargs kill -9'
@@ -393,6 +422,7 @@ def umountNVMfs():
 
 
 def main():
+
 	if not nvm_delays:
 		nvm_delays.append(0)
 	nvm_delays.sort();
