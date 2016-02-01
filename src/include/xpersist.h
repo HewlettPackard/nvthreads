@@ -101,7 +101,7 @@ public:
 
         // Get a temporary file name (which had better not be NFS-mounted...).
         char _backingFname[1024];
-        sprintf(_backingFname, "/tmp/dthreadsMXXXXXX");
+        sprintf(_backingFname, "/tmp/nvthreadsMXXXXXX");
         _backingFd = mkstemp(_backingFname);
         if ( _backingFd == -1 ) {
             fprintf(stderr, "Failed to make persistent file.\n");
@@ -121,9 +121,9 @@ public:
         // Get rid of the files when we exit.
         unlink(_backingFname);
 
-        char _versionsFname[L_tmpnam];
+        char _versionsFname[1024];
         // Get another temporary file name (which had better not be NFS-mounted...).
-        sprintf(_versionsFname, "dthreadsVXXXXXX");
+        sprintf(_versionsFname, "/tmp/nvthreadsVXXXXXX");
         _versionsFd = mkstemp(_versionsFname);
         if ( _versionsFd == -1 ) {
             fprintf(stderr, "Failed to make persistent file.\n");
