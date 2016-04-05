@@ -14,24 +14,24 @@
 int a;
 char b[touch_size];
 pthread_mutex_t gm;
-void *t1(void *args){
-	int i;
+void* t1(void *args) {
+    int i;
 //  printf("%d: locking\n", getpid());
     pthread_mutex_lock(&gm);
 //  printf("%d: locked\n", getpid());
 //  a++;
 //  printf("t1: a=%d\n", a);
 //  printf("%d: unlocking\n", getpid());
-      for (i = 0; i < touch_size; i++) {
+    for (i = 0; i < touch_size; i++) {
         b[i] = 33;
         if ( i % 4096 == 0 )
             printf("writing to page: %d\n", i / 4096);
     }
-  pthread_mutex_unlock(&gm);
     printf("--------------thread 1 exits------------------\n");
+    pthread_mutex_unlock(&gm);
     return NULL;
 }
-void *t2(void *args){    
+void* t2(void *args) {
     int i;
 
 //  printf("%d: locking\n", getpid());
@@ -41,17 +41,16 @@ void *t2(void *args){
 //  a++;
 //  a = 2;
 //  printf("t2: a=%d\n", a);
-     for (i = 0; i < touch_size; i++) {
+    for (i = 0; i < touch_size; i++) {
         b[i] = 33;
         if ( i % 4096 == 0 )
             printf("writing to page: %d\n", i / 4096);
     }
-   printf("%d: unlocking\n", getpid());
-    pthread_mutex_unlock(&gm);
     printf("--------------thread 2 exits------------------\n");
+    pthread_mutex_unlock(&gm);
     return NULL;
 }
-int main(){
+int main() {
 
 //  a = 0;
 //  printf("a: %p\n", (&a));

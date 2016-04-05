@@ -5,20 +5,23 @@
 #define PAGE_SIZE 4096
 #define PAGES 5
 #define touch_size PAGE_SIZE * PAGES
-#define ALLOC_SIZE 1 * 1024 * 1024 * 1024
+#define ALLOC_SIZE 1 * 1024 
 int a[touch_size];
 pthread_mutex_t gm;
 void* t(void *args) {
     int i = 0;
-    pthread_mutex_lock(&gm);
-	printf("%d: allocating\n", getpid());
-	int *t = (int*)malloc(ALLOC_SIZE);
-    printf("%d: writing\n", getpid());
+    printf("%d: allocating\n", getpid());
     for (i = 0; i < touch_size; i++) {
-        a[i] = 1;
+        if ( i % PAGE_SIZE == 0 ) {
+            printf("%d: locking page %d to write\n", getpid(), i / PAGE_SIZE);
+            pthread_mutex_lock(&gm);
+        }
+        a[i] = 0;
+        if ( i % PAGE_SIZE == 0 ) {
+            printf("%d: unlocking\n", getpid());
+            pthread_mutex_unlock(&gm);
+        }
     }
-	free(t);
-    pthread_mutex_unlock(&gm);
     printf("%d: t exits\n", getpid());
     pthread_exit(NULL);
 }
@@ -31,12 +34,17 @@ int main() {
     pthread_create(&tid3, NULL, t, NULL);
     pthread_create(&tid4, NULL, t, NULL);
 
-    pthread_mutex_lock(&gm);
-    printf("%d: writing\n", getpid());
     for (i = 0; i < touch_size; i++) {
+        if ( i % PAGE_SIZE == 0 ) {
+            printf("%d: locking page %d to write\n", getpid(), i / PAGE_SIZE);
+            pthread_mutex_lock(&gm);
+        }
         a[i] = 0;
+        if ( i % PAGE_SIZE == 0 ) {
+            printf("%d: unlocking\n", getpid());
+            pthread_mutex_unlock(&gm);
+        }
     }
-    pthread_mutex_unlock(&gm); 
 
     pthread_join(tid1, NULL);
     pthread_join(tid2, NULL);
