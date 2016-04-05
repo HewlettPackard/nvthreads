@@ -10,7 +10,8 @@ NVPATH=$(PWD)/../../../src/libnvthread.so
 all: kmeans
 
 kmeans: kmeans.cpp $(NVSRC)
-	$(GCC) $(GCCFLAGS) -I$(NVINCLUDE) $(NVSRC) kmeans.cpp -o kmeans -rdynamic $(NVPATH) -ldl
+	$(GCC) $(GCCFLAGS) -DNVTHREADS -I$(NVINCLUDE) $(NVSRC) kmeans.cpp -o kmeans -rdynamic $(NVPATH) -ldl
+	$(GCC) $(GCCFLAGS) -I$(NVINCLUDE) $(NVSRC) kmeans.cpp -o kmeans_malloc -lpthread
 
 clean: 
 	rm -rf *.d *.o kmeans _crashed _running /mnt/tmpfs/*
