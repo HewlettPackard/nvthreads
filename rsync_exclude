@@ -11,3 +11,6 @@ apps/Atlas
 rsync_exclude
 rsync_make.sh
 rsync.sh
+*.out
+*.os
+.fseventsd/
