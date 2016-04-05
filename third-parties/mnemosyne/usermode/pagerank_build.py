@@ -38,7 +38,7 @@ for t in targets:
 		print 'error, abort'
 		exit(-1)
 
-cmd = icc + ' -o '+BUILD_PATH_MNEMOSYNE+'/pagerank-mnemosyne -Qtm_enabled -T /mnt/ssd/terry/workspace/mnemosyne/usermode/tool/linker/linker_script_persistent_segment_m64 '+BUILD_PATH_MNEMOSYNE+'/main.o '+ BUILD_PATH_MNEMOSYNE+'/algorithm.o '+BUILD_PATH_MNEMOSYNE+'/logger.o '+BUILD_PATH_MNEMOSYNE+'/crsmatrix.o '+BUILD_PATH_MNEMOSYNE+'/vector.o ' +'build/library/pmalloc/libpmalloc.so build/library/mcore/libmcore.so build/library/mtm/libmtm.so -lrt ' 
+cmd = icc + ' -o '+BUILD_PATH_MNEMOSYNE+'/pagerank-mnemosyne -Qtm_enabled -T /mnt/ssd/terry/workspace/nvthreads/third-parties/mnemosyne/usermode/tool/linker/linker_script_persistent_segment_m64 '+BUILD_PATH_MNEMOSYNE+'/main.o '+ BUILD_PATH_MNEMOSYNE+'/algorithm.o '+BUILD_PATH_MNEMOSYNE+'/logger.o '+BUILD_PATH_MNEMOSYNE+'/crsmatrix.o '+BUILD_PATH_MNEMOSYNE+'/vector.o ' +'build/library/pmalloc/libpmalloc.so build/library/mcore/libmcore.so build/library/mtm/libmtm.so -lrt ' 
 print cmd
 rv = os.system(cmd)
 if rv != 0 :
