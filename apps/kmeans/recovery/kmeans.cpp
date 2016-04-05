@@ -16,7 +16,12 @@
 #define LBL_BUF_SZ 200
 #define LBL_EL "el"
 #define LBL_CENTERS "centers"
+pthread_mutex_t gm;
 
+#ifndef NVTHREADS
+#define nvmalloc(size, name) malloc(size)
+#define isCrashed(void) 0
+#endif
 /* ==== TYPEDEFS ==== */
 
 typedef int i_t;
@@ -158,8 +163,10 @@ vec2_i* nvconstruct_vec2_i(size_t szx, size_t szy, i_t init, char* label, bool r
 
 vec_d* nvconstruct_vec_d(size_t sz, f_t init, char* label, bool recover) {
         vec_d* res = (vec_d*)nvmalloc(sizeof(res), label);
-
+        pthread_mutex_lock(&gm);
+  
         if(recover) {
+                printf("nvrecover for %s, size %zu\n", label, sizeof(res));
                 nvrecover(res, sizeof(res), label);
                 sz = res->size;
         }
@@ -174,6 +181,7 @@ vec_d* nvconstruct_vec_d(size_t sz, f_t init, char* label, bool recover) {
         res->el = (f_t*)nvmalloc(sizeof(res->el) * sz, buf); // name = label + "el"
 
         if(recover) {
+                printf("nvrecover for %s, size %zu\n", buf, sizeof(res->el)*sz);
                 nvrecover(res->el, sizeof(res->el) * sz, buf);
         }
         else {
@@ -182,7 +190,8 @@ vec_d* nvconstruct_vec_d(size_t sz, f_t init, char* label, bool recover) {
                         res->el[i] = init;
                 }
         }
-
+        pthread_mutex_unlock(&gm);
+  
         return res;
 }
 
@@ -190,6 +199,7 @@ vec2_d* nvconstruct_vec2_d(size_t szx, size_t szy, f_t init, char* label, bool r
         vec2_d* res = (vec2_d*)nvmalloc(sizeof(res), label);
 	
         if(recover) {
+                printf("nvrecover for %s, size %zu\n", label, sizeof(res));
                 nvrecover(res, sizeof(res), label);
                 szx = res->size;
         }
@@ -202,7 +212,7 @@ vec2_d* nvconstruct_vec2_d(size_t szx, size_t szy, f_t init, char* label, bool r
         strcat(buf, LBL_EL);
 
         res->el = (vec_d**)malloc(sizeof(res->el) * szx);
-
+        printf("szx: %zu, res->size (%p): %zu\n", szx, &res->size, res->size);
         size_t i;
         for(i = 0; i < szx; i++) {
                 char ellbl[LBL_BUF_SZ];
@@ -430,8 +440,8 @@ bool stob(std::string s, std::string s_t, std::string s_f) {
 pthread_mutex_t mutex_lbls;
 
 void *kmeans_worker(void *p_data) {
-	t_data *data = (t_data*)p_data;
 
+	t_data *data = (t_data*)p_data;
 	//int x_sz = (*(*data).x).size();
 	int c_sz = data->c->size;
 	int v_sz = data->x->el[0]->size;
@@ -480,10 +490,9 @@ void *kmeans_worker(void *p_data) {
 	#ifdef USE_LOCKS
 	pthread_mutex_lock(&mutex_lbls);
 	#endif
-
 	for(int i = data->x_start; i < (data->x_start + data->x_length); i++)
-		data->lbls->el[i] = data->lbls_loc->el[i];
-	
+		data->lbls->el[i] = data->lbls_loc->el[i];	
+
 	#ifdef USE_LOCKS
 	pthread_mutex_unlock(&mutex_lbls);
 	#endif
@@ -492,7 +501,7 @@ void *kmeans_worker(void *p_data) {
 }
 
 void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
-		vec2_d *centers, int iterations, vec_i *lbls) {
+		vec2_d *centers, int iterations, vec_i *lbls, int iteration_stop) {
 
 	clock_start();
 
@@ -522,45 +531,71 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 	vec2_d* c_sum = construct_vec2_d(c_sz, v_sz, 0);
 	vec_i* c_count = construct_vec_i(c_sz, 0);
 
-	for(int i = 0; i < NUM_THREADS; i++) {
-		d = (t_data*)malloc(sizeof(t_data));
+    // Prepare thread-local data
+    for(int i = 0; i < NUM_THREADS; i++) {
+        char buf[128];
+        sprintf(buf, "data[%d]", i);
+        if(isCrashed()) {
+            nvrecover(d, sizeof(t_data), (char*)buf);
+            printf("-----recovered data[%d]-----\n", i);
+            printf("d->thread_id: %d\n", d->thread_id);
+            printf("d->x_start = %d\n", d->x_start);
+            printf("d->x_length = %d\n", d->x_length);
 
-		d->thread_id = i;
 
-		d->x = x;
-		d->x_start = bal_x[i][0];
-		d->x_length = bal_x[i][1];
+        } else{
+            d = (t_data *)nvmalloc(sizeof(t_data), (char *)buf);
+                  
+            d->thread_id = i;
 
-		d->x_norms = x_norms;
+            d->x = x;
+            d->x_start = bal_x[i][0];
+            d->x_length = bal_x[i][1];
 
-		d->lbls_loc = construct_vec_i(x_sz, 0);
-		d->lbls = lbls;
+            d->x_norms = x_norms;
 
-		d->c = centers;
+            d->lbls_loc = construct_vec_i(x_sz, 0);
+            d->lbls = lbls;
 
-		d->c_norms = c_norms;
+            d->c = centers;
 
-		d->c_n_start = 0;
-		d->c_n_length = 0;
+            d->c_norms = c_norms;
 
-		d->c_sum_loc = construct_vec2_d(c_sz, v_sz, 0);
-		d->c_sum = c_sum;
+            d->c_n_start = 0;
+            d->c_n_length = 0;
 
-		d->c_count_loc = construct_vec_i(c_sz, 0);
-		d->c_count = c_count;
+            d->c_sum_loc = construct_vec2_d(c_sz, v_sz, 0);
+            d->c_sum = c_sum;
 
-		data[i] = d;
-	}
-
+            d->c_count_loc = construct_vec_i(c_sz, 0);
+            d->c_count = c_count;
+        }
+        data[i] = d;
+    }
+    
 	clock_stop();
 
 	log(LOG_TIME, " Thread-initialization done in ");
 	log(LOG_TIME, clock_get_duration());
 	log(LOG_TIME, " ms.\n");
 
-	for(int _it = 0; _it < iterations; _it++) {
-		clock_start();
+    int *it = (int*)nvmalloc(sizeof(int), (char *)"it");
+    if(isCrashed()) {
+        nvrecover(it, sizeof(int), (char *)"it"); // recover the last completed iteration
+        (*it)++; // start from the next iteration (optimistic)
+    }
+    else{
+        *it = 0;
+    }
+    fprintf(stderr, "start from iteration %d\n", *it);
+	for(; *it < iterations; (*it)++ ) {
+        
+        if(iteration_stop == (*it)) {
+            fprintf(stderr, "intentionally abort at iteration %d\n", *it);
+            abort();
+        }
 
+		clock_start();
 		// reset sum and counters
 		for(int i = 0; i < c_sz; i++) {
 			for(int j = 0; j < v_sz; j++) {
@@ -580,14 +615,12 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 
 			c_norms->el[i] = sqrt(c_norms->el[i]);
 		}
-
 		// spawn threads
 		for(int t = 0; t < NUM_THREADS; t++) {
-			pthread_create(&(threads[t]), NULL, kmeans_worker, data[t]);
+            pthread_create(&threads[t], NULL, kmeans_worker, data[t]);
 		}
-
 		for(int t = 0; t < NUM_THREADS; t++) {
-			pthread_join(threads[t], NULL);
+            pthread_join(threads[t], NULL);
 		}
 
 		// merge sums and count
@@ -608,22 +641,26 @@ void spawn_threads(int NUM_THREADS, vec2_d *x, vec_d *x_norms,
 					// reset local
 					data[t]->c_sum_loc->el[i]->el[j] = 0;
 				}
-
 				centers->el[i]->el[j] = c_sum->el[i]->el[j] / c_count->el[i];
-			}
+                if(*it == 6) {
+                    fprintf(stderr, "c_count->el[%d]: %d, c_sum->el[%d]->el[%d]: %f\n",
+                            i, c_count->el[i], i, j, c_sum->el[i]->el[j]);
+                }
+			}        
 		}
-
 		clock_stop();
 
-		log(LOG_TIME, " ");
-		log(LOG_TIME, _it);
-		log(LOG_TIME, "\t ");
-		log(LOG_TIME, clock_get_duration());
-		log(LOG_TIME, " ms\n");
-	}
+//  	log(LOG_TIME, " ");
+//      log(LOG_TIME, *it);
+//  	log(LOG_TIME, "\t ");
+//  	log(LOG_TIME, clock_get_duration());
+//  	log(LOG_TIME, " ms\n");
+        fprintf(stderr, "iteration %d done in %ld ms \n", *it, clock_get_duration());
+
+    }
 }
 
-const int MIN_ARGC = 8;
+const int MIN_ARGC = 8 + 1;
 
 const int P_PNAME = 0;
 const int P_F_X = 1;
@@ -633,9 +670,15 @@ const int P_N_IT = 4;
 const int P_N_LX = 5;
 const int P_N_LC = 6;
 const int P_N_DIM = 7;
-const int P_F_LBLS = 8;
+const int P_N_SIT = 8;
+const int P_F_LBLS = 9;
 
 const int MAX_ARGC = MIN_ARGC + 1;
+
+void *dummy_function(void* arg){
+    pthread_exit(NULL);
+    return NULL;
+}
 
 int main(int argc, char* argv[]) {
 	bool crashed = isCrashed();
@@ -647,7 +690,8 @@ int main(int argc, char* argv[]) {
 		log_e(LOG_ALL, argv[P_PNAME]);
 		log_e(LOG_ALL, " <x-input-file> <centers-input-file> "
 				"<threads> <iterations> <lines_x> <lines_c> "
-				"<dimensions> [<lbl-output-file>]\n");
+				"<dimensions> [<lbl-output-file>] "
+                "<iteration-to-stop>\n");
 		return 1;
 	}
 
@@ -656,14 +700,19 @@ int main(int argc, char* argv[]) {
 			"    K-MEANS, Multithreaded (Helge Bruegner 2015)    \n"
 			"----------------------------------------------------\n\n");
 
+    // dummy sync point to open protection in order to log memory
+    pthread_t tid;
+    pthread_mutex_init(&gm, NULL);
+    pthread_create(&tid, NULL, dummy_function, NULL);
+
 	const char* f_x = argv[P_F_X];
 	const char* f_c = argv[P_F_C];
 	int n_threads = std::atoi(argv[P_N_TH]);
-	int n_iterations = std::atoi(argv[P_N_IT]);
+	int niterations = std::atoi(argv[P_N_IT]);
 	size_t n_lx = std::atoi(argv[P_N_LX]);
 	size_t n_lc = std::atoi(argv[P_N_LC]);
 	size_t n_dim = std::atoi(argv[P_N_DIM]);
-	
+	int it_stop = std::atoi(argv[P_N_SIT]);
 	log(LOG_ALL, "Start reading the file \"");
 	log(LOG_ALL, f_x);
 	log(LOG_ALL, "\"... ");
@@ -687,13 +736,15 @@ int main(int argc, char* argv[]) {
 	log(LOG_ALL, "\"... ");
 
 	clock_start();
-
-	vec2_d* centers = nvconstruct_vec2_d(n_lc, n_dim, 0, LBL_CENTERS, crashed);
+    crashed=false;
+	vec2_d* centers = nvconstruct_vec2_d(n_lc, n_dim, 0, (char*)LBL_CENTERS, crashed);
 	
-	if(!crashed) {
+//  if(!crashed) {
 		printf(" - loading data\n");
 		load_data(centers, f_c, ',');
-	}
+//  }else{
+//      printf(" - recovered data\n");
+//  }
 
 	clock_stop();
 
@@ -735,17 +786,17 @@ int main(int argc, char* argv[]) {
 	log(LOG_ALL, n_threads);
 	log(LOG_ALL, "\n");
 	log(LOG_ALL, "    Iterations = ");
-	log(LOG_ALL, (int)n_iterations);
+	log(LOG_ALL, (int)niterations);
 	log(LOG_ALL, "\n");
 	log(LOG_ALL, "    Dimensions = ");
 	log(LOG_ALL, (int)x->el[0]->size);
 	log(LOG_ALL, "\n\n");
-
 	log(LOG_ALL, "Running... ");
 
+    fprintf(stderr, "Stop at iteration %d\n", it_stop);
 	clock_start();
 
-	spawn_threads(n_threads, x, norms, centers, n_iterations, lbls);
+	spawn_threads(n_threads, x, norms, centers, niterations, lbls, it_stop);
 
 	clock_stop();
 
@@ -786,5 +837,11 @@ int main(int argc, char* argv[]) {
 
 	log(LOG_ALL, "\n");
 
+    pthread_join(tid, NULL);
+
+//  if(!crashed){
+//      fprintf(stderr, "intentionally abort\n");
+//      abort();
+//  }
 	return 0;
 }
