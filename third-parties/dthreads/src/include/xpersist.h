@@ -85,6 +85,7 @@ public:
     : _startaddr(startaddr),
       _startsize(startsize) 
   {
+    
     // Check predefined globals size is large enough or not. 
     if (_startsize > 0) {
       if (_startsize > size()) {
@@ -94,26 +95,39 @@ public:
     }
 
     // Get a temporary file name (which had better not be NFS-mounted...).
-    char _backingFname[L_tmpnam];
+//  char _backingFname[L_tmpnam];
+    char _backingFname[1024];
+#if defined USE_NVM
+    fprintf(stderr, "Use NVM\n");
+    sprintf(_backingFname, "/mnt/ramdisk/dthreadsMXXXXXX");    
+#elif defined USE_TMPFS
+    fprintf(stderr, "Use TMPFS\n");
+    sprintf(_backingFname, "/tmp/dthreadsMXXXXXX");
+#else
+    fprintf(stderr, "Use DISK\n");
     sprintf(_backingFname, "dthreadsMXXXXXX");
+#endif
     _backingFd = mkstemp(_backingFname);
     if (_backingFd == -1) {
       fprintf(stderr, "Failed to make persistent file.\n");
       ::abort();
     }
-
     // Set the files to the sizes of the desired object.
     if (ftruncate(_backingFd, size())) {
       fprintf(stderr, "Mysterious error with ftruncate.NElts %ld\n", NElts);
       ::abort();
     }
-
     // Get rid of the files when we exit.
     unlink(_backingFname);
 
-    char _versionsFname[L_tmpnam];
+//  char _versionsFname[L_tmpnam];
+    char _versionsFname[1024];
     // Get another temporary file name (which had better not be NFS-mounted...).
-    sprintf(_versionsFname, "dthreadsVXXXXXX");
+#ifdef USE_NVM
+    sprintf(_versionsFname, "/mnt/ramdisk/dthreadsVXXXXXX");
+#else
+    sprintf(_versionsFname, "/tmp/dthreadsVXXXXXX");
+#endif
     _versionsFd = mkstemp(_versionsFname);
     if (_versionsFd == -1) {
       fprintf(stderr, "Failed to make persistent file.\n");
@@ -422,7 +436,12 @@ public:
   void handleWrite (void * addr) {
     // Compute the page number of this item
     int pageNo = computePage ((size_t) addr - (size_t) base());
-    unsigned long * pageStart = (unsigned long *)((intptr_t)_transientMemory + xdefines::PageSize * pageNo);  
+#ifdef X86_32BIT
+    unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + xdefines::PageSize * pageNo);
+#else
+    unsigned long *pageStart = (unsigned long *)((intptr_t)_transientMemory + (unsigned long)xdefines::PageSize * pageNo);
+#endif
+
     struct xpageinfo * curr = NULL;
 
 #ifdef LAZY_COMMIT  
