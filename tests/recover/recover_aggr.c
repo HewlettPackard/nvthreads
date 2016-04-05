@@ -67,7 +67,7 @@ int main(){
         printf("f->b.c[98] = %c\n", f->b.c[98]);        
         printf("f->b.c[99] = %c\n", f->b.c[99]);        
         printf("f->b.c[10000] = %c\n", f->b.c[10000]);        
-        printf("f->b.c[30000] = %c\n", f->b.c[13000]);        
+        printf("f->b.c[13000] = %c\n", f->b.c[13000]);        
         printf("f->id = %d\n", f->id);
         free(f);
     }
