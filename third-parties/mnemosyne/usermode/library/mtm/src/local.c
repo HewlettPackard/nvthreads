@@ -127,6 +127,7 @@ mtm_local_commit (mtm_tx_t *tx)
 void
 mtm_local_rollback (mtm_tx_t *tx)
 {
+//    fprintf(stderr, "mtm_local_rollback %p\n", tx);
 	mtm_local_undo_t       *local_undo = &tx->local_undo;
 	mtm_local_undo_entry_t *local_undo_entry;
 	char                   *buf;

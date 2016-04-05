@@ -46,6 +46,7 @@ mtm_pwbetl_beginTransaction_internal (mtm_tx_t *tx,
 void _ITM_CALL_CONVENTION
 mtm_pwbetl_rollbackTransaction (mtm_tx_t *tx, const _ITM_srcLocation *loc)
 {
+//  fprintf(stderr, "mtm_pwbetl_rollbackTransaction %p\n", tx);
 	assert ((tx->prop & pr_hasNoAbort) == 0);
 	//assert ((mtm_tx()->state & STATE_ABORTING) == 0);
 
