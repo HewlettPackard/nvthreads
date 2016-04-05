@@ -5,9 +5,9 @@ Import('mtmLibrary')
 myEnv = examplesEnv.Clone()
 
 sources = Split("""
-                pmalloc-mt.c
+                page_density.c
                 """)
 myEnv.Append(CFLAGS='-DMNEMOSYNE')
 myEnv.Append(LIBS = [mcoreLibrary])
 myEnv.Append(LIBS = [mtmLibrary])
-myEnv.Program('pmalloc-mt-mnemosyne.out', sources)
+myEnv.Program('page_density-mnemosyne.out', sources)

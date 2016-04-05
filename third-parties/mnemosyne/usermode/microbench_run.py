@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # Run this script at $MNEMOSYNE/usermode
 import os
-#density= [5, 10, 25, 50, 75, 100] # % of page to write to
+density= [5, 10, 25, 50, 75, 100] # % of page to write to
 #configs = ['pt', 'icc']
 runs = 10
-density= [75] # % of page to write to
+#density= [75] # % of page to write to
 configs = ['mnemosyne']
 #runs = 1
 pwd = os.getcwd()
@@ -22,7 +22,7 @@ def sim():
 		for config in configs:
 			exetime[d][config] = []
 			rettime[d][config] = []
-			exe = pwd+'/build/examples/microbench/pmalloc-mt-'+config+'.out '+str(d)
+			exe = pwd+'/build/examples/microbench/page_density-'+config+'.out '+str(d)
 			n = 0;
 			while n < runs:
 				print '--------'+str(n)+' '+config+' '+ str(d) +'%----------'
@@ -35,6 +35,7 @@ def sim():
 				elif config == 'mnemosyne':
 					os.system('du -h ' + log_path_mnemosyne)
 					os.system('find ' + log_path_mnemosyne + ' | xargs rm')
+                    os.system('rm -rf /tmp/*')
 				if rv != 0:
 					print 'Error, try again'
 #					printStats()
