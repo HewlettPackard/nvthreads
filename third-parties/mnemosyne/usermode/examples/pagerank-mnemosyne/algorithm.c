@@ -78,15 +78,15 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 	vector_f* tmp = out;
 	
 	time = timer_lap_ms(tmr);
-	
+
 	logd(lvl, " Done in %ld ms.\n", time);
-	
+
 	for(n = 0; n < n_iterations; n++) {
 		for(i = 0; i < sz; i++) {
                         tmp->elements[i] = m->empty;//0.0;
                 }
 		
-		logd(lvl, "(");	
+		logd(lvl, "(");
 	
 		for(i = 0; i < n_threads; i++) {
 //          fprintf(stderr, "Creating %d thread\n", i);
@@ -113,7 +113,7 @@ extern mcrs_err mcrs_gmatrix_mult_vector_f_mt(logd_lvl_t lvl, vector_f *out, con
 		
 		time = timer_lap_ms(tmr);
 	
-		logd(lvl, "%d\t", n);	
+  		logd(lvl, "%d\t", n);
 		logd(LOGD_X, "%ld", time);
 		logd(lvl, "\tms");
 		logd(LOGD_X, "\n");
