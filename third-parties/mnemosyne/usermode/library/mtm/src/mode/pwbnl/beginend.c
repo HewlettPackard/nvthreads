@@ -46,6 +46,7 @@ mtm_pwbnl_beginTransaction_internal (mtm_tx_t *tx,
 void _ITM_CALL_CONVENTION
 mtm_pwbnl_rollbackTransaction (mtm_tx_t *tx, const _ITM_srcLocation *loc)
 {
+//  fprintf(stderr, "mtm_pwbnl_rollbackTransaction %p\n", tx);
 #if (!defined(ALLOW_ABORTS))
 	assert(0 && "Aborts disabled but want to abort.\n");
 #endif
