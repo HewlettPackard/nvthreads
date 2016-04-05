@@ -46,7 +46,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 1
+#define LDEBUG 0
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -60,6 +60,7 @@
             fflush(stderr);\
         }\
     }while (0)\
+
 
 class LogDefines {
 public:

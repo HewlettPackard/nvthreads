@@ -110,7 +110,7 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
     // FIXME:: For current process, we should close share.
     // children to use MAP_PRIVATE mapping. Or just let child to do that in the beginning.
     int child = syscall(SYS_clone, CLONE_FS | CLONE_FILES | SIGCHLD, (void *)0);
-
+    
     if ( child ) {
 
         // I need to wait until the child has waited on creation barrier sucessfully.       
