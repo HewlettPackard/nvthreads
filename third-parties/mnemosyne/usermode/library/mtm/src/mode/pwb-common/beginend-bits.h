@@ -66,6 +66,7 @@ static inline
 bool
 pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 {
+//    fprintf(stderr, "Trying to commit! tx: %p\n", tx);
 	assert((tx->mode == MTM_MODE_pwbnl && !enable_isolation) || 
 	       (tx->mode == MTM_MODE_pwbetl && enable_isolation));
 
@@ -88,6 +89,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		return true;
 	}	
 
+//    fprintf(stderr, "modedata->w_set.nb_entries %d\n", modedata->w_set.nb_entries);
 	if (modedata->w_set.nb_entries > 0) {
 		/* Update transaction */
 
@@ -144,6 +146,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 		w = modedata->w_set.entries;
 		int wbflush_cnt=0;
 		for (i = modedata->w_set.nb_entries; i > 0; i--, w++) {
+//			fprintf(stderr, "i: %d, w: %p\n", i, w);
 			MTM_DEBUG_PRINT("==> write(t=%p[%lu-%lu],a=%p,d=%p-%d,m=%llx,v=%d)\n", tx,
 			                (unsigned long)modedata->start, (unsigned long)modedata->end,
 			                w->addr, (void *)w->value, (int)w->value, (unsigned long long) w->mask, (int)w->version);
@@ -152,6 +155,7 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				PCM_WB_STORE_ALIGNED_MASKED(tx->pcm_storeset, w->addr, w->value, w->mask);
 			}	
 # ifdef	SYNC_TRUNCATION
+//            fprintf(stderr, "w->next_cache_neighbor: %p\n", w->next_cache_neighbor);
 			/* Flush the cacheline to persistent memory if this is the last entry in this cache line. */
 			if (w->next_cache_neighbor == NULL) {
 				/* If isolation is enabled, then the write set may contain non-persistent 
@@ -160,16 +164,19 @@ pwb_trycommit (mtm_tx_t *tx, int enable_isolation)
 				 * FIXME: Would it be better if we had marked them as non-persistent and
 				 *        avoid the bounds checking?
 				 */
+//                fprintf(stderr, "last cache line\n");
 				if (enable_isolation) {
 					if (((uintptr_t) w->addr >= PSEGMENT_RESERVED_REGION_START &&
 						 (uintptr_t) w->addr < (PSEGMENT_RESERVED_REGION_START + PSEGMENT_RESERVED_REGION_SIZE)))
 					{
-						/* access is persistent -- flush */
+//                        fprintf(stderr, "access is persisten, flush! wbflush_cnt: %d\n", wbflush_cnt);
+                        /* access is persistent -- flush */
 						PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
 						wbflush_cnt++;
 					}
 				} else {
-					PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
+//                    fprintf(stderr, "no isolation, wbflush_cnt: %d\n", wbflush_cnt);
+                    PCM_WB_FLUSH(tx->pcm_storeset, w->addr);
 					wbflush_cnt++;
 				}
 			}	
@@ -212,6 +219,8 @@ static inline
 void 
 pwb_rollback(mtm_tx_t *tx)
 {
+//    fprintf(stderr, "pwb_rollback %p\n", tx);
+
 	assert(tx->mode == MTM_MODE_pwbnl || MTM_MODE_pwbetl);
 	mode_data_t   *modedata = (mode_data_t *) tx->modedata[tx->mode];
 	w_entry_t     *w;
@@ -294,6 +303,7 @@ pwb_rollback(mtm_tx_t *tx)
 static void
 rollback_transaction (mtm_tx_t *tx)
 {
+//  fprintf(stderr, "rollback_transaction %p\n", tx);
 	pwb_rollback (tx);
 	switch (tx->mode) {
 		case MTM_MODE_pwbnl:
