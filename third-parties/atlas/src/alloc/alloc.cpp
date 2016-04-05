@@ -862,10 +862,10 @@ void NVM_DeleteRegion(const char * name)
     // for now, we are not compacting the region table. We still keep
     // the entry but change its validity
     he->is_valid = false;
-    
-    char s[MAXLEN];
-    NVM_qualifyPathName(s, name);
-    unlink(s);
+    fprintf(stderr, "skip deleting log, check /dev/shm/ for log size\n");
+//  char s[MAXLEN];
+//  NVM_qualifyPathName(s, name);
+//  unlink(s);
 }
 
 pair<void *, int> NVM_MapExistingFile(
