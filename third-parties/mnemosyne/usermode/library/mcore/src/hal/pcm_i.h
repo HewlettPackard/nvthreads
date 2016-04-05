@@ -466,6 +466,7 @@ static inline
 void
 PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 {
+//  return;
 #ifdef M_PCM_EMULATE_CRASH
 	pcm_wb_flush_emulate_crash(set, addr);
 #endif
@@ -491,13 +492,16 @@ PCM_WB_FLUSH(pcm_storeset_t *set, volatile pcm_word_t *addr)
 		emulate_latency_ns(M_PCM_LATENCY_WRITE - CYCLE2NS(stop-start));
 #else
 		asm_clflush(addr); 	
-		emulate_latency_ns(M_PCM_LATENCY_WRITE);
+        emulate_latency_ns(M_PCM_LATENCY_WRITE);
 #endif		
+        fprintf(stderr, "EMULATED LATENCY: %d!\n", M_PCM_LATENCY_WRITE);
+    
 		asm_mfence(); 
 	}	
 
 #else /* !M_PCM_EMULATE_LATENCY */ 
-	asm_clflush(addr); 	
+//  fprintf(stderr, "FLUSHING %p!\n", addr);
+    asm_clflush(addr);
 	asm_mfence(); 
 #endif /* !M_PCM_EMULATE_LATENCY */ 
 
