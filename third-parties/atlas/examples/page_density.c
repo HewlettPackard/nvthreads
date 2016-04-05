@@ -36,8 +36,12 @@ pthread_mutex_t lock;
 int percent;
 int cur;
 
-// Only works for 5%
+// Only works for 5% (no conflict)
 int fixedAddr(int tid){
+	if (percent != 5) {
+		fprintf(stderr, "error, fix addr only support 5%\n");
+		abort();
+	}
 	return (tid - 1) * (PAGE_SIZE / nthreads);
 }
 
@@ -49,6 +53,11 @@ int generateRandomAddr(void){
 void* thread_worker(void *args) {
 	int tid = *(int *)args + 1;
 	unsigned long i, cur, start, tmp, cur_page;
+
+    if (contend_size == 0) {
+        pthread_exit(NULL);
+    }
+
 	cur_page = 0;
 
 	fprintf(stderr, "thread %d ready to work\n", tid);
@@ -84,7 +93,7 @@ void* thread_worker(void *args) {
 				cur = (cur_page * PAGE_SIZE);
 				//              fprintf(stderr, "%d exceeds page boundary, reset to %ld\n", tid, cur);
 			}
-			//          fprintf(stderr, "%d writing %d-th byte to page %d at byte %ld\n", tid, i, cur_page, cur);
+//			fprintf(stderr, "%d writing %d-th byte to page %d at byte %ld\n", tid, i, cur_page, cur);
 		}
 		//      fprintf(stderr, "%d wrote %d bytes (start: %ld, end: %ld) to page %d (page range: %ld - %ld)\n",
 		//      tid, i, start, cur, cur_page, (cur_page * PAGE_SIZE), ((cur_page+1) * PAGE_SIZE) - 1);
