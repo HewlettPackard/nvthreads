@@ -9,6 +9,7 @@ NVthreads: Practical Persistence for Multi-threaded Applications
         - LSH_multithreaded/: high similarity search provided by analytics team at HPL.
         - datagen/: generates data from kmeans inputs.
         - kmeans/: implementation of the kmeans algorithm.
+            - phoenix-recovery: kmeans recovery evaluation
         - pagerank/: implementation of the well-known page rank algorithm.
 
     configs/: Configuration files for NVthreads 
