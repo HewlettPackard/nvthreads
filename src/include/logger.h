@@ -47,7 +47,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 0
+#define LDEBUG 1
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -125,7 +125,7 @@ public:
     /* For memory pages logging */
     int _mempages_fd;
     int _mempages_file_count;
-    unsigned int _local_transaction_id;
+    unsigned long _local_transaction_id;
     unsigned long _mempages_offset;
     unsigned long _mempages_filesize;
     char _mempages_filename[FILENAME_MAX];
@@ -238,12 +238,12 @@ public:
     }
 
     /* Memory log filename: /path/to/MemLog_threadID_globalXactID_localXactID */
-    void OpenMemoryLog(int dirtiedPagesCount, bool isHeap) {
+    void OpenMemoryLog(int dirtiedPagesCount, bool isHeap, unsigned long XactID) {
         _dirtiedPagesCount = dirtiedPagesCount;
         _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
         _logentry_count = 0;
-//      _local_transaction_id = transid;
-        
+        _local_transaction_id = XactID;
+
         if ( log_dest == SSD ) {
             sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
@@ -258,16 +258,15 @@ public:
 //              logPath, threadID, GET_METACOUNTER(globalTransactionCount), isHeap);
 //      _mempages_fd = mkostemp(_mempages_filename, _log_flags);
 
-        if ( isHeap ) {
-            sprintf(_mempages_filename, "%s/MemLog_%d_%lu_heap",
-                    logPath, threadID, GET_METACOUNTER(globalTransactionCount));
-        } else{
-            sprintf(_mempages_filename, "%s/MemLog_%d_%lu_global",
-                logPath, threadID, GET_METACOUNTER(globalTransactionCount));            
-        }
+//      if ( isHeap ) {
+//          sprintf(_mempages_filename, "%s/MemLog_%d_%lu_heap",
+//                  logPath, threadID, GET_METACOUNTER(globalTransactionCount));
+//      } else{
+//          sprintf(_mempages_filename, "%s/MemLog_%d_%lu_global",
+//              logPath, threadID, GET_METACOUNTER(globalTransactionCount));
+//      }
 
-        sprintf(_mempages_filename, "%s/MemLog_%d_%lu",
-                logPath, threadID, GET_METACOUNTER(globalTransactionCount));
+        sprintf(_mempages_filename, "%s/MemLog_%d_%lu", logPath, threadID, XactID);
 
         _mempages_fd = open(_mempages_filename, O_RDWR | O_ASYNC | O_CREAT, 0644);
 
