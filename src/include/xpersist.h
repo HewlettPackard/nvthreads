@@ -1104,6 +1104,7 @@ public:
         int mypid = getpid();
         bool logged = false;
         unsigned long globalXactID = GET_METACOUNTER(globalTransactionCount);
+        
         unsigned long memlogOffset;
         INC_COUNTER(commit);
 
@@ -1111,6 +1112,8 @@ public:
             return;
         }
 
+        lprintf("globalXactID %lu, GET_METACOUNTER(globalTransactionCount): %lu\n", 
+                globalXactID, GET_METACOUNTER(globalTransactionCount));
 //      lprintf("Dirty pages: %zu, isHeap: %d, pghtable: %p\n", _dirtiedPagesList.size(), _isHeap, pghtable);
 //      lprintf("dirtyPagesList: %p, thread index: %d\n", &_dirtiedPagesList, _threadindex);
 //      pghtable->addDirtyPagesList(&_dirtiedPagesList);
@@ -1118,6 +1121,9 @@ public:
         _trans++;
     
         INC_COUNTER(transactions); // global transaction counter (debugging only)
+
+        lprintf("globalXactID %lu, GET_METACOUNTER(globalTransactionCount): %lu\n", 
+                globalXactID, GET_METACOUNTER(globalTransactionCount));
 
 #ifdef ENABLE_PROFILING
         clock_t start_time = clock(), diff;
@@ -1131,7 +1137,7 @@ public:
         if ( _isHeap ) {
             
             // Open a new log file if we have dirtied pages
-            localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap);
+            localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap, globalXactID);
 
             // Loop through all dirtied pages
             int page_count = 0;
