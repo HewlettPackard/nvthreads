@@ -2,8 +2,8 @@ NVTHREAD_HOME=../../
 CC = g++
 CFLAGS = -g  
 PLIB = -lpthread
-NVLIB = $(NVTHREAD_HOME)/src/libnvthread.so
-DLIB = $(NVTHREAD_HOME)/third-parties/dthreads/src/libdthread.so
+NVLIB = $(NVTHREAD_HOME)/src/libnvthread.so -ldl
+DLIB = $(NVTHREAD_HOME)/third-parties/dthreads/src/libdthread.so -ldl
 
 #nvthread
 INC_DIR = $(NVTHREAD_HOME)/src/include
