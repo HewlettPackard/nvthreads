@@ -39,7 +39,6 @@
 #include "heaplayers/util/cpuinfo.h"
 
 #include "logger.h"
-#include "nvm.h"
 #include "nvrecovery.h"
 
 extern "C" {

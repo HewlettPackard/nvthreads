@@ -52,7 +52,6 @@
 
 // libnvthread
 #include "logger.h"
-#include "nvm.h"
 #include "nvrecovery.h"
 
 // Common defines
@@ -535,6 +534,7 @@ public:
     }
 
     static void startFence(void) {
+//      return;
         assert(_fence_enabled != true);
 
         // We start fence only if we are have more than two processes.
@@ -550,12 +550,14 @@ public:
     }
 
     static void waitFence(void) {
-        determ::getInstance().waitFence(_thread_index, false);
+//      return;
+            determ::getInstance().waitFence(_thread_index, false);
     }
 
     // New optimization here.
     // We will add one parallel commit phase before one can get token.
     static void waitToken(void) {
+//      return;
 //      lprintf("%d: waiting for token\n", getpid());
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
@@ -565,6 +567,7 @@ public:
     // If those threads sending out condsignal or condbroadcast,
     // we will use condvar here.
     static void putToken(void) {
+//      return;
         // release the token and pass the token to next.
         //fprintf(stderr, "%d: putToken\n", _thread_index);
         lprintf("%d: releasing token\n", getpid());

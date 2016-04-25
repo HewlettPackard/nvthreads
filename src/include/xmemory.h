@@ -77,7 +77,6 @@
 #include "xthread.h"
 
 #include "logger.h"
-#include "nvm.h"
 
 // Encapsulates all memory spaces (globals & heap).
 

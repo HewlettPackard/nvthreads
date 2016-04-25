@@ -1,7 +1,7 @@
 INC_DIR = $(PWD)/include
 SRC_DIR = $(PWD)/source
 
-SRCS = $(SRC_DIR)/nvrecovery.cpp $(SRC_DIR)/nvm.cpp $(SRC_DIR)/logger.cpp $(SRC_DIR)/libdthread.cpp $(SRC_DIR)/xrun.cpp $(SRC_DIR)/xthread.cpp $(SRC_DIR)/xmemory.cpp $(SRC_DIR)/prof.cpp $(SRC_DIR)/real.cpp
+SRCS = $(SRC_DIR)/nvrecovery.cpp $(SRC_DIR)/logger.cpp $(SRC_DIR)/libdthread.cpp $(SRC_DIR)/xrun.cpp $(SRC_DIR)/xthread.cpp $(SRC_DIR)/xmemory.cpp $(SRC_DIR)/prof.cpp $(SRC_DIR)/real.cpp
 
 DEPS = $(SRCS) $(INC_DIR)/logger.h $(INC_DIR)/xpersist.h $(INC_DIR)/xdefines.h $(INC_DIR)/xglobals.h $(INC_DIR)/xpersist.h $(INC_DIR)/xplock.h $(INC_DIR)/xrun.h $(INC_DIR)/warpheap.h $(INC_DIR)/xadaptheap.h $(INC_DIR)/xoneheap.h 
 
