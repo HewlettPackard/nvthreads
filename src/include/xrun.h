@@ -77,6 +77,9 @@
 
 #include "debug.h"
 
+// synchronization
+#include "nvsync.h"
+
 class xrun {
 
 private:
@@ -95,7 +98,7 @@ private:
 
 public:
     static char *logPath;
-    
+        
     xrun(){
         lprintf("constructor of xrun\n");
     }
@@ -135,6 +138,10 @@ public:
             // Add myself to the token queue.
             determ::getInstance().registerMaster(_thread_index, pid);
             _fence_enabled = false;
+                                                                
+            // Initialize synchronization engine
+            nvsync::getInstance().initialize();                            
+//          nvsync::getInstance().registerThread(NULL, pid);
                             
             // Initialize recovery interface
             xthread::_localNvRecovery.initialize(true);
@@ -149,7 +156,6 @@ public:
             xmemory::createLookupInfo();
             xmemory::createDependenceInfo();
 
-            lprintf("xrun initialized\n");
         } else {
             fprintf(stderr, "xrun reinitialized");
             ::abort();
@@ -184,6 +190,8 @@ public:
             // Finalize memory log
             xthread::_localMemoryLog.finalize();
             xthread::_localNvRecovery.finalize();
+//          nvsync::getInstance().deregisterThread();
+
 //      }
     }
 
@@ -243,7 +251,7 @@ public:
     }
 
     static inline void threadDeregister(void) {
-        waitToken();
+//      waitToken();
 
 #ifdef LAZY_COMMIT
         xmemory::finalcommit(false);
@@ -293,19 +301,16 @@ public:
             atomicBegin(true);
         }
 
-//      if ( _protection_again ) {
-//          atomicBegin(true);
-//      }
-
         atomicEnd(false);
 
 #ifdef LAZY_COMMIT
         xmemory::finalcommit(true);
 #endif
 
+
         // If fence is already enabled, then we should wait for token to proceed.
         if ( _fence_enabled ) {
-            waitToken();
+//          waitToken();
 
             // In order to speedup the performance, we try to create as many children
             // as possible once. So we set the _fence_enabled to false now, then current
@@ -320,10 +325,12 @@ public:
 
         _children_threads_count++;
 
+        atomicBegin(true);
+
         void *ptr = xthread::spawn(fn, arg, _thread_index);
 
         // Start a new transaction
-        atomicBegin(true);
+//      atomicBegin(true);
 
         return ptr;
     }
@@ -534,7 +541,6 @@ public:
     }
 
     static void startFence(void) {
-//      return;
         assert(_fence_enabled != true);
 
         // We start fence only if we are have more than two processes.
@@ -550,14 +556,12 @@ public:
     }
 
     static void waitFence(void) {
-//      return;
-            determ::getInstance().waitFence(_thread_index, false);
+        determ::getInstance().waitFence(_thread_index, false);
     }
 
     // New optimization here.
     // We will add one parallel commit phase before one can get token.
     static void waitToken(void) {
-//      return;
 //      lprintf("%d: waiting for token\n", getpid());
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
@@ -567,7 +571,6 @@ public:
     // If those threads sending out condsignal or condbroadcast,
     // we will use condvar here.
     static void putToken(void) {
-//      return;
         // release the token and pass the token to next.
         //fprintf(stderr, "%d: putToken\n", _thread_index);
         lprintf("%d: releasing token\n", getpid());
@@ -821,6 +824,53 @@ public:
         TRACE("=========%d: ending a Xact ===============\n", getpid());
 //      lprintf("---------%d: ending a Xact---------\n", getpid());
         xmemory::commit(update);
+    }
+
+    static void commit(void) {
+        xmemory::commit(false);
+    }
+
+    static void lock(void){
+        determ::getInstance().lock();
+    }
+
+    static void unlock(void){
+        determ::getInstance().unlock();        
+    }
+
+
+/** NVthreads synchronization engine 
+*/
+    static int nv_mutex_init(pthread_mutex_t *mutex){
+        nvsync::getInstance().mutex_init(mutex);
+    }
+    static void nv_mutex_lock(pthread_mutex_t *mutex){
+        nvsync::getInstance().mutex_lock(mutex);
+    }
+    static void nv_mutex_unlock(pthread_mutex_t *mutex){
+        nvsync::getInstance().mutex_unlock(mutex);
+    }
+    static int nv_cond_init(pthread_cond_t *cond){
+        nvsync::getInstance().cond_init(cond);
+    }
+    static int nv_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
+        nvsync::getInstance().cond_wait(cond, mutex);
+    }
+    static int nv_cond_signal(pthread_cond_t *cond){
+        nvsync::getInstance().cond_signal(cond);
+    }
+    static int nv_cond_broadcast(pthread_cond_t *cond){
+        nvsync::getInstance().cond_broadcast(cond);
+    }
+    static int nv_barrier_init(pthread_barrier_t *barrier, int count){
+        nvsync::getInstance().barrier_init(barrier, count);
+    }
+    static int nv_barrier_wait(pthread_barrier_t *barrier){
+        nvsync::getInstance().barrier_wait(barrier);
+    }
+
+    static int nv_join(void *v){
+        nvsync::getInstance().nv_join(v);
     }
 };
 
