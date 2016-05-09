@@ -316,6 +316,8 @@ public:
         // Always add a thread to the mutex's waiting list
         addToWaitList(entry, threadID()); 
 
+        xmemory::commit(false);
+
         // Done with updating process shared data
         unlock();
 
@@ -326,11 +328,14 @@ public:
             if ( !waited ) {
                 lprintf("%d: thread %d waiting for mutex %p locked by %d\n", getpid(), threadID(), entry->mutex, entry->lockingThreadID);
             }
-            xmemory::commit(false); 
-            xmemory::begin(true);
+//          xmemory::commit(false);
+//          xmemory::begin(true);
             waited = true;
             // waiting...
         }
+
+        xmemory::begin(true);
+
 //      printf("thread %d locked mutex %p (mEntry: %p)\n", threadID(), entry->mutex, entry);
 
         // Record this thread locking this mutex
@@ -383,7 +388,6 @@ public:
 
         // Commit dirty pages every time a thread unlocks a mutex
         xmemory::commit(false); 
-        xmemory::begin(true);
 
 //      printf("thread %d unlocking mutex %p\n", threadID(), entry->mutex);
         // Perform the actual mutex unlock
@@ -404,6 +408,8 @@ public:
             }
         }
 
+        xmemory::begin(true);
+
         // Done with updating process shared data
         unlock();
 
@@ -421,13 +427,15 @@ public:
         WRAP(pthread_barrier_init)((pthread_barrier_t*)entry, &attr, count);
 
         setSyncEntry(barrier, entry);
-        printf("thread %d initialized barrier %p to count %d\n", threadID(), barrier, count);
+//      printf("thread %d initialized barrier %p to count %d\n", threadID(), barrier, count);
     }
 
     void barrier_wait(void *barrier){
         pthread_barrier_t *entry = (pthread_barrier_t *)getSyncEntry(barrier);
-        printf("thread %d waiting for barrier %p\n", threadID(), entry);
+//      printf("thread %d waiting for barrier %p\n", threadID(), entry);
+        xmemory::commit(false);
         WRAP(pthread_barrier_wait)((pthread_barrier_t*)entry);
+//      xmemory::begin(true);
     }
 
 /** Pthread condition variable functions
@@ -478,7 +486,7 @@ cond_ready:
             cEntry->lockingThreadID = threadID();
             mEntry->cond = (pthread_cond_t*)cond;
             xmemory::begin(true);
-            lprintf("cond ready! cond %p, mutex %p (mEntry: %p).\n", cond, mutex, mEntry);
+//          lprintf("cond ready! cond %p, mutex %p (mEntry: %p).\n", cond, mutex, mEntry);
             unlock();
         }
         // 2. cond variable is not signaled yet, unlock mutex and keep waiting (in loop with sched_yield() and mfence)
@@ -491,7 +499,7 @@ cond_ready:
                 sched_yield();
                 __asm__ __volatile__("mfence");
             }
-            lprintf("thread %d waited on cond %p, mutex %p (mEntry: %p). Ready!\n", threadID(), cond, mutex, mEntry);
+//          lprintf("thread %d waited on cond %p, mutex %p (mEntry: %p). Ready!\n", threadID(), cond, mutex, mEntry);
 
             // 2.3. lock mutex before going to 1
             mutex_lock((pthread_mutex_t*)mutex);
@@ -507,7 +515,7 @@ cond_ready:
 
         // Set cond to be ready
         cEntry->status = COND_READY;
-        printf("thread %d signal cond %p status %d\n", threadID(), cond, cEntry->status);
+//      printf("thread %d signal cond %p status %d\n", threadID(), cond, cEntry->status);
         unlock();
     }
     void cond_broadcast(void *cond){
@@ -519,7 +527,7 @@ cond_ready:
 
         // Set cond to be ready
         cEntry->status = COND_BROADCAST;
-        printf("thread %d broadcast cond %p status %d\n", threadID(), cond, cEntry->status);
+//      printf("thread %d broadcast cond %p status %d\n", threadID(), cond, cEntry->status);
         unlock();
     }
 
@@ -530,13 +538,15 @@ cond_ready:
         int status;
         ThreadStatus *t = (ThreadStatus *)v;
         int tid = t->tid;
+        xmemory::commit(true);
+
+        printf("%d: waiting thread pid %d\n", getpid(), tid);
         w = waitpid(tid, &status, 0);
         if ( w == -1 ) {
             fprintf(stderr, "failed to wait thread pid %d\n", tid);
         } else{
-//          printf("waited thread pid %d\n", tid);
-            xmemory::commit(true);
-            xmemory::begin(false);
+            printf("%d: waited thread pid %d\n", getpid(), tid);
+//          xmemory::begin(false);
         }
     }
 
