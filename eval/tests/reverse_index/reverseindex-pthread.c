@@ -44,6 +44,8 @@
 #include <pthread.h>
 #include "stddefines.h"
 
+#define gap 511
+
 #define UNIT_SIZE (1024 * 5)      // approx 5kB per html file
 #define START_ARRAY_SIZE 2000
 
@@ -104,6 +106,11 @@ int *length;
 int req_data;
 
 pthread_mutex_t file_lock;
+pthread_barrier_t bar;
+
+int get_index(int curr_thread){
+   return curr_thread * (gap+1);
+}
 
 /** cleanup()
  *  
@@ -210,14 +217,23 @@ void recursedirs(char *name) {
 /** dobsearch()
  *  Looking for a specific link
  */
-int dobsearch(char* link, link_head_t *arr, int curr_use_len)
+int dobsearch(char* link, link_head_t *arr, int curr_use_len, int *insert_count)
 {
    int cmp, high = curr_use_len, low = -1, next;
-
+// fprintf(stderr, "%d: link %p, arr %p, curr_use_len\n", getpid(), link, arr, curr_use_len);
    // Binary search the array to find the key
    while (high - low > 1)
    {
        next = (high + low) / 2;   
+//     fprintf(stderr, "%d: link: %s vs arr[%d].link: %s\n", getpid(), link, next, arr[next].link);
+       if ( link == NULL ){
+            fprintf(stderr, "%d link %p is NULL, insert_count: %d\n", getpid(), link, *insert_count);
+            sleep(30000);
+       }
+       if (arr[next].link == NULL) {
+            fprintf(stderr, "%d arr[%d].link %p is NULL, insert_count: %d\n", getpid(), next, arr[next].link, *insert_count);
+            sleep(30000);
+       }
        cmp = strcmp(link, arr[next].link);
        if (cmp == 0)
           return next;
@@ -234,15 +250,17 @@ int dobsearch(char* link, link_head_t *arr, int curr_use_len)
  *  Look at the current links and insert into the lists in a sorted manner
  */
 // modified to use hand-over-hand locking
-void insert_sorted(char * link, char *filename, int curr_thread) {
+void insert_sorted(char * link, char *filename, int curr_thread, int *insert_count) {
    
    dprintf("%d: Inserting %s.... ", curr_thread, link);
-   int curr_use_len = use_len[curr_thread];
-   int curr_length = length[curr_thread];
+   int curr_use_len = use_len[get_index(curr_thread)];
+   int curr_length = length[get_index(curr_thread)];
    link_head_t *arr = links[curr_thread];
    
-   int pos = dobsearch(link, arr, curr_use_len);
-   
+   *insert_count = (*insert_count) + 1;
+// fprintf(stderr, "%d: curr_use_len=%d\n", getpid(), curr_use_len);
+   int pos = dobsearch(link, arr, curr_use_len, insert_count);
+
    if (pos >= curr_use_len)
    {
       // at end
@@ -254,7 +272,8 @@ void insert_sorted(char * link, char *filename, int curr_thread) {
       new_elem->filename = filename; 
       arr[curr_use_len].elem = new_elem;
 
-  	   (use_len[curr_thread])++;
+//	   (use_len[curr_thread])++;
+	   (use_len[get_index(curr_thread)])++;
 	}
    else if (pos < 0)
    {
@@ -270,7 +289,8 @@ void insert_sorted(char * link, char *filename, int curr_thread) {
       new_elem->filename = filename; 
       arr[0].elem = new_elem;
       
-	   (use_len[curr_thread])++;
+//    (use_len[curr_thread])++;
+	   (use_len[get_index(curr_thread)])++;
    }
    else if (strcmp(link, arr[pos].link) == 0)
    {
@@ -296,19 +316,21 @@ void insert_sorted(char * link, char *filename, int curr_thread) {
       new_elem->filename = filename; 
       arr[pos].elem = new_elem;
       
-	   (use_len[curr_thread])++;
+//    (use_len[curr_thread])++;
+	   (use_len[get_index(curr_thread)])++;
    }
 
-	if(use_len[curr_thread] == curr_length)
+// if(use_len[curr_thread] == curr_length)
+	if(use_len[get_index(curr_thread)] == curr_length)
 	{
-		length[curr_thread] *= 2;
-		dprintf("%d: Increasing size of array at %p to %d\n", curr_thread, links[curr_thread], length[curr_thread]); 
+		length[get_index(curr_thread)] *= 2;
+		dprintf("%d: Increasing size of array at %p to %d\n", curr_thread, links[curr_thread], length[get_index(curr_thread)]); 
 	   links[curr_thread] = (link_head_t*)REALLOC(links[curr_thread],
-	                                          length[curr_thread]*sizeof(link_head_t));
-	   dprintf("%d: Realloced array at %p of size %d\n", curr_thread, links[curr_thread], length[curr_thread]); 
+	                                          length[get_index(curr_thread)]*sizeof(link_head_t));
+	   dprintf("%d: Realloced array at %p of size %d\n", curr_thread, links[curr_thread], length[get_index(curr_thread)]); 
 	}
    
-   
+// fprintf(stderr, "%d: inserted\n", getpid());
    dprintf("%d: Inserted\n", curr_thread);    
 }
 
@@ -321,13 +343,14 @@ void *getlinks(void *arg)
    char *link_end;
    int state = START;
    int curr_thread = (int) arg;
-   
+   int insert_count = 0;
    filelist_t *file = NULL;
    
    pthread_mutex_lock(&file_lock);
    file = currfile;
    if (currfile != NULL) currfile = currfile->next;
-   pthread_mutex_unlock(&file_lock);
+   fprintf(stderr, "%d: starts working on file %s\n", getpid(), file->name);
+   pthread_mutex_unlock(&file_lock);   
    
    // go through each file and look for links.
    //for (i=0; i<t_arg->num_files; i++) 
@@ -381,7 +404,7 @@ void *getlinks(void *arg)
                if (link_end != NULL)
                {
                   link_end[0] = 0;
-                  insert_sorted(&(file->data[j]), file->name, curr_thread);       
+                  insert_sorted(&(file->data[j]), file->name, curr_thread, &insert_count);       
                   //dprintf("Found key %s in file %s\n", &(file->data[j]), file->name);
                   
                   j += strlen(&(file->data[j]));
@@ -394,8 +417,10 @@ void *getlinks(void *arg)
       pthread_mutex_lock(&file_lock);
       file = currfile;
       if (currfile != NULL) currfile = currfile->next;
+//     printf("%d: processed file: %s\n", getpid(), file->name);
       pthread_mutex_unlock(&file_lock);
    }
+   printf("%d: done with file\n", getpid());
    
    return (void *)0;
 }
@@ -450,7 +475,7 @@ void *merge_sections(void *args_in)
 
    // set length
    length_out += (args->length1 - curr1) + (args->length2 - curr2);
-   length[args->length_out_pos] = length_out;
+   length[get_index(args->length_out_pos)] = length_out;
    free(args->data1);
    free(args->data2);
    free(args);
@@ -508,20 +533,21 @@ int main(int argc, char **argv)
    currfile = filelist;
    
    links = (link_head_t **)MALLOC(num_procs * sizeof(link_head_t *));
-   use_len = (int *)CALLOC(num_procs, sizeof(int));
-   length = (int *)MALLOC(num_procs * sizeof(int));
+   use_len = (int *)CALLOC(num_procs * (gap+1), sizeof(int));
+   length = (int *)MALLOC((num_procs * (gap+1)) * sizeof(int));
 
    for (i = 0; i < num_procs; i++) {
       links[i] = (link_head_t *)CALLOC(START_ARRAY_SIZE, sizeof(link_head_t));
-      length[i] = START_ARRAY_SIZE;
+      length[get_index(i)] = START_ARRAY_SIZE;
       CHECK_ERROR((pthread_create(&(pid[i]), &attr, getlinks, (void *)i)) != 0);
    }
 
+   printf("waiting for %d threads\n", num_procs);
    for (i=0; i<num_procs; i++) {
       pthread_join(pid[i], NULL);
    }
    
-   
+   fprintf(stderr, "Done with getting links, now merging\n");   
    
    dprintf(stderr, "Done with getting links, now merging\n");
    
@@ -536,8 +562,10 @@ int main(int argc, char **argv)
 	   for(i=0; i<num_threads; i++)
 	   {
 		   merge_data_t *m_args = (merge_data_t*)malloc(sizeof(merge_data_t));
-		   m_args->length1 = use_len[i*2];
-         m_args->length2 = use_len[i*2 + 1];
+// 	   m_args->length1 = use_len[i*2];
+//       m_args->length2 = use_len[i*2 + 1];
+		   m_args->length1 = use_len[get_index(i)*2];
+         m_args->length2 = use_len[get_index(i)*2 + 1];
          m_args->length_out_pos = i;
          m_args->data1 = links[i*2];
          m_args->data2 = links[i*2 + 1];
@@ -553,16 +581,18 @@ int main(int argc, char **argv)
 	   {
 		  int ret_val;
 		  CHECK_ERROR(pthread_join(pid[i], (void **)(void*)&ret_val) != 0);
-		  CHECK_ERROR(ret_val != 0);
+// 	  CHECK_ERROR(ret_val != 0);
 
 		  links[i] = final[i];
-		  use_len[i] = length[i];
+// 	  use_len[i] = length[i];
+        use_len[get_index(i)] = length[get_index(i)];
 	   }
 	   
       if (rem_num == 1)
       {
          links[num_threads] = links[num_threads*2];
-         use_len[num_threads] = use_len[num_threads*2];
+//       use_len[num_threads] = use_len[num_threads*2];
+         use_len[get_index(num_threads)] = use_len[get_index(num_threads)*2];
       }
       
       int old_num = num_threads;
