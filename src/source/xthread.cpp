@@ -132,8 +132,10 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
     
     if ( child ) {
 
+        lprintf("parent thread waiting until the child has waited on creation barrier succesfully\n");
         // I need to wait until the child has waited on creation barrier sucessfully.       
         xrun::waitChildRegistered();
+        lprintf("parent thread waited the child\n");
 
         return (void *)t;
 
@@ -154,9 +156,12 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
         t->threadIndex = threadindex;
         t->tid = mypid;
 
+//      lprintf("%d: I'm thread %d, waiting for parent notify\n", mypid, t->threadIndex);
+
         xrun::waitParentNotify();
 
-//      lprintf("%d: I'm thread %d\n", mypid, t->threadIndex);
+        printf("%d: I'm thread %d, start to run now!\n", mypid, t->threadIndex);
+//      nvsync::getInstance().registerThread(t->threadIndex, mypid);
 
         _nestingLevel++;
         run_thread(fn, t, arg);
@@ -171,7 +176,7 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
             xthread::_localNvRecovery.finalize(); 
 
 //      }
-
+        printf("child thread %d exiting the system\n", t->threadIndex);    
         _exit(0);
         return NULL;        
     }
@@ -179,8 +184,11 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
 
 // @brief Execute the thread.
 void xthread::run_thread(threadFunction *fn, ThreadStatus *t, void *arg) {
-    xrun::atomicBegin(true);
+    xrun::atomicBegin(false);
+    lprintf("run thread funtion\n");
     void *result = fn(arg);
+    lprintf("exited thread funtion\n");    
+//  nvsync::getInstance().deregisterThread();
     xrun::threadDeregister();
     t->retval = result;
 }

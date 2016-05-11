@@ -239,7 +239,7 @@ public:
             perror("Error when mkdir(logPath)");
             abort();
         }
-        lprintf("Created log path: %s\n", logPath);
+//      lprintf("Created log path: %s\n", logPath);
     }
 
     char *GetLogPath(void){
@@ -260,7 +260,7 @@ public:
             if ( rename(_varmap_filename, _recoverFname) != 0 ){
                 lprintf("error: unable to rename file\n");
             }
-            lprintf("File %s exists, rename to %s\n", _varmap_filename, _recoverFname);
+//          lprintf("File %s exists, rename to %s\n", _varmap_filename, _recoverFname);
         }
 
         _varmap_fd = open(_varmap_filename, O_RDWR | O_SYNC | O_CREAT | O_APPEND, 0644);    
@@ -277,7 +277,7 @@ public:
     void CloseVarMap(void) {
         close(_varmap_fd);
         unlink(_varmap_filename);
-        lprintf("Closed %s\n", _varmap_filename);
+//      lprintf("Closed %s\n", _varmap_filename);
     }
 
     // Add a entry for variable mapping. Called by nvmalloc
@@ -316,9 +316,9 @@ public:
         while (fgets(buf, FILENAME_MAX, infp) != NULL) {
             if ( line != nvlib_linenum ) {
                 fprintf(outfp, "%s", buf);
-                lprintf("Copied %s from %s to %s\n", buf, nvlib_crash, tmp);
+//              lprintf("Copied %s from %s to %s\n", buf, nvlib_crash, tmp);
             } else {
-                lprintf("Skip copying %s\n", buf);
+//              lprintf("Skip copying %s\n", buf);
             }
             line++;
         }
@@ -355,14 +355,14 @@ public:
             abort();
         }
         exe[ret] = 0;
-        lprintf("exe: %s\n", exe);
+//      lprintf("exe: %s\n", exe);
 
         // Lookup in crash record file at /tmp/nvlib.crash
         FILE *fp = fopen(nvlib_crash, "r+");
 
         // nvlib.crash doesn't exist, create a new one.
         if ( fp == NULL ) {
-            lprintf("%s doesn't exist, create it now\n", nvlib_crash);
+//          lprintf("%s doesn't exist, create it now\n", nvlib_crash);
             fp = fopen(nvlib_crash, "w");
         }
         // Lookup absolute exe name in nvlib.crash
@@ -386,11 +386,11 @@ public:
         nvlib_linenum = line;
 
         if ( crashed ) {
-            lprintf("%s CRASHED before, Found nvid at line %d in nvlib.crash: %d\n", exe, nvlib_linenum, nvid);
+//          lprintf("%s CRASHED before, Found nvid at line %d in nvlib.crash: %d\n", exe, nvlib_linenum, nvid);
         } else {
             // Generate a new NVID
             nvid = rand();
-            lprintf("%s did not crash in previous execution\n", exe);
+//          lprintf("%s did not crash in previous execution\n", exe);
             fprintf(fp, "%s, %d\n", exe, nvid);
             line = -1;
         }
@@ -398,12 +398,12 @@ public:
 
         // Set up log path after we get nvid
         if ( log_dest == SSD ) {
-            sprintf(logPath, "/mnt/ssd2/tmp/%d/", nvid);
+            sprintf(logPath, "/mnt/ssd/tmp/%d/", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
             sprintf(logPath, "/mnt/ramdisk/%d/", nvid);
         }
 
-        lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);
+//      lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);
         return line;
     }
 
@@ -1036,7 +1036,8 @@ public:
         unsigned short threadID = _pageLookupHeap[pageNo].threadID;
         unsigned long memlogOffset = _pageLookupHeap[pageNo].memlogOffset;
 
-        lprintf("copying pageNo %d, memlogOffset: %lu\n", pageNo, memlogOffset);
+        lprintf("copying pageNo %d, threadID: %d, xactID: %d, memlogOffset: %lu\n", 
+                pageNo, threadID, xactID, memlogOffset);
 
         // First page, take care of offset to prevent overflow
         if ( remaining_bytes == total_size ) {
@@ -1075,6 +1076,7 @@ public:
             memlogFd = open(memlogFn, O_RDONLY);
             if ( memlogFd == -1 ) {
                 perror("RecoverOnePage open()");
+                lprintf("%sMemLog_%d_%d\n", logPath, threadID, xactID);
                 abort();
             }    
 
@@ -1166,7 +1168,8 @@ public:
         return npages;
     }
 
-    unsigned long nvrecover(void *dest, size_t size, char *name) {
+    /* Copy data in memory from to dest. Return 0 if sucessful, -1 otherwise. */
+    int nvrecover(void *dest, size_t size, char *name) {
         size_t bytes_checked;
 
         if ( _pageLookupHeap == NULL ) {
@@ -1179,11 +1182,10 @@ public:
         }
 //      lprintf("Hint: 0x%p, size: %zu, name: %s\n", dest, size, name);
         // Find the address of the variable in varmap log
-        unsigned long addr;
         struct varmap_entry *v = RecoverVarmapInfo(name);
         if ( !v ) {
             lprintf("Error, can't find variable named %s\n", name);
-            return 0;
+            return -1;
         }
 
         // Calculate number of pages needed for copying data 
@@ -1199,13 +1201,13 @@ public:
         bytes_checked= RecoverDataFromMemlog((char*)dest, v, size);
         if ( bytes_checked != size ) {
             lprintf("Error, should've checked %zu bytes, but instead checked %zu bytes for variable named %s\n", size, bytes_checked, name);
-            return 0;            
+            return -1;            
         }
 
         // Find the data by address in memory pages
-        lprintf("nvrecover-ed %s at old addr 0x%08lx\n", name, addr);
+        lprintf("nvrecover-ed %s\n", name);
         
-        return addr;
+        return 0;
     }
 
     void dumpLookup(bool isHeap){

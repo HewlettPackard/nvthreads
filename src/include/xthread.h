@@ -51,6 +51,13 @@ class xrun;
 class xthread {
 private:
 
+	/// Current nesting level (i.e., how deep we are in recursive threads).
+	static unsigned int _nestingLevel;
+
+	/// What is this thread's PID?
+	static int _tid;
+
+public:
 	/// @class ThreadStatus
 	/// @brief Holds the thread id and the return value.
 	class ThreadStatus {
@@ -66,14 +73,6 @@ private:
 
 		bool forked;
 	};
-
-	/// Current nesting level (i.e., how deep we are in recursive threads).
-	static unsigned int _nestingLevel;
-
-	/// What is this thread's PID?
-	static int _tid;
-
-public:
 
 	//xthread(void) : _nestingLevel(0), _protected(false) {}
 

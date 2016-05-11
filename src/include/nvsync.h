@@ -227,8 +227,9 @@ public:
         }
         int i;
         for (i = 0; i < MAX_MUTEX; i++) {
-            if ( mutex == (void*)mutexEntries[i] ) {
+            if ( (mutex != NULL) && (mutex == (void*)mutexEntries[i])) {
                 printf("mutex %p already exists in mutexEntries[%d]!!\n", mutex, i);
+                return mutexEntries[i];
             }
         }
 
@@ -253,8 +254,8 @@ public:
         mutexEntries[entry->lockID] = entry;
         printf("thread %d set mutex %p at entry %p in mutexEntries[%d]\n", threadID(), mutex, entry, entry->lockID);
 
-        xmemory::commit(false); 
-        xmemory::begin(true);
+        xmemory::commit(true); 
+        xmemory::begin(false);
 
         return entry;        
     }
@@ -316,7 +317,8 @@ public:
         // Always add a thread to the mutex's waiting list
         addToWaitList(entry, threadID()); 
 
-        xmemory::commit(false);
+        xmemory::commit(false); // works so far
+//      xmemory::commit(true);  // doesn't work
 
         // Done with updating process shared data
         unlock();
@@ -389,7 +391,7 @@ public:
         // Commit dirty pages every time a thread unlocks a mutex
         xmemory::commit(false); 
 
-//      printf("thread %d unlocking mutex %p\n", threadID(), entry->mutex);
+//      printf("thread %d unlocked mutex %p\n", threadID(), entry->mutex);
         // Perform the actual mutex unlock
         WRAP(pthread_mutex_unlock)(entry->mutex);
 
@@ -540,13 +542,14 @@ cond_ready:
         int tid = t->tid;
         xmemory::commit(true);
 
-        printf("%d: waiting thread pid %d\n", getpid(), tid);
+//      printf("%d: waiting thread pid %d\n", getpid(), tid);
         w = waitpid(tid, &status, 0);
         if ( w == -1 ) {
             fprintf(stderr, "failed to wait thread pid %d\n", tid);
         } else{
-            printf("%d: waited thread pid %d\n", getpid(), tid);
+//          printf("%d: waited thread pid %d\n", getpid(), tid);
 //          xmemory::begin(false);
+            xmemory::commit(true);
         }
     }
 

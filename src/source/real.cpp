@@ -88,32 +88,32 @@ void init_real_functions() {
 	SET_WRAPPED(write, RTLD_NEXT);
 	SET_WRAPPED(sigwait, RTLD_NEXT);
 
-	void *pthread_handle = dlopen("libpthread.so.0", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
-	if (pthread_handle == NULL) {
-		fprintf(stderr, "Unable to load libpthread.so.0\n");
-		_exit(2);
-	}
+    void *pthread_handle = dlopen("libpthread.so.0", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
+    if (pthread_handle == NULL) {
+        fprintf(stderr, "Unable to load libpthread.so.0\n");
+        _exit(2);
+    }
 
-	SET_WRAPPED(pthread_create, pthread_handle);
-	SET_WRAPPED(pthread_cancel, pthread_handle);
-	SET_WRAPPED(pthread_join, pthread_handle);
-	SET_WRAPPED(pthread_exit, pthread_handle);
+    SET_WRAPPED(pthread_create, pthread_handle);
+    SET_WRAPPED(pthread_cancel, pthread_handle);
+    SET_WRAPPED(pthread_join, pthread_handle);
+    SET_WRAPPED(pthread_exit, pthread_handle);
 
-	SET_WRAPPED(pthread_mutex_init, pthread_handle);
-	SET_WRAPPED(pthread_mutex_lock, pthread_handle);
-	SET_WRAPPED(pthread_mutex_unlock, pthread_handle);
-	SET_WRAPPED(pthread_mutex_trylock, pthread_handle);
-	SET_WRAPPED(pthread_mutex_destroy, pthread_handle);
-	SET_WRAPPED(pthread_mutexattr_init, pthread_handle);
+    SET_WRAPPED(pthread_mutex_init, pthread_handle);
+    SET_WRAPPED(pthread_mutex_lock, pthread_handle);
+    SET_WRAPPED(pthread_mutex_unlock, pthread_handle);
+    SET_WRAPPED(pthread_mutex_trylock, pthread_handle);
+    SET_WRAPPED(pthread_mutex_destroy, pthread_handle);
+    SET_WRAPPED(pthread_mutexattr_init, pthread_handle);
 
-	SET_WRAPPED(pthread_condattr_init, pthread_handle);
-	SET_WRAPPED(pthread_cond_init, pthread_handle);
-	SET_WRAPPED(pthread_cond_wait, pthread_handle);
-	SET_WRAPPED(pthread_cond_signal, pthread_handle);
-	SET_WRAPPED(pthread_cond_broadcast, pthread_handle);
-	SET_WRAPPED(pthread_cond_destroy, pthread_handle);
+    SET_WRAPPED(pthread_condattr_init, pthread_handle);
+    SET_WRAPPED(pthread_cond_init, pthread_handle);
+    SET_WRAPPED(pthread_cond_wait, pthread_handle);
+    SET_WRAPPED(pthread_cond_signal, pthread_handle);
+    SET_WRAPPED(pthread_cond_broadcast, pthread_handle);
+    SET_WRAPPED(pthread_cond_destroy, pthread_handle);
 
-	SET_WRAPPED(pthread_barrier_init, pthread_handle);
-	SET_WRAPPED(pthread_barrier_wait, pthread_handle);
-	SET_WRAPPED(pthread_barrier_destroy, pthread_handle);
+    SET_WRAPPED(pthread_barrier_init, pthread_handle);
+    SET_WRAPPED(pthread_barrier_wait, pthread_handle);
+    SET_WRAPPED(pthread_barrier_destroy, pthread_handle);
 }

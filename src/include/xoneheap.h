@@ -120,6 +120,10 @@ public:
         return getHeap()->mem_write(dest, val);
     }
 
+    void mem_read(void *addr, void *dest, size_t sz){
+        getHeap()->mem_read(addr, dest, sz);
+    }
+
     void setThreadIndex(int index) {
         return getHeap()->setThreadIndex(index);
     }
