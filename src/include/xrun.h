@@ -258,7 +258,9 @@ public:
 #endif
 
         DEBUG("%d: thread %d deregister, get token\n", getpid(), _thread_index);
+        lock();
         atomicEnd(false);
+        unlock();
         // Remove current thread and decrease the fence
         determ::getInstance().deregisterThread(_thread_index);
 

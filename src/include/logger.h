@@ -47,7 +47,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 1
+#define LDEBUG 0
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -245,7 +245,7 @@ public:
         _local_transaction_id = XactID;
 
         if ( log_dest == SSD ) {
-            sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
+            sprintf(logPath, "/mnt/ssd/tmp/%d", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
             sprintf(logPath, "/mnt/ramdisk/%d", nvid);
         } else {
@@ -272,7 +272,7 @@ public:
 
         if ( _mempages_fd == -1 ) {
             fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
-            perror("mkstemp: ");
+            perror("open: ");
             abort();
         }
         _mempages_offset = 0;
@@ -373,7 +373,7 @@ public:
             return 0;
         }
         */
-        
+//      printf("logging addr %p page 0x%08lx\n", addr, (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
         struct LogEntry::log_t newLE;
 //      newLE.addr = (unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK;
         newLE.after_image = (char *)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);

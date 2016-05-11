@@ -149,6 +149,10 @@ public:
         _pheap.setLogPath(path);
     }
     
+    static char* getLogPath(void){
+        return _globals.getLogPath();
+    }
+        
     static void createLookupInfo(void){
         _globals.createLookupInfo();
         _pheap.createLookupInfo();
@@ -237,6 +241,15 @@ public:
         }
     }
 
+    static void mem_read(void *addr, void *dest, size_t sz) {
+        if ( _pheap.inRange(addr) ) {
+            _pheap.mem_read(addr, dest, sz);
+        } else if ( _globals.inRange(addr) ) {
+            _globals.mem_read(addr, dest, sz);
+        }
+    }
+    
+
     static inline void handleWrite(void *addr) {
         if ( _pheap.inRange(addr) ) {
             _pheap.handleWrite(addr);
@@ -287,8 +300,9 @@ public:
         size = backtrace(array, 20);
 
         // print out all the frames to stderr
-        fprintf(stderr, "stack trace\n");
+        fprintf(stderr, "---------- stack trace ---------\n");
         backtrace_symbols_fd(array, size, STDERR_FILENO);
+        fprintf(stderr, "--------------------------------\n");
         exit(1); 
     }
     /// @brief Signal handler to trap SEGVs.
@@ -301,9 +315,11 @@ public:
             xmemory::handleWrite(addr);
         } else if ( siginfo->si_code == SEGV_MAPERR ) {
             fprintf(stderr, "%d : map error with addr %p!\n", getpid(), addr);
+            dumpStackTrace();
             ::abort();
         } else {
             fprintf(stderr, "%d : other access error with addr %p.\n", getpid(), addr);
+            dumpStackTrace();
             ::abort();
         }
     }

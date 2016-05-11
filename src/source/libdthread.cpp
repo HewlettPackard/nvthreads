@@ -247,7 +247,7 @@ extern "C"
     void pthread_exit(void *value_ptr) {
 //      printf("%d: pthread exits\n", getpid());
 
-        if ( initialized ) {
+        if ( initialized ) {            
             xrun::threadDeregister();
         }
         _exit(0);
@@ -290,17 +290,20 @@ extern "C"
 
     int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *) {
         if ( initialized ) {
-            return xrun::mutex_init(mutex);
+//          return xrun::mutex_init(mutex);
+            xrun::nv_mutex_init(mutex);
         }
         return 0;
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
-        lprintf("%d: pthread locking %p\n", getpid(), mutex);
         if ( initialized ) {
-            xrun::mutex_lock(mutex);
+            lprintf("pthread locking %p\n", mutex);
+//          xrun::mutex_lock(mutex);
+            xrun::nv_mutex_lock(mutex);
+            lprintf("pthread locked %p\n", mutex);
         }
-        lprintf("%d: pthread locked %p\n", getpid(), mutex);
+
         return 0;
     }
 
@@ -311,15 +314,17 @@ extern "C"
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
         if ( initialized ) {
-            xrun::mutex_unlock(mutex);
+            lprintf("pthread unlocking %p\n", mutex);
+//          xrun::mutex_unlock(mutex);
+            xrun::nv_mutex_unlock(mutex);
+            lprintf("pthread unlocked %p\n", mutex);
         }
-//      printf("%d: pthread unlocked %p\n", getpid(), mutex);
-        
 
-        if ( xrun::readyToCommitCache() ) {
-            lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
-            xrun::commitCacheBuffer();
-        }
+        
+//      if ( xrun::readyToCommitCache() ) {
+//          lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
+//          xrun::commitCacheBuffer();
+//      }
         
         return 0;
     }
@@ -327,6 +332,7 @@ extern "C"
     int pthread_mutex_destory(pthread_mutex_t *mutex) {
         if ( initialized ) {
             return xrun::mutex_destroy(mutex);
+//          WRAP(pthread_mutex_destroy)(mutex);
         }
         return 0;
     }
@@ -357,15 +363,15 @@ extern "C"
         if ( initialized ) {
             *tid = (pthread_t)xrun::spawn(fn, arg);
         }
-//      printf("%d: pthread create done\n", getpid());
         return 0;
     }
 
     int pthread_join(pthread_t tid, void **val) {
         //assert(initialized);
-//      printf("%d: pthread joining\n", getpid());
         if ( initialized ) {
-            xrun::join((void *)tid, val);
+            lprintf("%d: pthread joining\n", getpid());
+//          xrun::join((void *)tid, val);
+            xrun::nv_join((void *)tid);
         }
 //      printf("%d: pthread join done\n", getpid());
         return 0;
@@ -374,7 +380,8 @@ extern "C"
     int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
         //assert(initialized);
         if ( initialized ) {
-            xrun::cond_init((void *)cond);
+//          xrun::cond_init((void *)cond);
+            xrun::nv_cond_init(cond);
         }
         return 0;
     }
@@ -382,7 +389,8 @@ extern "C"
     int pthread_cond_broadcast(pthread_cond_t *cond) {
         //assert(initialized);
         if ( initialized ) {
-            xrun::cond_broadcast((void *)cond);
+//          xrun::cond_broadcast((void *)cond);
+            xrun::nv_cond_broadcast(cond);
         }
         return 0;
     }
@@ -391,7 +399,8 @@ extern "C"
         //assert(initialized);
         lprintf("pthread_cond_signal cv: %p\n", cond);
         if ( initialized ) {
-            xrun::cond_signal((void *)cond);
+//          xrun::cond_signal((void *)cond);
+            xrun::nv_cond_signal(cond);
         }
         return 0;
     }
@@ -400,7 +409,8 @@ extern "C"
         //assert(initialized);
         lprintf("pthread_cond_wait cv: %p, mutex: %p\n", cond, mutex);
         if ( initialized ) {
-            xrun::cond_wait((void *)cond, (void *)mutex);
+//          xrun::cond_wait((void *)cond, (void *)mutex);
+            xrun::nv_cond_wait(cond, mutex);
         }
         return 0;
     }
@@ -409,6 +419,7 @@ extern "C"
         //assert(initialized);
         if ( initialized ) {
             xrun::cond_destroy(cond);
+//          WRAP(pthread_cond_destroy)(cond);
         }
         return 0;
     }
@@ -417,7 +428,8 @@ extern "C"
     int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count) {
         //assert(initialized);
         if ( initialized ) {
-            return xrun::barrier_init(barrier, count);
+//          return xrun::barrier_init(barrier, count);
+            xrun::nv_barrier_init(barrier, count);
         }
         return 0;
     }
@@ -433,7 +445,8 @@ extern "C"
     int pthread_barrier_wait(pthread_barrier_t *barrier) {
         //assert(initialized);
         if ( initialized ) {
-            return xrun::barrier_wait(barrier);
+//          return xrun::barrier_wait(barrier);
+            xrun::nv_barrier_wait(barrier);
         }
         return 0;
     }
