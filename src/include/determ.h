@@ -394,7 +394,7 @@ public:
             _is_arrival_phase = true;
 
 //          lprintf("------------end of transaction %lu------------\n", GET_METACOUNTER(globalTransactionCount));
-            INC_METACOUNTER(globalTransactionCount);
+//          INC_METACOUNTER(globalTransactionCount);
 
             // Cleanup the bitmap here.
             if ( !keepBitmap )
@@ -493,9 +493,11 @@ public:
         lock();
 
         _childregistered = true;
+        lprintf("signal parent\n");
         WRAP(pthread_cond_signal)(&_cond_parent);
 
-        WRAP(pthread_cond_wait)(&_cond_children, &_mutex);
+//      lprintf("wait for parent\n");
+//      WRAP(pthread_cond_wait)(&_cond_children, &_mutex);
         unlock();
     }
 
@@ -1123,7 +1125,7 @@ private:
 
     void* getSyncEntry(void *entry) {
         void **ptr = (void **)entry;
-//    fprintf(stderr, "%d: entry %p and synentry 0x%x\n", getpid(), entry, ((int *)entry));
+//      fprintf(stderr, "%d: entry %p and synentry 0x%x\n", getpid(), entry, ((int *)entry));
         return (*ptr);
     }
 
@@ -1135,7 +1137,7 @@ private:
 
         *dest = newentry;
 
-        //fprintf(stderr, "origentry %p dest %p *dest %p newentry %p\n", origentry, dest, *dest, newentry);
+//      fprintf(stderr, "origentry %p dest %p *dest %p newentry %p\n", origentry, dest, *dest, newentry);
         // Update the shared copy in the same time.
         xmemory::mem_write(dest, newentry);
     }
@@ -1149,13 +1151,15 @@ private:
         xmemory::mem_write(*dest, NULL);
     }
     inline void lock(void) {
-//      lprintf("locking global lock\n");
+//      printf("%d: locking determ global lock\n", getpid());
         WRAP(pthread_mutex_lock)(&_mutex);
+//      printf("%d: locked determ global lock\n", getpid());
     }
 
     inline void unlock(void) {
-//      lprintf("unlocking global lock\n");
+//      printf("%d: unlocking determ global lock\n", getpid());
         WRAP(pthread_mutex_unlock)(&_mutex);
+//      printf("%d: unlocked determ global lock\n", getpid());
     }
 };
 
