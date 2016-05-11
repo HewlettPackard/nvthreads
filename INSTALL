@@ -8,3 +8,7 @@ Your NVthreads library named libnvthread.so will be compiled and ready to use at
 To link your application to NVthreads library
     gcc -o foo.o foo.c -ldl -rdynamic $NVthreads/src/libnvthread.so
 
+Special compiler flags:
+    ENABLE_PROFILING: collect metadata for statistics
+    PAGE_DENSITY: collect the average percentage of touched bytes in each page
+
