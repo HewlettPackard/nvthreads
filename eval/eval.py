@@ -284,7 +284,7 @@ def sim(delay):
 						exit()
 					if config == 'nvthread':
 						os.system('du -h ' + log_path)
-						os.system('find ' + log_path + ' | xargs rm')
+						os.system('find ' + log_path + ' | xargs rm -rf')
 					continue
 				time = os.times()[4] - start_time
 				print ('\n\n'+bench + '.' + config + '[' + str(n) + ']: ' + str(time)+'\n\n')
@@ -292,7 +292,7 @@ def sim(delay):
 				n=n+1
 				if config == 'nvthread':
 					os.system('du -h ' + log_path)
-					os.system('find ' + log_path + ' | xargs rm')
+					os.system('find ' + log_path + ' | xargs rm -rf')
 					os.system('mv /tmp/pagedensity.csv pagedensity/'+bench+'_pagedensity.csv')
 
 		print ''
