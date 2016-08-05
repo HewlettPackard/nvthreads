@@ -1116,7 +1116,7 @@ public:
                 globalXactID, GET_METACOUNTER(globalTransactionCount));
 //      lprintf("Dirty pages: %zu, isHeap: %d, pghtable: %p\n", _dirtiedPagesList.size(), _isHeap, pghtable);
 //      lprintf("dirtyPagesList: %p, thread index: %d\n", &_dirtiedPagesList, _threadindex);
-//      pghtable->addDirtyPagesList(&_dirtiedPagesList);
+
         // Increase local counter _trans
         _trans++;
     
@@ -1173,14 +1173,6 @@ public:
 
                     // Update lookup info
                     memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
-    //              if ( _pageLookup[pageNo].dirtied ) {
-    //                  lprintf("addr: 0x%08lx update pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
-    //                          (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
-    //              }
-    //              else{
-    //                  lprintf("addr: 0x%08lx insert pageNo %d <---> (xactID: %lu, threadID: %d, memlogOffset: %zu), isHeap: %d\n",
-    //                          (unsigned long)pageinfo->pageStart, pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, _isHeap);
-    //              }
                     recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
                     recordDependence(pageNo, localMemoryLog->threadID, pageinfo->pageStart);
     //              lprintf("Trancation %lu: logged page %d at %p\n", GET_METACOUNTER(globalTransactionCount), page_count, pageinfo->pageStart);
