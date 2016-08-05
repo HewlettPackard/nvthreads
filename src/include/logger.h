@@ -47,7 +47,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 1
+#define LDEBUG 0
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -247,11 +247,27 @@ class MemoryLog {
     if (log_dest == SSD) {
       sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
     } else if (log_dest == NVM_RAMDISK) {
-      sprintf(logPath, "/mnt/ramdisk/%d", nvid);
+//    sprintf(logPath, "/mnt/ramdisk/%d", nvid);
+      sprintf(logPath, "/mnt/ramdisk/%d/logs", nvid);
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();
     }
+
+//  lprintf("Creating log path: %s\n", logPath);
+//  if ((mkdir(logPath, 0777)) == -1) {
+//    perror("Error when mkdir(memLogPath)");
+//  }
+//  lprintf("Created log path: %s\n", logPath);
+
+
+//  sprintf(logPath, "%s/log", logPath);
+//  lprintf("Creating log path: %s\n", logPath);
+//  if ((mkdir(logPath, 0777)) == -1) {
+//    perror("Error when mkdir(memLogPath)");
+//  }
+//  lprintf("Created memLog path: %s\n", logPath);
+
 
     sprintf(_mempages_filename, "%s/MemLog_%d_%lu", logPath, threadID, XactID);
 
@@ -262,14 +278,14 @@ class MemoryLog {
       perror("mkstemp: ");
       abort();
     }
-    _mempages_offset = 0;
 
-    if (_mempages_ptr == MAP_FAILED) {
-      lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
-      abort();
-    } else {
-      lprintf("Opened memory page log. fd: %d, filename: %s\n", _mempages_fd, _mempages_filename);
+    if (ftruncate(_mempages_fd, _mempages_filesize)) {
+      fprintf(stderr, "file: %s, fd: %d, size(): %zu\n", _mempages_filename, _mempages_fd, _mempages_filesize);
+      perror("ftruncate(): ");
+      ::abort();
     }
+    _mempages_offset = 0;
+    lprintf("Opened memory page log. fd: %d, filename: %s\n", _mempages_fd, _mempages_filename);
   }
 
   void WriteLogBeforeProtection(void* base, size_t size, bool isHeap) {
@@ -377,9 +393,44 @@ class MemoryLog {
     return 0;
   }
 
-  int AddMapRecord(void) {
-
+  /* Apply diff bytes from src to dest (vs twin) */
+  inline void commitWord(char* src, char* twin, char* dest) {
+    for (int i = 0; i < sizeof(long long); i++) {
+      if (src[i] != twin[i]) {
+        dest[i] = src[i];
+      }
+    }
   }
+
+  /* Append page diffs to the end of the memory log */
+  void AppendDiffsToMemoryLog(const void* local, const void* twin, unsigned long offset, int pageNo) {
+    int diff_bytes = 0;
+    int count = 0;
+    size_t sz;
+
+    // mmap for byte copy
+    _mempages_ptr = (char*)mmap(NULL, LogDefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, offset);
+    if (_mempages_ptr == MAP_FAILED) {
+      lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
+      abort();
+    } else {
+      lprintf("mmap()ed memory page log for pageNo %d. fd: %d, filename: %s, offset: %lu\n", pageNo,  _mempages_fd, _mempages_filename, offset);
+    }
+
+    // Count diff in bytes
+    long long* mylocal = (long long*)local;
+    long long* mytwin = (long long*)twin;
+    long long* mydest = (long long*)_mempages_ptr;
+
+    // #blocks: 512
+    for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
+      if (mylocal[i] != mytwin[i]) {
+        commitWord((char*)&mylocal[i], (char*)&mytwin[i], (char*)&mydest[i]);
+//      lprintf("Write %d-th block.\n", i);
+      }
+    }
+  }
+
 
   /* Make sure the memory log are durable after this function returns */
   void SyncMemoryLog(void) {
@@ -419,6 +470,7 @@ class MemoryLog {
       abort();
     }
     _mempages_file_count++;
+    lprintf("Closed file: %s\n", _mempages_filename);
   }
 
   void WriteEOLDiskLog() {

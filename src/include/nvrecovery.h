@@ -113,6 +113,7 @@ public:
     int nvlib_linenum;
     char nvlib_crash[FILENAME_MAX];
     char logPath[FILENAME_MAX];
+    char memLogPath[FILENAME_MAX];
     bool crashed;
     bool _main_thread;
     bool _initialized;
@@ -233,13 +234,21 @@ public:
     }
 
     // Create the path to store memory log and variable mapping
-    void CreateLogPath(void) {  
+    void CreateLogPath(void) {
         // Create direcotry for current nvid to save varmap and MemLog
         if ( (mkdir(logPath, 0777)) == -1 ) {
             perror("Error when mkdir(logPath)");
             abort();
         }
         lprintf("Created log path: %s\n", logPath);
+
+        // Create direcotry for current nvid to save varmap and MemLog
+        lprintf("Creating memlog path: %s\n", memLogPath);
+        if ( (mkdir(memLogPath, 0777)) == -1 ) {
+            perror("Error when mkdir(memLogPath)");
+            abort();
+        }
+        lprintf("Created log path: %s\n", memLogPath);
     }
 
     char *GetLogPath(void){
@@ -401,6 +410,7 @@ public:
             sprintf(logPath, "/mnt/ssd2/tmp/%d/", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
             sprintf(logPath, "/mnt/ramdisk/%d/", nvid);
+            sprintf(memLogPath, "/mnt/ramdisk/%d/logs", nvid);
         }
 
         lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);
@@ -674,9 +684,9 @@ public:
 
                     // From the last LID to the first LID
                     tmp_mempage_file_vector.clear();                    
-                    CollectFiles(memlog, logPath, &tmp_mempage_file_vector);                    
+                    CollectFiles(memlog, memLogPath, &tmp_mempage_file_vector);                    
                     for (rit = tmp_mempage_file_vector.begin(); rit != tmp_mempage_file_vector.end(); ++rit) {                    
-                        sprintf(memlog, "%s%s", logPath, (*rit).c_str());                                    
+                        sprintf(memlog, "%s%s", memLogPath, (*rit).c_str());                                    
                         
                         // Copy data from memory log to dest if the log contains addr
                         if ( CopyFromMemlogToPtr(memlog, dest, addr, size) == 0){ 
@@ -823,9 +833,9 @@ public:
 
                     // From the last LID to the first LID
                     tmp_mempage_file_vector.clear();                    
-                    CollectFiles(memlog, logPath, &tmp_mempage_file_vector);                    
+                    CollectFiles(memlog, memLogPath, &tmp_mempage_file_vector);                    
                     for (rit = tmp_mempage_file_vector.begin(); rit != tmp_mempage_file_vector.end(); ++rit) {                    
-                        sprintf(memlog, "%s%s", logPath, (*rit).c_str());                                    
+                        sprintf(memlog, "%s%s", memLogPath, (*rit).c_str());                                    
                         
                         // Copy data from memory log to dest if the log contains addr
                         copied = CopyPagesFromMemlogToPtr(memlog, dest, addr, size, napges);
@@ -1071,7 +1081,7 @@ public:
         if ( _pageLookupHeap[pageNo].dirtied ) {
 
             // Get the file name of memory log
-            sprintf(memlogFn, "%sMemLog_%d_%d", logPath, threadID, xactID);
+            sprintf(memlogFn, "%sMemLog_%d_%d", memLogPath, threadID, xactID);
             memlogFd = open(memlogFn, O_RDONLY);
             if ( memlogFd == -1 ) {
                 perror("RecoverOnePage open()");
