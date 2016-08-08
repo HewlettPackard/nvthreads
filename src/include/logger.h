@@ -279,13 +279,17 @@ class MemoryLog {
       abort();
     }
 
-    if (ftruncate(_mempages_fd, _mempages_filesize)) {
-      fprintf(stderr, "file: %s, fd: %d, size(): %zu\n", _mempages_filename, _mempages_fd, _mempages_filesize);
-      perror("ftruncate(): ");
-      ::abort();
-    }
     _mempages_offset = 0;
-    lprintf("Opened memory page log. fd: %d, filename: %s\n", _mempages_fd, _mempages_filename);
+
+    // mmap for byte copy
+    _mempages_ptr = (char*)mmap(NULL, LogDefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, 0);
+    if (_mempages_ptr == MAP_FAILED) {
+      lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
+      abort();
+    }
+
+    lprintf("Opened memory page log. fd: %d, filename: %s, ptr: %p, offset: %lu\n",
+            _mempages_fd, _mempages_filename, _mempages_ptr, _mempages_offset);
   }
 
   void WriteLogBeforeProtection(void* base, size_t size, bool isHeap) {
@@ -393,42 +397,43 @@ class MemoryLog {
     return 0;
   }
 
-  /* Apply diff bytes from src to dest (vs twin) */
-  inline void commitWord(char* src, char* twin, char* dest) {
+  /* Apply diff bytes from src to dest (vs twin) and return copied bytes */
+  inline int commitWord(char* src, char* twin) {
+    int copied_bytes = 0;
+    ssize_t rv = 0;
+    lprintf("commiting word\n");
     for (int i = 0; i < sizeof(long long); i++) {
       if (src[i] != twin[i]) {
-        dest[i] = src[i];
+        lprintf("Writing %d-th byte in this block, copied_bytes: %d\n", i, copied_bytes);
+//      dest[i] = src[i];
+        rv = write(_mempages_fd, &src[i], sizeof(char));
+        copied_bytes++;
       }
     }
+    lprintf("committed bytes %d\n", copied_bytes);
+    return copied_bytes;
   }
 
   /* Append page diffs to the end of the memory log */
-  void AppendDiffsToMemoryLog(const void* local, const void* twin, unsigned long offset, int pageNo) {
+  void AppendDiffsToMemoryLog(const void* local, const void* twin) {
     int diff_bytes = 0;
     int count = 0;
     size_t sz;
 
-    // mmap for byte copy
-    _mempages_ptr = (char*)mmap(NULL, LogDefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, offset);
-    if (_mempages_ptr == MAP_FAILED) {
-      lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
-      abort();
-    } else {
-      lprintf("mmap()ed memory page log for pageNo %d. fd: %d, filename: %s, offset: %lu\n", pageNo,  _mempages_fd, _mempages_filename, offset);
-    }
-
     // Count diff in bytes
     long long* mylocal = (long long*)local;
     long long* mytwin = (long long*)twin;
-    long long* mydest = (long long*)_mempages_ptr;
 
     // #blocks: 512
+    lprintf("Checking diffs\n");
     for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
       if (mylocal[i] != mytwin[i]) {
-        commitWord((char*)&mylocal[i], (char*)&mytwin[i], (char*)&mydest[i]);
-//      lprintf("Write %d-th block.\n", i);
+        diff_bytes += commitWord((char*)&mylocal[i], (char*)&mytwin[i]);
+        lprintf("Wrote %d-th block, diff_bytes: %d\n", i, diff_bytes);
       }
     }
+
+    lprintf("Write diffs for a total of %d bytes\n", diff_bytes);
   }
 
 
