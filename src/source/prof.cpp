@@ -62,13 +62,25 @@ static double get_elapsed (struct timeinfo * start, struct timeinfo * stop) {
   
   elapsed = (double) (stop->low - start->low) + (double) (UINT_MAX)
     * (double) (stop->high - start->high);
-  if (stop->low < start->low)
-    elapsed -= (double) UINT_MAX;
+//if (stop->low < start->low)
+//  elapsed -= (double) UINT_MAX;
   
   return elapsed;
 }
 
+#ifdef timeofday
+void start (time_t *start) {
+  *start = time(NULL);
+  return;
+}
 
+double stop (time_t *start){
+  sleep(1);
+  time_t end = time(NULL);
+  fprintf(stderr, "(double)((end) - (*start)): %.10f s\n", (double)((end) - (*start)));
+  return (double)((end) - (*start));
+}
+#else
 void start (struct timeinfo *ti) {
   /* Clear the start_ti and stop_ti */
   get_time(ti);
@@ -93,6 +105,7 @@ double stop(struct timeinfo * begin, struct timeinfo * end) {
   return elapsed;
 }
 
+#endif
 /* Provide a function to turn the elapsed time to microseconds. */
 unsigned long elapsed2us (double elapsed) {
   unsigned long us;

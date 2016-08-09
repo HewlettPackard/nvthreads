@@ -36,19 +36,27 @@ typedef struct timeinfo {
     unsigned long high;
 } timeinfo_t;
 
+#ifdef timeofday
+#define TIMER(x) double x##_total; time_t x##_start
+void start(time_t *start);
+double stop(time_t *start);
+#define START_TIMER(x) start(&global_data->stats.x##_start)
+#define STOP_TIMER(x) global_data->stats.x##_total += stop(&global_data->stats.x##_start)
+#define PRINT_TIMER(x) fprintf(stderr, " " #x " time: %.10fs\n", (double)global_data->stats.x##_total)
+
+#else
+#define TIMER(x) uint64_t x##_total; timeinfo_t x##_start
 void start(struct timeinfo *ti);
 double stop(struct timeinfo *begin, struct timeinfo *end);
 static unsigned long long elapse2ms(double elapsed) {
     return (unsigned long long)elapsed;
 }
-
-#define TIMER(x) uint64_t x##_total; timeinfo_t x##_start
-#define COUNTER(x) volatile uint64_t x##_count;
-
 #define START_TIMER(x) start(&global_data->stats.x##_start)
 #define STOP_TIMER(x) global_data->stats.x##_total += elapse2ms(stop(&global_data->stats.x##_start, NULL))
-#define PRINT_TIMER(x) fprintf(stderr, " " #x " time: %.4fms\n", (double)global_data->stats.x##_total / 100000.0)
+#define PRINT_TIMER(x) fprintf(stderr, " " #x " time: %.10f seconds\n", (double)global_data->stats.x##_total/2666647000)
+#endif
 
+#define COUNTER(x) volatile uint64_t x##_count;
 #define INC_COUNTER(x) global_data->stats.x##_count++
 #define DEC_COUNTER(x) global_data->stats.x##_count--
 #define ADD_COUNTER(x, y) global_data->stats.x##_count += y 
@@ -83,6 +91,8 @@ struct runtime_stats {
     //size_t cleanup_size;
     TIMER(serial);
     TIMER(logging);
+    TIMER(diff_calculation);
+    TIMER(diff_logging);
     COUNTER(logtimer);  // * 1000 / CLOCKS_PER_SEC
     COUNTER(commit);
     COUNTER(twinpage);

@@ -111,9 +111,11 @@ void finalize() {
     initialized = false;
     xrun::finalize();
     fprintf(stderr, "\nStatistics information:\n");
-    PRINT_LOG_COUNTER(logtimer);
-    PRINT_TIMER(serial);
-    PRINT_TIMER(logging);
+//  PRINT_LOG_COUNTER(logtimer);
+//  PRINT_TIMER(serial);
+//  PRINT_TIMER(logging);
+    PRINT_TIMER(diff_calculation);
+    PRINT_TIMER(diff_logging);
 //  PRINT_COUNTER(commit);
     PRINT_COUNTER(transactions);
 //  PRINT_COUNTER(loggedpages);
