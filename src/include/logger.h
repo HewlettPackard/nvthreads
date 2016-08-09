@@ -63,6 +63,9 @@
     }while (0)\
 
 
+#define DIFF_LOGGING
+
+
 class LogDefines {
  public:
   enum {PageSize = 4096UL };
@@ -113,6 +116,7 @@ class LogEntry {
 /* Class for logging memory operations */
 class MemoryLog {
  public:
+
   enum {LogEntryPerFile = 10000};
   enum {MapSizeOfLog = LogEntryPerFile * LogEntry::LogEntrySize};
 
@@ -133,6 +137,7 @@ class MemoryLog {
   unsigned long _logentry_count;
   static int _DurableMethod;
   int _dirtiedPagesCount;
+  unsigned long _buffered_bytes;
   int _log_flags;
   char logPath[FILENAME_MAX];
 
@@ -281,15 +286,14 @@ class MemoryLog {
 
     _mempages_offset = 0;
 
-    // mmap for byte copy
-    _mempages_ptr = (char*)mmap(NULL, LogDefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED, _mempages_fd, 0);
-    if (_mempages_ptr == MAP_FAILED) {
-      lprintf("%d: Failed to open mmap shared file %s for logging, logging dest set to %d\n", getpid(), _mempages_filename, log_dest);
-      abort();
-    }
-
+#ifdef DIFF_LOGGING
+    // Allocate memory buffer to store dirtied bytes
+    _dirtiedPagesCount = dirtiedPagesCount;
+    _buffered_bytes = 0;
+    _mempages_ptr = (char*)InternalMalloc(LogDefines::PageSize * dirtiedPagesCount);
     lprintf("Opened memory page log. fd: %d, filename: %s, ptr: %p, offset: %lu\n",
             _mempages_fd, _mempages_filename, _mempages_ptr, _mempages_offset);
+#endif
   }
 
   void WriteLogBeforeProtection(void* base, size_t size, bool isHeap) {
@@ -406,7 +410,12 @@ class MemoryLog {
       if (src[i] != twin[i]) {
         lprintf("Writing %d-th byte in this block, copied_bytes: %d\n", i, copied_bytes);
 //      dest[i] = src[i];
-        rv = write(_mempages_fd, &src[i], sizeof(char));
+        START_TIMER(diff_logging);
+//      rv = write(_mempages_fd, &src[i], sizeof(char));
+        memcpy(&_mempages_ptr[_buffered_bytes], &src[i], sizeof(char));
+        STOP_TIMER(diff_logging);
+//      PRINT_TIMER(diff_logging);
+        _buffered_bytes++;
         copied_bytes++;
       }
     }
@@ -420,6 +429,7 @@ class MemoryLog {
     int count = 0;
     size_t sz;
 
+    START_TIMER(diff_calculation);
     // Count diff in bytes
     long long* mylocal = (long long*)local;
     long long* mytwin = (long long*)twin;
@@ -432,8 +442,8 @@ class MemoryLog {
         lprintf("Wrote %d-th block, diff_bytes: %d\n", i, diff_bytes);
       }
     }
-
-    lprintf("Write diffs for a total of %d bytes\n", diff_bytes);
+    STOP_TIMER(diff_calculation);
+    lprintf("Write diffs for a total of %d / %lu bytes\n", diff_bytes, _buffered_bytes);
   }
 
 
@@ -465,6 +475,9 @@ class MemoryLog {
   }
 
   void CloseMemoryLog(void) {
+#ifdef DIFF_LOGGING
+    FlushBufferToLog();
+#endif
     if (log_dest == SSD) {
       /* Close the memory mapping log */
       CloseDiskMemoryLog();
@@ -568,6 +581,37 @@ class MemoryLog {
     lprintf("\n");
   }
 
+  void FlushBufferToLog(void){
+    ssize_t rv;
+    int i = 0;
+    if (_buffered_bytes == 0) {
+      return;
+    }
+
+    rv = write(_mempages_fd, _mempages_ptr, _buffered_bytes);
+    if (rv == -1) {
+      perror("FlushBufferToLog write failed");
+    }
+    lprintf("Dumped %lu bytes from %p to file %s\n", _buffered_bytes, _mempages_ptr, _mempages_filename);
+    InternalFree(_mempages_ptr, _dirtiedPagesCount * LogDefines::PageSize);
+  }
+
+  void *InternalMalloc(size_t sz) {
+    void *ptr;
+    ptr = mmap(NULL, sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (ptr == MAP_FAILED) {
+      perror("InternalMalloc mmap failed.");
+      abort();
+    }
+    return ptr;
+  }
+  void InternalFree(void *ptr, size_t sz){
+    if ( (munmap(ptr, sz)) == -1 ) {
+      perror("InternalFree munmap mailed");
+      abort();
+    }
+  }
+  
 };
 
 #endif

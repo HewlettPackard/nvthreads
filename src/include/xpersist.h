@@ -1159,12 +1159,15 @@ class xpersist {
           ProfileDiffs(local, twin);
 #endif
 
+#ifdef DIFF_LOGGING
           // Log diffs in dirty page
           localMemoryLog->AppendDiffsToMemoryLog(local, twin);
-
-          // Update lookup info
-//        memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
           memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+#else
+          // Log whole page
+          localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+          memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+#endif
           recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
           recordDependence(pageNo, localMemoryLog->threadID, pageinfo->pageStart);
           page_count++;
