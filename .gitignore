@@ -172,3 +172,8 @@ third-parties/dthreads/eval/tests/word_count/word_count-nvthread
 *.swp
 *_running
 *_crashed
+prices.txt
+optionData.txt
+perf.data
+media.dat
+output.dat.ddp
