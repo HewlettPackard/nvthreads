@@ -9,6 +9,7 @@ CFLAGS = -DENABLE_THREADS -DPARALLEL -DNCO=2 -DN=960
 PTHREAD_LIBS = -lm -lstdc++
 DTHREAD_LIBS = -lm -lstdc++
 NVTHREAD_LIBS = -lm -lstdc++
+LIBATLAS = -lm -lstdc++
 
 SRC_SUFFIX=.cpp
 
