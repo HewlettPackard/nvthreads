@@ -183,3 +183,4 @@ eval/tests/dedup/media.dat
 apps/pagerank/multithreaded/abc 
 apps/pagerank/multithreaded/test 
 third-parties/dthreads/test/eval/tests/blackscholes/prices.txt
+third-parties/Atlas/examples/Dedup/media.dat
