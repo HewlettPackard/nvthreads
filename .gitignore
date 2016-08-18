@@ -177,3 +177,9 @@ optionData.txt
 perf.data
 media.dat
 output.dat.ddp
+
+eval/tests/blackscholes/prices.txt 
+eval/tests/dedup/media.dat 
+apps/pagerank/multithreaded/abc 
+apps/pagerank/multithreaded/test 
+third-parties/dthreads/test/eval/tests/blackscholes/prices.txt
