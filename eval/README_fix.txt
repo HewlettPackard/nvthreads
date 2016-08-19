@@ -62,3 +62,24 @@ Inputs: http://parsec.cs.princeton.edu/download.htm
 	-Makefile:
 -swaptions
 	-Makefile:
+
+------------Altas----------------------
+To benchmark Atlas:
+1. compile Atlas
+    cd $ATLAS
+    mkdir build
+    cd $ATLAS/build                       
+    cmake -DALL_PERSISTENT=true -DNVM_STATS=true ../
+    make -j 24
+2. build compiler plug-in
+    cd $ATLAS/compiler_plugin
+    build_static_3.8
+    cd $ATLAS/build/tests
+3. build Parsec and Phoenix benchmarks
+    ./test_atlas true
+4. run Parsec and Phoenix benchmarks
+    ./$NVthreads/eval/eval-atlas.py
+
+Issues:
+   parsec.canneal: float point exception
+   parsec.dedup: llvm doesn't compile due to asm size mismatch error
