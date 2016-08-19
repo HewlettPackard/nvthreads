@@ -41,7 +41,7 @@ phoenix_exe_dir = '/mnt/ssd/terry/workspace/Atlas-github/multicore-tests/bench/p
 parsec_exe_dir = '/mnt/ssd/terry/workspace/Atlas-github/multicore-tests/bench/parsec-3.0-atlas/pkgs'
 
 # Define becnhmarks directories
-phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'reverse_index', 'string_match', 'word_count']
+phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'reverseindex', 'string_match', 'word_count']
 #phoenix_benchmarks = ['histogram', 'kmeans', 'linear_regression', 'matrix_multiply', 'pca', 'string_match']
 parsec_benchmarks = ['blackscholes', 'canneal', 'dedup', 'ferret', 'streamcluster', 'swaptions']
 #parsec_benchmarks = ['blackscholes', 'canneal', 'dedup', 'streamcluster', 'swaptions']
@@ -170,7 +170,7 @@ def sim(delay):
 			elif bench == 'pca':
 				args = '  -r 4000 -c 4000 -s 100'
 				cmd = exe + ' ' + args
-			elif bench == 'reverse_index':
+			elif bench == 'reverseindex':
 				inp = datasets_dir + '/reverse_index_datafiles'
 				cmd = exe + ' ' + inp
 			elif bench == 'string_match':
@@ -216,6 +216,7 @@ def sim(delay):
 				cmd = exe + ' ' + args + ' ' + inp + ' ' + outp
 			# dedup input file path could overflow: use relative path
 			elif bench == 'ferret':
+				os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib/' #must install libjpeg7 here
 				if cores == 12:
 					nthreads_per_stage = 2
 				else:
