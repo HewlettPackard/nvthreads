@@ -6,10 +6,10 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <sys/time.h>
-#define NTHREADS 8
-#define NRECORDS (NTHREADS * 10)
-#define NRECORDS_PER_THREAD (NRECORDS / NTHREADS)
-#define RECBUFSIZ 64
+int NTHREADS;
+int NRECORDS;
+int NRECORDS_PER_THREAD;
+int RECBUFSIZE;
 
 pthread_mutex_t lock;
 struct thread_args {
@@ -53,7 +53,7 @@ void* thread_write(void* args) {
   int ecode;
   int records;
   int base = thread_id * NRECORDS;
-  char buf[RECBUFSIZ];
+  char buf[RECBUFSIZE];
 
   for (records = 1; records <= NRECORDS_PER_THREAD; records++) {
     /* generate a record */
@@ -64,7 +64,8 @@ void* thread_write(void* args) {
     printf("thread %d putting %d-th (key/value: %s)\n", thread_id, records, buf);
     if (!tcbdbput(bdb, buf, len, buf, len)) {
       ecode = tcbdbecode(bdb);
-      fprintf(stderr, "put error: %s\n", tcbdberrmsg(ecode));      
+      fprintf(stderr, "put error: %s\n", tcbdberrmsg(ecode));
+    } else {
     }
     pthread_mutex_unlock(&lock);
   }
@@ -75,13 +76,21 @@ int main(int argc, char** argv) {
   TCBDB* bdb;
   int ecode;
   int i;
-  pthread_t tid[NTHREADS];
-  struct thread_args targs[NTHREADS];
   struct timeval start, end;
   unsigned long long elapsed;
 
-  srand(time(NULL));
+  /* check input */
+  if (argc < 4) {
+    fprintf(stderr, "Usage: %s nthreads nrecords recordsize\n", argv[0]);
+    exit(-1);
+  }
+  NTHREADS = atoi(argv[1]);
+  NRECORDS = atoi(argv[2]);
+  RECBUFSIZE = atoi(argv[3]);
+  NRECORDS_PER_THREAD = NRECORDS / NTHREADS;
+  printf("%d threads, %d records, %d bytes/record, %d records/thread\n", NTHREADS, NRECORDS, RECBUFSIZE, NRECORDS_PER_THREAD);
 
+  srand(time(NULL));
   gettimeofday(&start, NULL);
 
   /* create the object */
@@ -97,6 +106,8 @@ int main(int argc, char** argv) {
     fprintf(stderr, "open error: %s\n", tcbdberrmsg(ecode));
   }
   /* create threads */
+  pthread_t tid[NTHREADS];
+  struct thread_args targs[NTHREADS];
   pthread_mutex_init(&lock, NULL);
   for (i = 0; i < NTHREADS; i++) {
     targs[i].thread_id = i;
