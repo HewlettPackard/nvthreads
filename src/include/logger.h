@@ -47,7 +47,7 @@
 
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 0
+#define LDEBUG 1
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -173,7 +173,7 @@ class MemoryLog {
     if (!_logging_enabled) {
       return;
     }
-//      lprintf("----------initializing memorylog class--------------\n");
+    lprintf("----------Initializing memorylog class--------------\n");
     ReadConfig();
 //      threadID = getpid();
     INC_METACOUNTER(globalThreadCount);
@@ -252,8 +252,8 @@ class MemoryLog {
     if (log_dest == SSD) {
       sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
     } else if (log_dest == NVM_RAMDISK) {
-//    sprintf(logPath, "/mnt/ramdisk/%d", nvid);
-      sprintf(logPath, "/mnt/ramdisk/%d/logs", nvid);
+      sprintf(logPath, "/mnt/ramdisk/nvthreads/%d", nvid);
+//    sprintf(logPath, "/mnt/ramdisk/%d/logs", nvid);
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();

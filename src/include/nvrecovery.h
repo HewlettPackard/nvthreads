@@ -409,8 +409,8 @@ public:
         if ( log_dest == SSD ) {
             sprintf(logPath, "/mnt/ssd2/tmp/%d/", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
-            sprintf(logPath, "/mnt/ramdisk/%d/", nvid);
-            sprintf(memLogPath, "/mnt/ramdisk/%d/logs", nvid);
+            sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/", nvid);
+            sprintf(memLogPath, "/mnt/ramdisk/nvthreads/%d/logs", nvid);
         }
 
         lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);
