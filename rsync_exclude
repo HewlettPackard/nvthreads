@@ -14,3 +14,4 @@ rsync.sh
 *.out
 *.os
 .fseventsd/
+.DocumentRevisions*
