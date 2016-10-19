@@ -23,7 +23,7 @@ FORMATVER = 1.0
 HEADERFILES = tcutil.h tchdb.h tcbdb.h tcfdb.h tctdb.h tcadb.h
 LIBRARYFILES = libtokyocabinet.a libtokyocabinet.so.9.11.0 libtokyocabinet.so.9 libtokyocabinet.so
 LIBOBJFILES = tcutil.o tchdb.o tcbdb.o tcfdb.o tctdb.o tcadb.o myconf.o md5.o
-COMMANDFILES = tcutest tcumttest tcucodec tchtest tchmttest tchmgr tcbtest tcbmttest tcbmgr tcftest tcfmttest tcfmgr tcttest tctmttest tctmgr tcatest tcamttest tcamgr tcbmtsimple_nvthread tcbmtsimple_dthread tcbmtsimple_pthread
+COMMANDFILES = tcutest tcumttest tcucodec tchtest tchmttest tchmgr tcbtest tcbmttest tcbmgr tcftest tcfmttest tcfmgr tcttest tctmttest tctmgr tcatest tcamttest tcamgr tcbmtsimple_nvthread tcbmtsimple_dthread tcbmtsimple_pthread tcbcreateworkload
 CGIFILES = tcawmgr.cgi
 MAN1FILES = tcutest.1 tcumttest.1 tcucodec.1 tchtest.1 tchmttest.1 tchmgr.1 tcbtest.1 tcbmttest.1 tcbmgr.1 tcftest.1 tcfmttest.1 tcfmgr.1 tcttest.1 tctmttest.1 tctmgr.1 tcatest.1 tcamttest.1 tcamgr.1
 MAN3FILES = tokyocabinet.3 tcutil.3 tcxstr.3 tclist.3 tcmap.3 tctree.3 tcmdb.3 tcmpool.3 tchdb.3 tcbdb.3 tcfdb.3 tctdb.3 tcadb.3
@@ -756,6 +756,9 @@ tcbmtsimple_dthread : tcbmtsimple_dthread.o $(LIBRARYFILES)
 
 tcbmtsimple_nvthread : tcbmtsimple_nvthread.o $(LIBRARYFILES)
 	$(LDENV) $(CC) $(CFLAGS) -o tcbmtsimple_nvthread  $< $(LDFLAGS) $(CMDLDFLAGS) -ltokyocabinet $(NVLIB)
+
+tcbcreateworkload : tcbcreateworkload.o $(LIBRARYFILES)
+	$(LDENV) $(CC) $(CFLAGS) -o tcbcreateworkload  $< $(LDFLAGS) $(CMDLDFLAGS) -ltokyocabinet $(PLIB)
 
 tcbmgr : tcbmgr.o $(LIBRARYFILES)
 	$(LDENV) $(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(CMDLDFLAGS) -ltokyocabinet $(LIBS)
