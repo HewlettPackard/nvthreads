@@ -312,12 +312,12 @@ extern "C"
     }
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
+        lprintf("%d: pthread unlocking %p\n", getpid(), mutex);
         if ( initialized ) {
             xrun::mutex_unlock(mutex);
         }
-//      printf("%d: pthread unlocked %p\n", getpid(), mutex);
+        lprintf("%d: pthread unlocked %p\n", getpid(), mutex);
         
-
         if ( xrun::readyToCommitCache() ) {
             lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
             xrun::commitCacheBuffer();
