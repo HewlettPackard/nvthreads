@@ -8,6 +8,9 @@
 #include <sys/time.h>
 #include <limits.h>
 #include <string.h>
+#include <unistd.h>
+#include <time.h>
+
 char DATABASE[128];
 int NTHREADS;
 int NRECORDS;
@@ -51,37 +54,72 @@ void insert_record(TCBDB* bdb, int thread_id, int key_index) {
   int ecode;
   char key[RECBUFSIZE];
   char value[RECBUFSIZE];
+  bool result;
+  struct timespec tim, tim2;
+  int keylen, valuelen;
+  tim.tv_sec = 0;
+  tim.tv_nsec = 0L;
+//tim.tv_nsec = 166L;
+//tim.tv_nsec = 1000L;
+//tim.tv_nsec = 8300L;
 
+  __asm__ __volatile__("T1:");
   /* generate a record */
-  int keylen = sprintf(key, "%08d", key_index);
-  int valuelen = sprintf(value, "%08d", rand() % (NRECORDS * NRECORDS));
+  keylen = sprintf(key, "%08d", key_index);
+  memset(&key[keylen], 'a', RECBUFSIZE-keylen);
+  key[RECBUFSIZE-1] = '\0';
+  valuelen = sprintf(value, "%08d", rand() % (NRECORDS * NRECORDS));
+  memset(&value[valuelen], 'b', RECBUFSIZE-valuelen);
+  value[RECBUFSIZE-1] = '\0';
+
   /* insert a record */
   tcbdbtranbegin(bdb);
   pthread_mutex_lock(&lock);
-  if (!tcbdbput(bdb, key, keylen, value, valuelen)) {
+  result = tcbdbput(bdb, key, sizeof(key), value, sizeof(value));
+
+  /* nvmfs delays */
+//if (nanosleep(&tim, &tim2) < 0)   {
+//  fprintf(stderr, "Nano sleep system call failed \n");
+//  exit(-1);
+//}
+
+  pthread_mutex_unlock(&lock);
+  if (!result) {
     ecode = tcbdbecode(bdb);
     fprintf(stderr, "put error: %s\n", tcbdberrmsg(ecode));
     tcbdbtranabort(bdb);
   } else {
-//  printf("%d: thread %d put key/value: %s/%s\n", key_index, thread_id, key, value);
+//  printf("%d: thread %d put key (%zu bytes) / value (%zu bytes):\n", key_index, thread_id, sizeof(key), sizeof(value));
+//  printf("key:\t%s\n", key);
+//  printf("value:\t%s\n", value);
     tcbdbtrancommit(bdb);
   }
-  pthread_mutex_unlock(&lock);
-
+  __asm__ __volatile__("T2:");
 }
 
 void query_record(TCBDB* bdb, int thread_id, int key_index, int written, int base) {
-  int query_index = key_index % written + base;
+//int query_index = key_index % written + base;
+  int query_index = base;
   int ecode;
   char key[RECBUFSIZE];
   char* value;
-  sprintf(key, "%08d", query_index);
-  value = tcbdbget2(bdb, key);
+  int keylen;
+  int valuelen;
+  keylen = sprintf(key, "%08d", query_index);
+  memset(&key[keylen], 'a', RECBUFSIZE-keylen);
+  key[RECBUFSIZE-1] = '\0';
+
+//printf("%d: thread %d querying record with key: %d\n", key_index, thread_id, query_index);
+//printf("key (%zu bytes):\t%s\n", sizeof(key), key);
+  
+  value = tcbdbget(bdb, key, RECBUFSIZE, &valuelen);
   if (!value) {
     ecode = tcbdbecode(bdb);
     fprintf(stderr, "Error %s. %d: thread %d couldn't query record with key: %d\n", tcbdberrmsg(ecode), key_index, thread_id, query_index);
+  } else{
+//  printf("value (%d bytes):\t%s\n", valuelen, value);
+    free(value);
   }
-//printf("%d: thread %d querying record with key: %d, value: %s\n", key_index, thread_id, query_index, value);
 }
 
 /* thread workload */
@@ -98,7 +136,8 @@ void* thread_worker(void* args) {
   for (records = 0; records < NRECORDS_PER_THREAD; records++) {
     /* insert record */
     if (written < writetotal) {
-      insert_record(bdb, thread_id, base + records);
+      int key_index = base + records;
+      insert_record(bdb, thread_id, key_index);
       written++;
     }
     /* query record */
@@ -126,7 +165,7 @@ int main(int argc, char** argv) {
     exit(-1);
   }
   strcpy(DATABASE, argv[1]);
-  NTHREADS = atoi(argv[2]); 
+  NTHREADS = atoi(argv[2]);
   NRECORDS = atoi(argv[3]);
   RECBUFSIZE = atoi(argv[4]);
   WRITE_PERCENT = atoi(argv[5]);

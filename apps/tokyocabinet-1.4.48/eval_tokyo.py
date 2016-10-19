@@ -16,7 +16,7 @@ from multiprocessing import Process
 print (sys.version)
 print '[TokyoCabinet-eval] ----------------------------------------------------Welcome-------------------------------------------------------'
 
-log_path = '/mnt/ramdisk/'
+
 MAX_failed = 20
 start_time = 0
 disk = 0
@@ -27,7 +27,7 @@ pwd = os.getcwd()
 
 
 # Thread libraries
-all_configs = ['pthread', 'nvthread']
+all_configs = ['nvthread']
 
 # Record size
 all_recsizes = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
@@ -56,16 +56,31 @@ cores = all_cores
 configs = all_configs
 #threads = all_threads
 
-#database file
-ssd_database = './casket.bdb'
-memory_database = '/tmp/casket.bdb'
+#nvthreads log location
+log_path = '/mnt/ramdisk/nvthreads/'
 
+#database file path
+hd_database_path = './'
+ssd_database_path = '/mnt/ssd/'
+shm_database_path = '/dev/shm/'
+nvmfs_database_path = '/mnt/ramdisk/'
+
+#pthreads vs nvthreads database file path
+pthread_database_path = shm_database_path
+nvthread_database_path = nvmfs_database_path
 
 data = {}
 
-def cleanup(database):
+def create_database(nrecord, keysize):
+	backend = ['HD', 'SSD', 'TMPFS', 'NVMFS']
+	nrecords = 100000
+	for b in backend:
+		cmd = './tcbcreateworkload ' + b + ' ' + str(nrecord) + ' ' + str(keysize)
+		print 'cmd: ' + cmd
+		rv = os.system(cmd)
+
+def cleanup():
 	os.system('rm -rf ' + log_path + '*')
-	os.system('rm ' + database)
 	os.system('rm /tmp/nvlib.crash')
 
 def sim(runs, thread, nrecord, recbufsize, writepercent):
@@ -76,11 +91,11 @@ def sim(runs, thread, nrecord, recbufsize, writepercent):
 			data[bench][config] = []
 			run = 0
 			if config == 'pthread':
-				database = ssd_database
+				database = pthread_database_path + 'workload-' + str(nrecord) + 'records-' + str(recbufsize) + 'bytes.bdb'
 			else:
-				database = memory_database
+				database = nvthread_database_path + 'workload-' + str(nrecord) + 'records-' + str(recbufsize) + 'bytes.bdb'
 			while run < runs:
-				cleanup(database)
+				cleanup()
 				start_time = os.times()[4]
 				cmd = './' + bench + '_' + config + ' ' + database + ' ' + str(thread) + ' ' + str(nrecord) + ' ' + str(recbufsize) + ' ' + str(writepercent)
 				print 'Run: ' + str(run) + ', cmd: ' + cmd
@@ -179,6 +194,7 @@ def main(argv):
 	start_time = time.time()
 #	restoreCPU()
 #	setCPU()
+	create_database(nrecord, recbufsize)
 	data = sim(runs, thread, nrecord, recbufsize, writepercent)
 	printStats(runs, thread, nrecord, recbufsize, writepercent, data)
 #	restoreCPU()
