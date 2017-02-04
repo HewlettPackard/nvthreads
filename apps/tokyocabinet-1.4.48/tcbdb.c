@@ -337,10 +337,14 @@ bool tcbdbclose(TCBDB *bdb){
 /* Store a record into a B+ tree database object. */
 bool tcbdbput(TCBDB *bdb, const void *kbuf, int ksiz, const void *vbuf, int vsiz){
   assert(bdb && kbuf && ksiz >= 0 && vbuf && vsiz >= 0);
-  if(!BDBLOCKMETHOD(bdb, true)) return false;
+  if(!BDBLOCKMETHOD(bdb, true)) {
+    fprintf(stderr, "error: !BDBLOCKMETHOD()\n");
+    return false;
+  }
   if(!bdb->open || !bdb->wmode){
     tcbdbsetecode(bdb, TCEINVALID, __FILE__, __LINE__, __func__);
     BDBUNLOCKMETHOD(bdb);
+    fprintf(stderr, "error: !bdb->open || !bdb->wmode\n");
     return false;
   }
   bool rv = tcbdbputimpl(bdb, kbuf, ksiz, vbuf, vsiz, BDBPDOVER);

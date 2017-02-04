@@ -27,13 +27,11 @@ pwd = os.getcwd()
 
 
 # Thread libraries
-all_configs = ['nvthread']
+#all_configs = ['nvthread_p', 'nvthread']
+all_configs = ['pthread']
 
 # Record size
 all_recsizes = [8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
-
-# Number of records
-all_nrecords = [100]
 
 # Number of threads
 all_threads = [1, 2, 4, 8]
@@ -62,28 +60,30 @@ log_path = '/mnt/ramdisk/nvthreads/'
 #database file path
 hd_database_path = './'
 ssd_database_path = '/mnt/ssd/'
-shm_database_path = '/dev/shm/'
+shm_database_path = '/run/shm/'
+ramdisk_database_path = '/tmp/ramdisk/'
+pcm_database_path = '/mnt/pcmfs/'
 nvmfs_database_path = '/mnt/ramdisk/'
 
 #pthreads vs nvthreads database file path
-pthread_database_path = shm_database_path
+pthread_database_path = ramdisk_database_path
 nvthread_database_path = nvmfs_database_path
 
 data = {}
 
-def create_database(nrecord, keysize):
+def create_database(nquery, keysize):
 	backend = ['HD', 'SSD', 'TMPFS', 'NVMFS']
-	nrecords = 100000
 	for b in backend:
-		cmd = './tcbcreateworkload ' + b + ' ' + str(nrecord) + ' ' + str(keysize)
+		cmd = './tcbcreateworkload ' + b + ' ' + str(nquery * 10) + ' ' + str(keysize)
 		print 'cmd: ' + cmd
 		rv = os.system(cmd)
 
-def cleanup():
+def cleanup(database):
+	os.system('rm ' + database)
 	os.system('rm -rf ' + log_path + '*')
 	os.system('rm /tmp/nvlib.crash')
 
-def sim(runs, thread, nrecord, recbufsize, writepercent):
+def sim(runs, thread, nquery, recbufsize, writepercent, delay):
 	print '[TokyoCabinet-eval] #runs per setup: ' + str(runs)
 	for bench in benchmarks:
 		data[bench] = {}
@@ -91,13 +91,17 @@ def sim(runs, thread, nrecord, recbufsize, writepercent):
 			data[bench][config] = []
 			run = 0
 			if config == 'pthread':
-				database = pthread_database_path + 'workload-' + str(nrecord) + 'records-' + str(recbufsize) + 'bytes.bdb'
+				database = pthread_database_path + 'casket.bdb'
 			else:
-				database = nvthread_database_path + 'workload-' + str(nrecord) + 'records-' + str(recbufsize) + 'bytes.bdb'
+				database = nvthread_database_path + 'casket.bdb'
 			while run < runs:
-				cleanup()
+				if config == 'nvthread':
+					cleanup(database)
 				start_time = os.times()[4]
-				cmd = './' + bench + '_' + config + ' ' + database + ' ' + str(thread) + ' ' + str(nrecord) + ' ' + str(recbufsize) + ' ' + str(writepercent)
+				if config == 'pthread':
+					cmd = './' + bench + '_' + config + ' ' + database + ' ' + str(thread) + ' ' + str(nquery) + ' ' + str(recbufsize) + ' ' + str(writepercent) + ' ' + str(delay)
+				else:
+					cmd = './' + bench + '_' + config + ' ' + database + ' ' + str(thread) + ' ' + str(nquery) + ' ' + str(recbufsize) + ' ' + str(writepercent)
 				print 'Run: ' + str(run) + ', cmd: ' + cmd
 				rv = os.system(cmd)
 				time = os.times()[4] - start_time
@@ -109,20 +113,22 @@ def sim(runs, thread, nrecord, recbufsize, writepercent):
 	return data
 
 # print config
-def printConfig(runs, thread, nrecord, recbufsize, writepercent):
+def printConfig(runs, thread, nquery, recbufsize, writepercent, delay):
 	print '[TokyoCabinet-eval] #runs per setup: ' + str(runs)
 	print '[TokyoCabinet-eval] #threads: ' + str(thread)
-	print '[TokyoCabinet-eval] #records: ' + str(nrecord)
+	print '[TokyoCabinet-eval] #records: ' + str(nquery)
 	print '[TokyoCabinet-eval] record size: ' + str(recbufsize) + ' bytes'
 	print '[TokyoCabinet-eval] writepercent: ' + str(writepercent) + '%'
+	print '[TokyoCabinet-eval] delay: ' + str(delay) + ' ns'
 
 # Print results
-def printStats(runs, thread, nrecord, recbufsize, writepercent, data):
+def printStats(runs, thread, nquery, recbufsize, writepercent, data, delay):
 	print '[TokyoCabinet-eval] #runs per setup: ' + str(runs)
 	print '[TokyoCabinet-eval] #threads: ' + str(thread)
-	print '[TokyoCabinet-eval] #records: ' + str(nrecord)
+	print '[TokyoCabinet-eval] #records: ' + str(nquery)
 	print '[TokyoCabinet-eval] record size: ' + str(recbufsize) + ' bytes'
 	print '[TokyoCabinet-eval] writepercent: ' + str(writepercent) + '%'
+	print '[TokyoCabinet-eval] delay: ' + str(delay) + ' ns'
 	print '[TokyoCabinet-eval] ----------------------------Stats--------------------------------'
 	print '[TokyoCabinet-eval] benchmark',
 	for config in configs:
@@ -168,35 +174,36 @@ def restoreCPU():
 
 def main(argv):
 	try:
-		opts, args = getopt.getopt(argv, "hr:t:c:s:w:", ["runs=","thread=","nrecord","recbufsize","writepercent"])
+		opts, args = getopt.getopt(argv, "hr:t:q:s:w:d:", ["runs=","thread=","nquery","recbufsize","writepercent", "delay_ns"])
 	except getopt.GetoptError:
-		print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -c<#records> -s<buffersize> -w<write%>'
+		print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -q<#query> -s<buffersize> -w<write%> -d<delay_ns>'
 		sys.exit(2)
 	if len(sys.argv) < 6:
-		print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -c<#records> -s<buffersize> -w<write%>'
+		print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -q<#query> -s<buffersize> -w<write%> -d<delay_ns>'
 		sys.exit()
 	for opt, arg in opts:
 		if opt == '-h':
-			print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -c<#records> -s<buffersize> -w<write%>'
+			print '[TokyoCabinet-eval] Usage: eval_tokyo.py -r<#runs> -t<#threads> -c<#records> -s<buffersize> -w<write%> -d<delay_ns>'
 			sys.exit()
 		elif opt in ("-r", "--runs"):
 			runs = int(arg)
 		elif opt in ("-t", "--thread"):
 			thread = int(arg)
-		elif opt in ("-c", "--nrecord"):
-			nrecord = int(arg)
+		elif opt in ("-q", "--nquery"):
+			nquery = int(arg)
 		elif opt in ("-s", "--recbufsize"):
 			recbufsize = int(arg)
 		elif opt in ("-w", "--writepercent"):
 			writepercent = int(arg)
-	printConfig(runs, thread, nrecord, recbufsize, writepercent);
+		elif opt in ("-d", "--delay_ns"):
+			delay = int(arg)
+	printConfig(runs, thread, nquery, recbufsize, writepercent, delay);
 
 	start_time = time.time()
 #	restoreCPU()
 #	setCPU()
-	create_database(nrecord, recbufsize)
-	data = sim(runs, thread, nrecord, recbufsize, writepercent)
-	printStats(runs, thread, nrecord, recbufsize, writepercent, data)
+	data = sim(runs, thread, nquery, recbufsize, writepercent, delay)
+	printStats(runs, thread, nquery, recbufsize, writepercent, data, delay)
 #	restoreCPU()
 	elapsed_time = time.time() - start_time
 	print '[TokyoCabinet-eval] Finished, time: ' + str(elapsed_time) + ' seconds.'

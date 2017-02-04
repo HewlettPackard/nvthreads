@@ -38,8 +38,8 @@ void traverse_btree(TCBDB* bdb, int thread_id) {
 
 void insert_record(TCBDB* bdb, int key_index, int keysize) {
   int ecode;
-  char key[keysize];
-  char value[keysize];
+  char *key = (char*)malloc(keysize);
+  char *value = (char*)malloc(keysize);
   int keylen;
   bool result;
 
@@ -51,7 +51,8 @@ void insert_record(TCBDB* bdb, int key_index, int keysize) {
   value[keysize - 1] = '\0';
 
   /* insert a record */
-  result = tcbdbput(bdb, key, sizeof(key), value, sizeof(value));
+//result = tcbdbput(bdb, key, keysize, value, keysize);
+  result = tcbdbput2(bdb, key, value);
   if (!result) {
     ecode = tcbdbecode(bdb);
     fprintf(stderr, "put error: %s\n", tcbdberrmsg(ecode));
@@ -91,7 +92,7 @@ bool create_database(int backend, int nrecords, int keysize) {
   bdb = tcbdbnew();
 
   /* open the database */
-  if (!tcbdbopen(bdb, filename, HDBOWRITER | HDBOCREAT)) {
+  if (!tcbdbopen(bdb, filename, BDBOWRITER | BDBOCREAT)) {
     ecode = tcbdbecode(bdb);
     fprintf(stderr, "open error: %s\n", tcbdberrmsg(ecode));
     return false;
