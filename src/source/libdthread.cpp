@@ -66,6 +66,10 @@ void finalize()__attribute__((destructor));
 runtime_data_t *global_data;
 runtime_metadata_t *global_metadata;
 
+// checkpoint
+pthread_mutex_t global_sync_mutex;
+pthread_t tid;
+
 static bool initialized = false;
 static int stats_fd;
 static char stats_filename[1024]; 
@@ -104,9 +108,13 @@ void initialize() {
 
     xrun::initialize();
     initialized = true;
+
+    // checkpoint            
+    pthread_mutex_init(&global_sync_mutex, NULL);
 }
 
 void finalize() {
+
     DEBUG("finalizing libdthread");
     initialized = false;
     xrun::finalize();
@@ -163,6 +171,12 @@ extern "C"
         unsigned long addr;
         addr = xrun::nvrecover(dest, size, name);
         return addr;
+    }
+
+
+    void nvcheckpoint(void){
+        pthread_mutex_lock(&global_sync_mutex);       
+        pthread_mutex_unlock(&global_sync_mutex);
     }
 
     void* malloc(size_t sz) {

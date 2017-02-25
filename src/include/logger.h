@@ -63,7 +63,7 @@
     }while (0)\
 
 
-#define DIFF_LOGGING
+//#define DIFF_LOGGING
 
 
 class LogDefines {
@@ -252,7 +252,7 @@ class MemoryLog {
     if (log_dest == SSD) {
       sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
     } else if (log_dest == NVM_RAMDISK) {
-      sprintf(logPath, "/mnt/ramdisk/nvthreads/%d", nvid);
+      sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/logs/", nvid);
 //    sprintf(logPath, "/mnt/ramdisk/%d/logs", nvid);
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);

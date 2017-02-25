@@ -71,6 +71,7 @@ extern "C"
     bool isCrashed(void);
     unsigned long nvrecover(void *dest, size_t size, char *name);
     void* nvmalloc(size_t size, char *name);
+    void nvcheckpoint(void);
 }
 
 struct lookupinfo {
@@ -410,7 +411,7 @@ public:
             sprintf(logPath, "/mnt/ssd2/tmp/%d/", nvid);
         } else if ( log_dest == NVM_RAMDISK ) {
             sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/", nvid);
-            sprintf(memLogPath, "/mnt/ramdisk/nvthreads/%d/logs", nvid);
+            sprintf(memLogPath, "/mnt/ramdisk/nvthreads/%d/logs/", nvid);
         }
 
         lprintf("Assigned NVID: %d at line %d to current process\n", nvid, nvlib_linenum);

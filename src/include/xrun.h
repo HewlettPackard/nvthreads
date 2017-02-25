@@ -168,6 +168,10 @@ public:
         _protection_enabled = true;
     }
 
+    static bool isProtectionEnabled(void){
+        return _protection_enabled;
+    }
+
     // Close memory protection when there is only one thread alive.
     static void closeMemoryProtection(void) {
         xmemory::closeProtection();
