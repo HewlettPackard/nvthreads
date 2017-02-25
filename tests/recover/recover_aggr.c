@@ -73,12 +73,12 @@ int main(){
     }
     else{    
         printf("Program did not crash before, continue normal execution.\n");
-       
+
         // Assign magic numbers and character to the aggregate data structure
         struct foo *f = (struct foo*)nvmalloc(sizeof(struct foo), (char*)"f");
         memset(f->b.c, 0, sizeof(struct foo));
-        printf("finish writing to values\n");
-                
+        printf("finish writing to values\n");                
+       
         int i;
         for (i = 0; i < 3; i++) {
             struct thread_data *tmp = (struct thread_data*)malloc(sizeof(struct thread_data));
