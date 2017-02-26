@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -160,10 +160,10 @@ public:
     // When there is only one thread in the system, memory is not
     // protected to avoid the memory protection overhead.
     static void openMemoryProtection(void) {
-//      printf("%d: trying openMemoryProtection()\n", getpid());
+        lprintf("%d: trying openMemoryProtection()\n", getpid());
         if ( _protection_enabled )
             return;
-//      printf("%d: done openMemoryProtection()\n", getpid());
+        lprintf("%d: done openMemoryProtection()\n", getpid());
         xmemory::openProtection();
         _protection_enabled = true;
     }
@@ -183,12 +183,8 @@ public:
     }
     static void finalize(void) {
         xmemory::finalize();
-
-//      if ( MemoryLog::_logging_enabled ) {
-            // Finalize memory log
-            xthread::_localMemoryLog.finalize();
-            xthread::_localNvRecovery.finalize();
-//      }
+        xthread::_localMemoryLog.finalize();
+        xthread::_localNvRecovery.finalize();
     }
 
     // @ Return the main thread's id.
@@ -205,8 +201,6 @@ public:
     // Now only the current thread is active.
     static inline int childRegister(int pid, int parentindex, MemoryLog *localMemoryLog, nvrecovery *localNvRecovery) {
         int threads;
-
-//      lprintf("pid %d\n", pid);
 
         // Get the global thread index for this thread, which will be used internally.
         _thread_index = xatomic::increment_and_return(&global_data->thread_index);
@@ -252,8 +246,7 @@ public:
 #ifdef LAZY_COMMIT
         xmemory::finalcommit(false);
 #endif
-
-        DEBUG("%d: thread %d deregister, get token\n", getpid(), _thread_index);
+        
         atomicEnd(false);
         // Remove current thread and decrease the fence
         determ::getInstance().deregisterThread(_thread_index);
@@ -296,10 +289,6 @@ public:
             openMemoryProtection();
             atomicBegin(true);
         }
-
-//      if ( _protection_again ) {
-//          atomicBegin(true);
-//      }
 
         atomicEnd(false);
 
@@ -388,7 +377,6 @@ public:
         // If current thread is the only alive thread, then close the protection.
         if ( determ::getInstance().isSingleAliveThread() ) {
             closeMemoryProtection();
-//          _protection_again = true; //begin another atomic transaction for future spawn
 
             // Do some cleanup for fence.
             closeFence();
@@ -538,7 +526,6 @@ public:
     }
 
     static void startFence(void) {
-//      return;
         assert(_fence_enabled != true);
 
         // We start fence only if we are have more than two processes.
@@ -554,30 +541,25 @@ public:
     }
 
     static void waitFence(void) {
-//      return;
-            determ::getInstance().waitFence(_thread_index, false);
+        determ::getInstance().waitFence(_thread_index, false);
     }
 
     // New optimization here.
     // We will add one parallel commit phase before one can get token.
     static void waitToken(void) {
-//      return;
-//      lprintf("%d: waiting for token\n", getpid());
+        lprintf("waiting for the token\n");
         determ::getInstance().waitFence(_thread_index, true);
         determ::getInstance().getToken();
-//      lprintf("%d: got the token!\n", getpid());
+        lprintf("got the token!\n");
     }
 
     // If those threads sending out condsignal or condbroadcast,
     // we will use condvar here.
     static void putToken(void) {
-//      return;
         // release the token and pass the token to next.
-        //fprintf(stderr, "%d: putToken\n", _thread_index);
-        lprintf("%d: releasing token\n", getpid());
+        lprintf("releasing token\n");
         determ::getInstance().putToken(_thread_index);
-//      printf("%d: released token\n", getpid());
-        //fprintf(stderr, "%d: putToken\n", getpid());
+        lprintf("released token\n");
     }
 
     // FIXME: if we are trying to remove atomicEnd() before mutex_lock(),
@@ -622,8 +604,6 @@ public:
                 atomicBegin(true);
             }
 
-            //  fprintf(stderr, "%d: mutex_lock holding the token\n", getpid());
-
             // We are trying to get current lock.
             // Whenver someone didn't release the lock, getLock should be false.
             bool getLock = determ::getInstance().lock_acquire(mutex);
@@ -650,7 +630,7 @@ public:
     static void commitCacheBuffer(void){
         xmemory::commitCacheBuffer();
     }
-   
+       
     static void mutex_unlock(pthread_mutex_t *mutex) {
         if ( !_fence_enabled )
             return;
@@ -680,6 +660,7 @@ public:
         lprintf("unlocked... _lock_count: %zu\n", _lock_count);
     }
     
+    // Update the lock count after pthread_mutex_lock and pthread_mutex_unlock
     static void updateLockCount(){
         int threadID = xmemory::_localMemoryLog->threadID;
         if ( _lock_count > GET_METACOUNTER(globalLockCountMax) ) {
@@ -700,6 +681,7 @@ public:
 
     static bool readyToCommitCache(void){
         int threadID = xmemory::_localMemoryLog->threadID;
+        // When lock count drops to zero, we are ready to commit metadata and dirty pages
         if ( GET_METACOUNTER(globalLockCountMax) == 0 && 
              GET_METACOUNTER(globalLockCountMaxHolder) == threadID) {        
             return true;
@@ -726,8 +708,6 @@ public:
                 determ::getInstance().notifyWaitingChildren();
             }
         }
-
-        //fprintf(stderr, "%d : barier wait\n", getpid());
         waitToken();
         atomicEnd(false);
         determ::getInstance().barrier_wait(barrier, _thread_index);
@@ -790,7 +770,6 @@ public:
         }
 
         atomicEnd(false);
-        //fprintf(stderr, "%d: cond_signal\n", getpid());
         determ::getInstance().cond_signal(cond);
         atomicBegin(true);
 
@@ -809,7 +788,7 @@ public:
 
         // Now start.
         TRACE("=========%d: starts a Xact ==============\n", getpid());
-//      lprintf("---------%d: starts a Xact---------\n", getpid());
+        lprintf("-----------Xact starts---------\n");
         xmemory::begin(cleanup);
     }
 
@@ -823,7 +802,7 @@ public:
 
         // Commit all private modifications to shared mapping
         TRACE("=========%d: ending a Xact ===============\n", getpid());
-//      lprintf("---------%d: ending a Xact---------\n", getpid());
+        lprintf("-----------Xact ends---------\n");
         xmemory::commit(update);
     }
 };

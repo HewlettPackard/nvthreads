@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -66,83 +66,76 @@ void finalize()__attribute__((destructor));
 runtime_data_t *global_data;
 runtime_metadata_t *global_metadata;
 
-// checkpoint
+// Dummy mutex for checkpointing
 pthread_mutex_t global_sync_mutex;
 pthread_t tid;
 
 static bool initialized = false;
 static int stats_fd;
-static char stats_filename[1024]; 
+static char stats_filename[FILENAME_MAX]; 
 static int metadata_fd;
-static char metadata_filename[1024];
+static char metadata_filename[FILENAME_MAX];
 
-// initialize metadata to 0
 void metadata_init(void){
+    // Initialize global metadata
     memset(&global_metadata->metadata, 0, sizeof(struct metadata_t));
     global_metadata->thread_index = 1;
 }
 
 void initialize() {
-    DEBUG("intializing libdthread");
+    lprintf("intializing libnvthread");
 
     init_real_functions();
 
-//  global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
+    // Global stats data shared among threads
     sprintf(stats_filename, "/tmp/statsXXXXXX");
     stats_fd = mkstemp(stats_filename);
     global_data = (runtime_data_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, stats_fd, 0);
+    global_data->thread_index = 1;
 
-    // Global data shared among threads
+    // Global metadata shared among threads
     sprintf(metadata_filename, "/tmp/metadataXXXXXX");
     metadata_fd = mkstemp(metadata_filename);
     global_metadata = (runtime_metadata_t *)mmap(NULL, xdefines::PageSize * 128, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, metadata_fd, 0);
-    
+    metadata_init();
+
 #ifdef PAGE_DENSITY
     INIT_COUNTER_ARRAY(pagedensity, 4097UL);
 #endif
-
-    global_data->thread_index = 1;
-    metadata_init();
-    DEBUG("after mapping global data structure");
-
+      
     xrun::initialize();
     initialized = true;
 
-    // checkpoint            
+    // Mutex for checkpointing            
     pthread_mutex_init(&global_sync_mutex, NULL);
 }
 
-void finalize() {
-
-    DEBUG("finalizing libdthread");
-    initialized = false;
-    xrun::finalize();
+void dump_stats(void){
     fprintf(stderr, "\nStatistics information:\n");
-//  PRINT_LOG_COUNTER(logtimer);
-//  PRINT_TIMER(serial);
-//  PRINT_TIMER(logging);
+    PRINT_LOG_COUNTER(logtimer);
+    PRINT_TIMER(serial);
+    PRINT_TIMER(logging);
     PRINT_TIMER(diff_calculation);
     PRINT_TIMER(diff_logging);
-//  PRINT_COUNTER(commit);
+    PRINT_COUNTER(commit);
     PRINT_COUNTER(transactions);
-//  PRINT_COUNTER(loggedpages);
+    PRINT_COUNTER(loggedpages);
     PRINT_COUNTER(dirtypage_modified);
-//  PRINT_COUNTER(dirtypage_owned);
-//  PRINT_COUNTER(dirtypage_inserted);
-//  PRINT_COUNTER(faults);
-//  PRINT_COUNTER(twinpage);
-//  PRINT_COUNTER(suspectpage);
-//  PRINT_COUNTER(slowpage);
-//  PRINT_COUNTER(lazypage);
-//  PRINT_COUNTER(shorttrans);
-
-//  PRINT_COUNTER_ARRAY(pagedensity, 4096UL);
+    PRINT_COUNTER(dirtypage_owned);
+    PRINT_COUNTER(dirtypage_inserted);
+    PRINT_COUNTER(faults);
+    PRINT_COUNTER(twinpage);
+    PRINT_COUNTER(suspectpage);
+    PRINT_COUNTER(slowpage);
+    PRINT_COUNTER(lazypage);
+    PRINT_COUNTER(shorttrans);
 
 #ifdef PAGE_DENSITY
+    PRINT_COUNTER_ARRAY(pagedensity, 4096UL);
     PRINT_COUNTER(pdcount);
     PRINT_COUNTER(dummy);
-    char fn[1024];
+    char fn[FILENAME_MAX];
     sprintf(fn, "/tmp/pagedensity.csv");
     FILE *fp = fopen(fn, "w");
     if ( fp != NULL) {
@@ -150,6 +143,17 @@ void finalize() {
     }
     fclose(fp);
 #endif
+
+}
+
+void finalize() {
+
+#ifdef ENABLE_PROFILING
+    dump_stats();
+#endif
+    lprintf("finalizing libnvthread");
+    initialized = false;
+    xrun::finalize();
     unlink(stats_filename);
     unlink(metadata_filename);
 }
@@ -261,8 +265,6 @@ extern "C"
     }
 
     void pthread_exit(void *value_ptr) {
-//      printf("%d: pthread exits\n", getpid());
-
         if ( initialized ) {
             xrun::threadDeregister();
         }
@@ -312,11 +314,11 @@ extern "C"
     }
 
     int pthread_mutex_lock(pthread_mutex_t *mutex) {
-        lprintf("%d: pthread locking %p\n", getpid(), mutex);
         if ( initialized ) {
+            lprintf("%d: pthread locking %p\n", getpid(), mutex);
             xrun::mutex_lock(mutex);
+            lprintf("%d: pthread locked %p\n", getpid(), mutex);
         }
-        lprintf("%d: pthread locked %p\n", getpid(), mutex);
         return 0;
     }
 
@@ -326,17 +328,15 @@ extern "C"
     }
 
     int pthread_mutex_unlock(pthread_mutex_t *mutex) {
-        lprintf("%d: pthread unlocking %p\n", getpid(), mutex);
         if ( initialized ) {
+            lprintf("%d: pthread unlocking %p\n", getpid(), mutex);
             xrun::mutex_unlock(mutex);
-        }
-        lprintf("%d: pthread unlocked %p\n", getpid(), mutex);
-        
+            lprintf("%d: pthread unlocked %p\n", getpid(), mutex);
+        }        
         if ( xrun::readyToCommitCache() ) {
             lprintf("Ready to commit tmp pageInfo stored in cache to the actual pageInfo\n");
             xrun::commitCacheBuffer();
-        }
-        
+        }        
         return 0;
     }
 
@@ -369,26 +369,23 @@ extern "C"
     }
 
     int pthread_create(pthread_t *tid, const pthread_attr_t *attr, void* (*fn)(void *), void *arg) {
-        //assert(initialized);
+//      assert(initialized);
         if ( initialized ) {
             *tid = (pthread_t)xrun::spawn(fn, arg);
         }
-//      printf("%d: pthread create done\n", getpid());
         return 0;
     }
 
     int pthread_join(pthread_t tid, void **val) {
-        //assert(initialized);
-//      printf("%d: pthread joining\n", getpid());
+//      assert(initialized);
         if ( initialized ) {
             xrun::join((void *)tid, val);
         }
-//      printf("%d: pthread join done\n", getpid());
         return 0;
     }
 
     int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
-        //assert(initialized);
+//      assert(initialized);
         if ( initialized ) {
             xrun::cond_init((void *)cond);
         }
@@ -405,7 +402,6 @@ extern "C"
 
     int pthread_cond_signal(pthread_cond_t *cond) {
         //assert(initialized);
-        lprintf("pthread_cond_signal cv: %p\n", cond);
         if ( initialized ) {
             xrun::cond_signal((void *)cond);
         }
@@ -414,7 +410,6 @@ extern "C"
 
     int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
         //assert(initialized);
-        lprintf("pthread_cond_wait cv: %p, mutex: %p\n", cond, mutex);
         if ( initialized ) {
             xrun::cond_wait((void *)cond, (void *)mutex);
         }
@@ -429,7 +424,7 @@ extern "C"
         return 0;
     }
 
-// Add support for barrier functions
+    // Add support for barrier functions
     int pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count) {
         //assert(initialized);
         if ( initialized ) {

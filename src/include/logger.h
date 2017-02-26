@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -26,6 +26,7 @@
  *  @author     Indrajit Roy            <indrajitr@hp.com>
  *  @author     Helge Bruegner          <helge.bruegner@hp.com>
  *  @author     Kimberly Keeton         <kimberly.keeton@hp.com>  
+ *  @author     Patrick Eugster         <p@cs.purdue.edu>
 */
 
 #include <stdio.h>
@@ -62,16 +63,13 @@
         }\
     }while (0)\
 
-
-//#define DIFF_LOGGING
-
+const char eol_symbol[] = "EOL";
 
 class LogDefines {
  public:
   enum {PageSize = 4096UL };
   enum {PAGE_SIZE_MASK = (PageSize - 1)};
 };
-
 
 enum DurableMethod {
   MSYNC,
@@ -80,7 +78,8 @@ enum DurableMethod {
   FSYNC
 };
 
-#define PATH_CONFIG "/home/terry/workspace/nvthreads/config/nvthread.config"
+#define PATH_CONFIG "/tmp/nvthread.config"
+
 enum LOG_DEST {
   SSD,
   NVM_RAMDISK,
@@ -113,12 +112,10 @@ class LogEntry {
 };
 
 #define MAX_PID 32768
+
 /* Class for logging memory operations */
 class MemoryLog {
  public:
-
-  enum {LogEntryPerFile = 10000};
-  enum {MapSizeOfLog = LogEntryPerFile * LogEntry::LogEntrySize};
 
   LOG_DEST log_dest;
   bool _logging_enabled;
@@ -134,7 +131,6 @@ class MemoryLog {
   unsigned long _mempages_filesize;
   char _mempages_filename[FILENAME_MAX];
   char* _mempages_ptr;
-  unsigned long _logentry_count;
   static int _DurableMethod;
   int _dirtiedPagesCount;
   unsigned long _buffered_bytes;
@@ -175,24 +171,14 @@ class MemoryLog {
     }
     lprintf("----------Initializing memorylog class--------------\n");
     ReadConfig();
-//      threadID = getpid();
     INC_METACOUNTER(globalThreadCount);
     threadID = GET_METACOUNTER(globalThreadCount);
     _mempages_file_count = 0;
-    _logentry_count = 0;
     _dirtiedPagesCount = 0;
     nvid = _nvid;
-//      sprintf(_heap_log_filename, "/mnt/ramdisk/MemLog_%d_Heap", threadID);
-//      sprintf(_global_log_filename, "/mnt/ramdisk/MemLog_%d_Global", threadID);
-//      _heap_log_fd = open(_heap_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
-//      close(_heap_log_fd);
-//      _global_log_fd = open(_global_log_filename, _log_flags | O_CREAT | O_EXCL, 0777);
-//      close(_global_log_fd);
-
   }
 
   void finalize() {
-//      lprintf("----------finalizing memorylog class--------------\n");
     if (!_logging_enabled) {
       return;
     }
@@ -211,13 +197,13 @@ class MemoryLog {
   }
 
   void ReadConfig(void) {
-//      log_dest = SSD;
     log_dest = NVM_RAMDISK;
     _DurableMethod = FSYNC;
-    _eol_size = 4;
+    _eol_size = sizeof(eol_symbol);
     _log_flags = O_RDWR | O_ASYNC | O_APPEND;
     return;
 
+    /* Hooks for reading config file*/
     char* field;
     char* token;
     std::string line;
@@ -233,7 +219,6 @@ class MemoryLog {
         } else if (strcmp(token, "NVM_RAMDISK") == 0) {
           log_dest = NVM_RAMDISK;
         }
-
         lprintf("Log destination: %s, log_dest = %d\n", token, log_dest);
       } else {
         fprintf(stderr, "unknown field in config file: '%s'\n", field);
@@ -242,48 +227,28 @@ class MemoryLog {
     }
   }
 
-  /* Memory log filename: /path/to/MemLog_threadID_globalXactID_localXactID */
   void OpenMemoryLog(int dirtiedPagesCount, bool isHeap, unsigned long XactID) {
     _dirtiedPagesCount = dirtiedPagesCount;
     _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
-    _logentry_count = 0;
     _local_transaction_id = XactID;
 
     if (log_dest == SSD) {
-      sprintf(logPath, "/mnt/ssd2/tmp/%d", nvid);
+      sprintf(logPath, "/mnt/ssd2/nvthreads/%d/", nvid);
     } else if (log_dest == NVM_RAMDISK) {
       sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/logs/", nvid);
-//    sprintf(logPath, "/mnt/ramdisk/%d/logs", nvid);
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();
     }
-
-//  lprintf("Creating log path: %s\n", logPath);
-//  if ((mkdir(logPath, 0777)) == -1) {
-//    perror("Error when mkdir(memLogPath)");
-//  }
-//  lprintf("Created log path: %s\n", logPath);
-
-
-//  sprintf(logPath, "%s/log", logPath);
-//  lprintf("Creating log path: %s\n", logPath);
-//  if ((mkdir(logPath, 0777)) == -1) {
-//    perror("Error when mkdir(memLogPath)");
-//  }
-//  lprintf("Created memLog path: %s\n", logPath);
-
-
+  
+    // Create memlog 
     sprintf(_mempages_filename, "%s/MemLog_%d_%lu", logPath, threadID, XactID);
-
     _mempages_fd = open(_mempages_filename, O_RDWR | O_ASYNC | O_CREAT, 0644);
-
     if (_mempages_fd == -1) {
       fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
       perror("mkstemp: ");
       abort();
     }
-
     _mempages_offset = 0;
 
 #ifdef DIFF_LOGGING
@@ -296,108 +261,30 @@ class MemoryLog {
 #endif
   }
 
-  void WriteLogBeforeProtection(void* base, size_t size, bool isHeap) {
-    printf("heap?: %d, base %p, size: %zu\n", isHeap, base, size);
-    // Open file descriptor
-    int fd = -1;
-    char filename[FILENAME_MAX];
-    if (isHeap) {
-      _heap_log_fd = open(_heap_log_filename, O_WRONLY | O_ASYNC, 0644);
-      _heap_base = base;
-      _heap_size = size;
-      fd = _heap_log_fd;
-      sprintf(filename, "%s", _heap_log_filename);
-    } else {
-      _global_log_fd = open(_global_log_filename, O_WRONLY | O_ASYNC, 0644);
-      _global_base = base;
-      _global_size = size;
-      fd = _global_log_fd;
-      sprintf(filename, "%s", _global_log_filename);
-    }
-
-    if (fd == -1) {
-      fprintf(stderr, "%d: Error creating %s\n", getpid(), _mempages_filename);
-      perror("open log: ");
-      abort();
-    }
-
-    // Write actual memory log
-    if (isHeap) {
-      size_t sz;
-      int chunks = 0;
-      unsigned long offset;
-      while (chunks < 4) {
-        sz = write(fd, (void*)base, size);
-        if (sz == size) {
-          printf("%d: wrote %zu bytes to log: %s\n", getpid(), sz, filename);
-        } else {
-          printf("%d: wrote %zu bytes to log: %s, but != size %zu\n", getpid(), sz, filename, size);
-        }
-      }
-    } else {
-      size_t sz = write(fd, (void*)base, size);
-      if (sz == -1) {
-        fprintf(stderr, "%d: write base %p, size: %zu error fd: %d, file: %s\n", getpid(), (void*)base, size, fd, filename);
-        perror("write (LogBeforeProtection): ");
-        close(fd);
-        abort();
-      }
-      if (sz == size) {
-        printf("%d: wrote %zu bytes to log: %s\n", getpid(), sz, filename);
-      } else {
-        printf("%d: wrote %zu bytes to log: %s, but != size %zu\n", getpid(), sz, filename, size);
-      }
-
-    }
-
-
-    // Write EOL
-    const char eol[] = "EOL";
-    size_t sz = write(fd, eol, sizeof(eol));
-    if (sz == -1) {
-      fprintf(stderr, "%d: write error fd: %d\n", getpid(), fd);
-      perror("write (eol for LogBeforeProtection): ");
-      abort();
-    }
-
-    // Flush log
-    int rv = fdatasync(fd);
-    if (rv != 0) {
-      fprintf(stderr, "fdatasync() failed, please handle error before moving on.\n");
-      perror("fdatasync(): ");
-      abort();
-    }
-
-    // Close log
-    close(fd);
-
-  }
-
-
-  /* Append a log entry to the end of the memory log */
+  /* Append a log entry to the end of a memory log */
   int AppendMemoryLog(void* addr) {
-    int fflags;
     struct LogEntry::log_t newLE;
     newLE.after_image = (char*)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
 
     size_t sz;
-    sz = write(_mempages_fd, (void*)newLE.after_image, xdefines::PageSize);
-    if (sz == -1) {
-      fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.after_image, _mempages_fd, _mempages_filename);
-      perror("write (page): ");
-
-      close(_mempages_fd);
-      _mempages_fd = open(_mempages_filename, _log_flags);
-      if (_mempages_fd == -1) {
-        fprintf(stderr, "%d: Still open error, cannot create new log, abort\n", getpid());
-        abort();
-      } else {
-        fprintf(stderr, "opened a file descriptor %d\n", _mempages_fd);
+    int retry = 0;
+    do {
+      sz = write(_mempages_fd, (void*)newLE.after_image, xdefines::PageSize);
+      if (sz == -1) {
+        fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.after_image, _mempages_fd, _mempages_filename);
+        perror("write (page): ");
+        // Close and reopen the file to retry write again
+        close(_mempages_fd);
+        _mempages_fd = open(_mempages_filename, _log_flags);
+        retry++;
+        // Filesystem error, cannot open/write file
+        if (retry == 3) {
+          abort();
+        }
       }
-    }
-
+    }while (sz == -1 && retry < 3);
+    
     INC_COUNTER(loggedpages);
-    _logentry_count++;
     return 0;
   }
 
@@ -409,12 +296,9 @@ class MemoryLog {
     for (int i = 0; i < sizeof(long long); i++) {
       if (src[i] != twin[i]) {
         lprintf("Writing %d-th byte in this block, copied_bytes: %d\n", i, copied_bytes);
-//      dest[i] = src[i];
         START_TIMER(diff_logging);
-//      rv = write(_mempages_fd, &src[i], sizeof(char));
         memcpy(&_mempages_ptr[_buffered_bytes], &src[i], sizeof(char));
         STOP_TIMER(diff_logging);
-//      PRINT_TIMER(diff_logging);
         _buffered_bytes++;
         copied_bytes++;
       }
@@ -446,43 +330,15 @@ class MemoryLog {
     lprintf("Write diffs for a total of %d / %lu bytes\n", diff_bytes, _buffered_bytes);
   }
 
-
-  /* Make sure the memory log are durable after this function returns */
-  void SyncMemoryLog(void) {
-    close(_mempages_fd);
-    unlink(_mempages_filename);
-    _mempages_file_count++;
-  }
-
-  void CloseDiskMemoryLog(void) {
-    if (_mempages_fd != -1) {
-//          lprintf("Removing memory log %s\n", _mempages_filename);
-      close(_mempages_fd);
-//          unlink(_mempages_filename);
-    }
-  }
-  void CloseDramTmpfsMemoryLog() {
-    if (_mempages_fd != -1) {
-//          lprintf("Removing memory log %s\n", _mempages_filename);
-//          printf("Removing memory log %s\n", _mempages_filename);
-      close(_mempages_fd);
-//          unlink(_mempages_filename);
-    }
-  }
-
-  void CloseNvramTmpfsMemoryLog(void) {
-
-  }
-
   void CloseMemoryLog(void) {
 #ifdef DIFF_LOGGING
     FlushBufferToLog();
 #endif
-    if (log_dest == SSD) {
+    if (log_dest == SSD || log_dest == NVM_RAMDISK) {
       /* Close the memory mapping log */
-      CloseDiskMemoryLog();
-    } else if (log_dest == NVM_RAMDISK) {
-      CloseDramTmpfsMemoryLog();
+      if (_mempages_fd != -1) {
+        close(_mempages_fd);
+      }
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();
@@ -491,36 +347,15 @@ class MemoryLog {
     lprintf("Closed file: %s\n", _mempages_filename);
   }
 
-  void WriteEOLDiskLog() {
-
-  }
-
-  void WriteEOLDramTmpfsLog() {
+  /* Write an end of log flag to file. It has to be ordered after the actual logs. */
+  void WriteEndOfLog(void) {
     int sz = 0;
-    const char eol[] = "EOL";
-    sz = write(_mempages_fd, eol, sizeof(eol));
+    sz = write(_mempages_fd, eol_symbol, sizeof(eol_symbol));
     if (sz == -1) {
       fprintf(stderr, "%d: write error fd: %d, filename: %s\n", getpid(), _mempages_fd, _mempages_filename);
       perror("write (addr): ");
       abort();
     }
-  }
-
-  void WriteEOLNvramTmpfsLog() {
-
-  }
-
-  // Write an end of log flag to file.  It has to be ordered after the actual logs.
-  void WriteEndOfLog(void) {
-    WriteEOLDramTmpfsLog();
-  }
-
-  /* Allocate one log entry using Hoard memory allocator (overloaded new) */
-  MemoryLog* alloc(void) {
-    static char buf[sizeof(MemoryLog)];
-    static class MemoryLog *theOneTrueObject = new(buf)MemoryLog;
-    lprintf("alloc: sizeof MemoryLog: %zu\n", sizeof(*theOneTrueObject));
-    return theOneTrueObject;
   }
 
   /* Flush memory page to backend storage */
@@ -530,7 +365,6 @@ class MemoryLog {
 
   /* Flush cache line to main memory */
   inline void mfencePage(volatile void* __p) {
-//      printf("Flushing %p!\n", __p);
     __asm__ __volatile__("mfence");
     asm volatile("clflush %0" : "+m"(*(volatile char *)__p));
     __asm__ __volatile__("mfence");
@@ -581,6 +415,7 @@ class MemoryLog {
     lprintf("\n");
   }
 
+  /* Flush buffer for diff logging */
   void FlushBufferToLog(void){
     ssize_t rv;
     int i = 0;
@@ -596,6 +431,7 @@ class MemoryLog {
     InternalFree(_mempages_ptr, _dirtiedPagesCount * LogDefines::PageSize);
   }
 
+  /* Malloc for diff logging */
   void *InternalMalloc(size_t sz) {
     void *ptr;
     ptr = mmap(NULL, sz, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -605,6 +441,8 @@ class MemoryLog {
     }
     return ptr;
   }
+
+  /* Free for diff logging */
   void InternalFree(void *ptr, size_t sz){
     if ( (munmap(ptr, sz)) == -1 ) {
       perror("InternalFree munmap mailed");

@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -115,15 +115,9 @@ public:
 
         // Initialize the internal heap.
         InternalHeap::getInstance().initialize();
-
-        // Open protection to record dirtied pages on the heap (this cause bug!)       
-//      printf("initialized xmemory\n");
     }
 
     static void finalize(void) {
-        // Clean memory log
-//      _localMemoryLog.finalize();
-
         _globals.finalize();
         _pheap.finalize();
     }
@@ -170,13 +164,9 @@ public:
             lprintf("nvmalloc failed!\n");
             abort();
         }
-
-//      if ( MemoryLog::_logging_enabled ) {
-//      lprintf("nvmalloc for %s for %zu bytes starting at %p, log to %s\n", name, sz, ptr, _localNvRecovery->_varmap_filename);
         int pageNo = _pheap.computePageNo(ptr);
         int pageOffset = _pheap.computePageOffset(ptr);
         _localNvRecovery->AppendVarMapLog(ptr, sz, name, pageNo, pageOffset);
-//      }
 
         lprintf("nvmalloc %s for %zu bytes starting at %p with pageNo: %d, page offset: %d\n", name, sz, ptr, pageNo, pageOffset);
         return ptr;
@@ -210,17 +200,14 @@ public:
 
     static void openProtection(void) {
         DEBUG("%d: open protection\n", getpid());
-//      printf("opening protection\n");
         _globals.openProtection(NULL, _localMemoryLog);
         _pheap.openProtection(_pheap.getend(), _localMemoryLog);
-//      printf("opened protection\n");
     }
 
     static void closeProtection(void) {
         DEBUG("%d: close protection\n", getpid());
         _globals.closeProtection();
         _pheap.closeProtection();
-//      printf("closed protection\n");
     }
 
     static inline void begin(bool cleanup) {
@@ -295,7 +282,6 @@ public:
     static void segvHandle(int signum, siginfo_t *siginfo, void *context) {
         void *addr = siginfo->si_addr; // address of access
 
-//      fprintf(stderr, "%d: Page fault at: %p\n", getpid(), addr);
         // Check if this was a SEGV that we are supposed to trap.
         if ( siginfo->si_code == SEGV_ACCERR ) {
             xmemory::handleWrite(addr);

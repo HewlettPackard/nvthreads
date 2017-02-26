@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -146,13 +146,6 @@ public:
     int computePageOffset(void* addr){
         return getHeap()->computePageOffset(addr);
     }
-//  size_t computePage(size_t index) {
-//      return getHeap()->computePage(index);
-//  }
-//
-//  void *base(void){
-//      return getHeap()->base();
-//  }
 
     void setLogPath(char *path){
         getHeap()->setLogPath(path);
@@ -172,10 +165,8 @@ private:
     SourceHeap* getHeap(void) {
         static char heapbuf[sizeof(SourceHeap)];
         static SourceHeap *_heap = new(heapbuf) SourceHeap;
-        //fprintf (stderr, "heapbuf is %p\n", _heap);
         return _heap;
     }
-
 };
 
 #endif // _XONEHEAP_H_

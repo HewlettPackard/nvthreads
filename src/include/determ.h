@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -66,7 +66,6 @@
 #include "prof.h"
 
 #define MAX_THREADS 2048
-//#define fprintf(...)
 
 // We are using a circular double linklist to manage those alive threads.
 class determ {
@@ -393,7 +392,6 @@ public:
         if ( _currthreads == 0 ) {
             _is_arrival_phase = true;
 
-//          lprintf("------------end of transaction %lu------------\n", GET_METACOUNTER(globalTransactionCount));
             INC_METACOUNTER(globalTransactionCount);
 
             // Cleanup the bitmap here.
@@ -424,7 +422,6 @@ public:
         ThreadEntry *next;
         STOP_TIMER(serial);
 
-//    fprintf(stderr, "%d : putToken \n", threadindex);
         TRACE("%d: putToken\n", getpid());
         lock();
 
@@ -642,7 +639,6 @@ public:
     }
 
     LockEntry* lock_init(void *mutex) {
-//    fprintf(stderr, "%d: lockinit with mutex %p\n", getpid(), mutex);
         LockEntry *entry = allocLockEntry();
         entry->total_users = 0;
         entry->last_thread = 0;
@@ -809,7 +805,7 @@ public:
 
         // Release token to next active thread.
         _tokenpos = next;
-//      lprintf("release token to next active thread\n");
+
         // Wait until it is signaled (status are changed to STATUS_READY)
         // We are using busy wait method to avoid un-determinism caused by OS.
         // Linux cann't guarantee the FIFO order.
@@ -817,13 +813,9 @@ public:
             __asm__ __volatile__("mfence");
 
             // Release current lock.
-//          lprintf("release lock %p\n", thelock);
             lock_release(thelock);
             WRAP(pthread_cond_wait)(&condentry->realcond, &_mutex);
         }
-//      lprintf("cond_wait after wakingup\n");
-
-        //fprintf(stderr, "%d: cond_wait after wakingup\n", getpid());
 
         // Here, we don't need to wait on fence anymore because this can put current
         // thread to next round, which is really bad.
@@ -841,7 +833,6 @@ public:
         //  fprintf(stderr, "%d: cond_wait after getting token\n", getpid());
 
         // Now means we have already acquired the lock.
-//      lprintf("acquired the lock %p\n", thelock);
         lock_acquire(thelock);
 
         START_TIMER(serial);
@@ -1123,7 +1114,6 @@ private:
 
     void* getSyncEntry(void *entry) {
         void **ptr = (void **)entry;
-//    fprintf(stderr, "%d: entry %p and synentry 0x%x\n", getpid(), entry, ((int *)entry));
         return (*ptr);
     }
 
@@ -1149,12 +1139,10 @@ private:
         xmemory::mem_write(*dest, NULL);
     }
     inline void lock(void) {
-//      lprintf("locking global lock\n");
         WRAP(pthread_mutex_lock)(&_mutex);
     }
 
     inline void unlock(void) {
-//      lprintf("unlocking global lock\n");
         WRAP(pthread_mutex_unlock)(&_mutex);
     }
 };

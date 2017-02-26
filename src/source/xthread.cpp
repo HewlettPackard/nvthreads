@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -141,13 +141,11 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
         pid_t mypid = syscall(SYS_getpid);
         setId(mypid);
 
-//      if ( MemoryLog::_logging_enabled ) {
-            // Initialize varmap log
-            xthread::_localNvRecovery.initialize(false);
+        // Initialize varmap log
+        xthread::_localNvRecovery.initialize(false);
 
-            // Initialize memory log
-            xthread::_localMemoryLog.initialize(xthread::_localNvRecovery.nvid);
-//      }
+        // Initialize memory log
+        xthread::_localMemoryLog.initialize(xthread::_localNvRecovery.nvid);
 
         int threadindex = xrun::childRegister(mypid, parent_index, &xthread::_localMemoryLog, &xthread::_localNvRecovery);
 
@@ -156,21 +154,15 @@ void* xthread::forkSpawn(threadFunction *fn, ThreadStatus *t, void *arg, int par
 
         xrun::waitParentNotify();
 
-//      lprintf("%d: I'm thread %d\n", mypid, t->threadIndex);
-
         _nestingLevel++;
         run_thread(fn, t, arg);
         _nestingLevel--;
-
-//      if ( MemoryLog::_logging_enabled ) {
             
-            // Finalize memory log
-            xthread::_localMemoryLog.finalize();
+        // Finalize memory log
+        xthread::_localMemoryLog.finalize();
 
-            // Finalize varmap log
-            xthread::_localNvRecovery.finalize(); 
-
-//      }
+        // Finalize varmap log
+        xthread::_localNvRecovery.finalize(); 
 
         _exit(0);
         return NULL;        

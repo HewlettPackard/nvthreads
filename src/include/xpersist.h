@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+  Copyright 2015-2017 Hewlett Packard Enterprise Development LP
   
   This program is free software; you can redistribute it and/or modify 
   it under the terms of the GNU General Public License, version 2 as 
@@ -83,8 +83,6 @@ extern "C"
 int madvise(caddr_t addr, size_t len, int advice);
 #endif
 
-//#define fprintf(...)
-
 #include "nvrecovery.h"
 
 /**
@@ -118,7 +116,7 @@ class xpersist {
     }
 
     // Get a temporary file name (which had better not be NFS-mounted...).
-    char _backingFname[1024];
+    char _backingFname[FILENAME_MAX];
     sprintf(_backingFname, "/tmp/nvthreadsMXXXXXX");
     _backingFd = mkstemp(_backingFname);
     if (_backingFd == -1) {
@@ -139,7 +137,7 @@ class xpersist {
     // Get rid of the files when we exit.
     unlink(_backingFname);
 
-    char _versionsFname[1024];
+    char _versionsFname[FILENAME_MAX];
     // Get another temporary file name (which had better not be NFS-mounted...).
     sprintf(_versionsFname, "/tmp/nvthreadsVXXXXXX");
     _versionsFd = mkstemp(_versionsFname);
@@ -393,7 +391,7 @@ class xpersist {
 
     // Check if file exists.  If so, rename file to "recover" first
     if (access(fn, F_OK) != -1) {
-      char _recoverFname[1024];
+      char _recoverFname[FILENAME_MAX];
       sprintf(_recoverFname, "%s_recover", fn);
       if (rename(fn, _recoverFname) != 0) {
         lprintf("error: unable to rename file\n");
@@ -417,6 +415,7 @@ class xpersist {
     return fd;
   }
 
+  // Create a quick reference to lookup the buffered pageInfo when commit the tmp pageInfo
   void createPageNoTmp(void) {
     if (!logPath) {
       lprintf("logPath not ready yet %s\n", logPath);
@@ -426,9 +425,9 @@ class xpersist {
       lprintf("_pageNoTmp is already set at %p\n", _pageNoTmp);
       return;
     }
-    lprintf("Creating lookup info at %s\n", logPath);
+    lprintf("Creating page lookup info at %s\n", logPath);
     // Quick look up metadata for heap and global
-    char _lookupTmpFname[1024];
+    char _lookupTmpFname[FILENAME_MAX];
     if (_isHeap) {
       sprintf(_lookupTmpFname, "%slookup_heap_tmp", logPath);
       SET_METACOUNTER(globalBufferedHeapPageNoCount, 0);
@@ -444,6 +443,7 @@ class xpersist {
     memset((void*)_pageNoTmp, 0, TotalPageNums * sizeof(int));
   }
 
+  // Create _pageLookupTmp that is used to buffer page metadata for page lookup info
   void createLookupInfoTmp(void) {
     if (!logPath) {
       lprintf("logPath not ready yet %s\n", logPath);
@@ -454,15 +454,16 @@ class xpersist {
       return;
     }
     lprintf("Creating tmp lookup info at %s\n", logPath);
+
     // Quick look up metadata for heap and global
-    char _lookupTmpFname[1024];
+    char _lookupTmpFname[FILENAME_MAX];
     if (_isHeap) {
       sprintf(_lookupTmpFname, "%slookup_heap_tmp", logPath);
     } else {
       sprintf(_lookupTmpFname, "%slookup_globals_tmp", logPath);
     }
 
-    // Create shared file map
+    // Create shared region to store temporary page lookup metadata
     _lookupTmpFd = createSharedMapFile(_lookupTmpFname, TotalPageNums, sizeof(struct lookupinfo));
     _pageLookupTmp = (struct lookupinfo*)mmap(NULL, TotalPageNums * sizeof(struct lookupinfo),
                                               PROT_READ | PROT_WRITE, MAP_SHARED, _lookupTmpFd, 0);
@@ -470,6 +471,7 @@ class xpersist {
     lprintf("lookup file: %s, base(): %p, isHeap %d\n", _lookupTmpFname, base(), _isHeap);
   }
 
+  // Create _pageLookup that is used to store page metadata for crash recovery
   void createLookupInfo(void) {
     if (!logPath) {
       lprintf("logPath not ready yet %s\n", logPath);
@@ -481,14 +483,14 @@ class xpersist {
     }
     lprintf("Creating lookup info at %s\n", logPath);
     // Quick look up metadata for heap and global
-    char _lookupFname[1024];
+    char _lookupFname[FILENAME_MAX];
     if (_isHeap) {
       sprintf(_lookupFname, "%slookup_heap", logPath);
     } else {
       sprintf(_lookupFname, "%slookup_globals", logPath);
     }
 
-    // Create shared file map
+    // Create shared region to store page lookup metadata
     _lookupFd = createSharedMapFile(_lookupFname, TotalPageNums, sizeof(struct lookupinfo));
     _pageLookup = (struct lookupinfo*)mmap(NULL, TotalPageNums * sizeof(struct lookupinfo),
                                            PROT_READ | PROT_WRITE, MAP_SHARED, _lookupFd, 0);
@@ -498,10 +500,11 @@ class xpersist {
     // Create a tmp lookup info to buffer unready pageInfo in a nested section
     createLookupInfoTmp();
 
-    // Create a quick reference to lookup the buffered unready pageInfo when commit the tmp pageInfo
+    // Create a quick reference to lookup the buffered pageInfo when commit the tmp pageInfo
     createPageNoTmp();
   }
 
+  // Create page dependence info to store which thread last touched a page
   void createDependenceInfo(void) {
     if (!logPath) {
       lprintf("logPath not ready yet %s\n", logPath);
@@ -514,14 +517,15 @@ class xpersist {
     lprintf("Creating dependence info at %s\n", logPath);
 
     // Quick look up metadata for heap and global
-    char _pageDependenceFname[1024];
+    char _pageDependenceFname[FILENAME_MAX];
     if (_isHeap) {
       sprintf(_pageDependenceFname, "%sdependence_heap", logPath);
     } else {
       sprintf(_pageDependenceFname, "%sdependence_globals", logPath);
     }
-
     _pageDependenceFd = createSharedMapFile(_pageDependenceFname, TotalPageNums, sizeof(struct pageDependence));
+
+    // _pageDependece records which thread last touched a page
     _pageDependence = (struct pageDependence*)mmap(NULL, TotalPageNums * sizeof(struct pageDependence),
                                                    PROT_READ | PROT_WRITE, MAP_SHARED, _pageDependenceFd, 0);
     memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
@@ -530,23 +534,28 @@ class xpersist {
 
   }
 
-  // Copy pageInfo from tmp cache buffer to the real pageInfo used by recovery code
+  // Copy pageInfo from tmp cache buffer to the real pageInfo used by the recovery code
   void commitCacheBuffer(void) {
     unsigned long i;
-    unsigned long nBufferedPages;
+    unsigned long num_buffered_pages;
     if (_isHeap) {
-      nBufferedPages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
-      lprintf("commit %zu pages to pageInfo (heap)\n", nBufferedPages);
+      num_buffered_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+      lprintf("commit %zu pages to pageInfo (heap)\n", num_buffered_pages);
     } else {
-      nBufferedPages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
-      lprintf("commit %zu pages to pageInfo (global)\n", nBufferedPages);
+      num_buffered_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+      lprintf("commit %zu pages to pageInfo (global)\n", num_buffered_pages);
     }
 
-    if (nBufferedPages == 0) {
+    if (num_buffered_pages == 0) {
       lprintf("No buffered pages to commit, return\n");
+      return;
     }
 
-    for (i = 0; i < nBufferedPages; i++) {
+    // Commit all buffered page lookup info from _pageNoTmp to _pageLookup
+    // _pageNoTmp records the pageNo of the buffered page, there are a total of num_buffer_pages 
+    // buffered pages; _pageNoTmp[] gives the pageNo of the buffered page; _pageLookup is indexed 
+    // by page number, So _pageLookupTmp[_pageNoTmp[]] gives you the buffered page matadata
+    for (i = 0; i < num_buffered_pages; i++) {
       // Copy pageInfo from tmp to the actual pageInfo
       memcpy(&_pageLookup[_pageNoTmp[i]], &_pageLookupTmp[_pageNoTmp[i]], sizeof(struct lookupinfo));
       lprintf("committed _pageLookup[%d]\n", _pageNoTmp[i]);
@@ -562,14 +571,12 @@ class xpersist {
       SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
     }
     lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
-
   }
 
   /// @return true iff the address is in this space.
   inline bool inRange(void* addr) {
     if (((size_t)addr >= (size_t)base()) && ((size_t)addr
                                              < (size_t)base() + size())) {
-//      printf("base(): 0x%zx\n", base());
       return true;
     } else {
       return false;
@@ -585,7 +592,6 @@ class xpersist {
     unsigned long offset = (intptr_t)addr - (intptr_t)base();
     void** ptr = (void**)((intptr_t)_persistentMemory + offset);
     *ptr = val;
-    //fprintf(stderr, "addr %p val %p(int %d) with ptr %p\n", addr, val, (unsigned long)val, *ptr);
     return true;
   }
 
@@ -703,10 +709,6 @@ class xpersist {
     mprotectWrite(pageStart, pageNo);
 #endif
 
-//      if ( xpageentry::getInstance().getCur() % 100000 == 0  && xpageentry::getInstance().getCur() > 0) {
-//          printf("%d: cur: %llu\n", getpid(), xpageentry::getInstance().getCur());
-//      }
-
     // Now one more user are using this page.
     xatomic::increment((unsigned long*)&_pageUsers[pageNo]);
 
@@ -727,8 +729,6 @@ class xpersist {
 
     // Then add current page to dirty list.
     _dirtiedPagesList.insert(std::pair<int, void*>(pageNo, curr));
-//      lprintf("Page fault pageNo %d\n", pageNo);
-//      dumpDirtiedPages();
     return;
   }
 
@@ -794,9 +794,6 @@ class xpersist {
     for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
       if (mylocal[i] != mytwin[i]) {
         commitWord((char*)&mylocal[i], (char*)&mytwin[i], (char*)&mydest[i]);
-//              printf("writePageDiffs: %d out of %d\n", i, (int)(xdefines::PageSize/sizeof(long long)));
-//if(mytwin[i] != mydest[i] && mylocal[i] != mydest[i])
-//fprintf(stderr, "%d: RACE at %p from %x to %x (dest %x). pageno %d\n", getpid(), &mylocal[i], mytwin[i], mylocal[i], mydest[i], pageno);
       }
     }
 
@@ -824,10 +821,10 @@ class xpersist {
   }
 
   void PrintPageDensity(void) {
-    printf("%d:-------page density-------\n", getpid());
-//      for (int i = 0; i < xdefines::PageSize; i++) {
-//          printf("%d: PageDensity[%d]: %ld\n", getpid(), i, page_density[i]);
-//      }
+    lprintf("%d:-------page density-------\n", getpid());
+    for (int i = 0; i < xdefines::PageSize; i++) {
+      lprintf("%d: PageDensity[%d]: %ld\n", getpid(), i, page_density[i]);
+    }
     PRINT_COUNTER_ARRAY(pagedensity, 4097UL);
   }
 #endif
@@ -1005,6 +1002,7 @@ class xpersist {
     return ((void*)((intptr_t)base() + pageNo * xdefines::PageSize));
   }
 
+  // Print all the dirty pages so far to stdout
   void dumpDirtiedPages(void) {
     struct xpageinfo* pageinfo = NULL;
     int pageNo;
@@ -1019,21 +1017,22 @@ class xpersist {
     printf("-----------%d end of dirtied pages--------------\n\n", getpid());
   }
 
+  // Record the page lookup info for the recovery code to use, called by checkandcommit()
   void recordlookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied) {
-    // No other thread has touched this page, safe to record pageInfo
+    // No other thread has touched this page, record thread id in pageInfo
     if (_pageDependence[pageNo].threadID == 0) {
-      unsigned long npages;
+      unsigned long num_pages;
       lprintf("First time touching this page %d, no other thread has touched this page, not sure if there will be, so log to tmp\n", pageNo);
       if (_isHeap) {
-        npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+        num_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
         INC_METACOUNTER(globalBufferedHeapPageNoCount);
-        lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);
+        lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, num_pages);
       } else {
-        npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+        num_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
         INC_METACOUNTER(globalBufferedGlobalPageNoCount);
-        lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+        lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, num_pages);
       }
-      _pageNoTmp[npages] = pageNo;
+      _pageNoTmp[num_pages] = pageNo;
       _pageLookupTmp[pageNo].xactID = globalXactID;
       _pageLookupTmp[pageNo].threadID = threadID;
       _pageLookupTmp[pageNo].memlogOffset = offset;
@@ -1041,7 +1040,7 @@ class xpersist {
     }
     // Page dependence detected
     else if (_pageDependence[pageNo].threadID != 0) {
-      // This thread touched this page before
+      // The same thread touched the same page again
       if (_pageDependence[pageNo].threadID == threadID) {
         lprintf("Thread %d touched this page %d again\n", (int)threadID, pageNo);
         _pageLookupTmp[pageNo].xactID = globalXactID;
@@ -1049,38 +1048,36 @@ class xpersist {
         _pageLookupTmp[pageNo].memlogOffset = offset;
         _pageLookupTmp[pageNo].dirtied = dirtied;
       }
-      // Other thread has touched this page, store page lookup info to cache, commit once we exit the outermost nested section
+      // Another thread touched this page before,
       else if (_pageDependence[pageNo].threadID != threadID) {
         lprintf("Page %d not ready yet, store page lookup info in cache, commit later\n", pageNo);
-
-        // Add this pageNo to commit later (only once!) if this is the first this page is modified
+        // Add this pageNo to commit-later list (only once!) if this is the first this page is modified
         if (_pageLookupTmp[pageNo].threadID ==  0) {
-          unsigned long npages;
+          unsigned long num_pages;
           if (_isHeap) {
-            npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+            num_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
             INC_METACOUNTER(globalBufferedHeapPageNoCount);
-            lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);
+            lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, num_pages);
           } else {
-            npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+            num_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
             INC_METACOUNTER(globalBufferedGlobalPageNoCount);
-            lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+            lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, num_pages);
           }
-          _pageNoTmp[npages] = pageNo;
+          _pageNoTmp[num_pages] = pageNo;
         } else {
           lprintf("Page %d was touched by %d\n", pageNo, _pageLookupTmp[pageNo].threadID);
         }
-
         // Buffer the pageInfo, commit when we exit the outermost nested section
-
         _pageLookupTmp[pageNo].xactID = globalXactID;
         _pageLookupTmp[pageNo].threadID = threadID;
         _pageLookupTmp[pageNo].memlogOffset = offset;
         _pageLookupTmp[pageNo].dirtied = dirtied;
       }
     }
-
     lprintf("Page %d modified by thread %d at Xact %d\n", pageNo, threadID, globalXactID);
   }
+
+  // Record which thread touched which page (data dependence)
   void recordDependence(int pageNo, unsigned short threadID, void* pageStart) {
     if (_pageDependence[pageNo].threadID != 0 && _pageDependence[pageNo].threadID != threadID) {
       lprintf("Page %d (addr: %p) previously modified by thread %lu, I am thread %d\n",
@@ -1130,7 +1127,7 @@ class xpersist {
       // Open a new log file if we have dirtied pages
       localMemoryLog->OpenMemoryLog(_dirtiedPagesList.size(), _isHeap, globalXactID);
 
-      // Loop through all dirtied pages
+      // Loop through all dirty pages and log them to the backend device
       int page_count = 0;
       for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
         bool needsModify = false;
@@ -1168,7 +1165,10 @@ class xpersist {
           localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
           memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
 #endif
+          // Record page lookup info for recovery
           recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
+
+          // Record data dependency
           recordDependence(pageNo, localMemoryLog->threadID, pageinfo->pageStart);
           page_count++;
 
@@ -1197,11 +1197,10 @@ class xpersist {
       STOP_TIMER(logging);
 
 #ifdef ENABLE_PROFILING
-      diff = clock() - start_time;
-      ;
+      diff = clock() - start_time;      
 #endif
       ADD_COUNTER(logtimer, (double)diff);
-    } // end of _isHeap
+    } // end of logging for data on heap
 
     // Check all pages in the dirty list
     for (dirtyListType::iterator i = _dirtiedPagesList.begin(); i != _dirtiedPagesList.end(); ++i) {
@@ -1221,7 +1220,7 @@ class xpersist {
 
       TRACE("%d: commits local modification to shared mapping, xact %d, pageNo %d\n", getpid(), _trans, pageNo);
 
-//          fprintf(stderr, "%d: commits local modification to shared mapping, xact %d, pageNo %d, pageAddr: %p\n", getpid(), _trans, pageNo,pageinfo->pageStart);
+      lprintf("commits local modification to shared mapping, xact %d, pageNo %d, pageAddr: %p\n", _trans, pageNo,pageinfo->pageStart);
 
 #ifdef LAZY_COMMIT
       // update is true before entering into the critical sections.
@@ -1472,22 +1471,24 @@ class xpersist {
   int _threadindex;
 
   char* logPath;
-  // Fast page lookup
+
+  // Page lookup metadata for recovery
   struct lookupinfo* _pageLookup;
   int _lookupFd;
 
-  // Tmp page lookup to buffer unready pageInfo in a nested section
+  // Tmp page lookup metadata to buffer intermediate changes
   struct lookupinfo* _pageLookupTmp;
   int _lookupTmpFd;
 
-  // Quick reference to record the pageNo of the unready pageInfo
-  int* _pageNoTmp;
-  int _pageNoTmpFd;
-
-  // Page dependence tracking
+  // Record which thread last touched which page to track data dependencies
   struct pageDependence* _pageDependence;
   int _pageDependenceFd;
   size_t _pageDependenceSize;
+
+  // _pageNoTmp records the pageNo of the buffered pages, indexed from 0:N 
+  // in first-in-first-out order
+  int* _pageNoTmp;
+  int _pageNoTmpFd;
 
 };
 
