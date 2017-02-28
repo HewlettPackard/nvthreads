@@ -5,8 +5,6 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 - Source tree structure:
    
     apps/: The applications cases for NVthreads.
-        - GraphEngine1.18/: graph workload provided by analytics team at HPL.
-        - LSH_multithreaded/: high similarity search provided by analytics team at HPL.
         - datagen/: generates data from kmeans inputs.
         - kmeans/: implementation of the kmeans algorithm.
             - phoenix-recovery: kmeans recovery evaluation
