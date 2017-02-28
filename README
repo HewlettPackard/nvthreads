@@ -1,6 +1,6 @@
 NVthreads: Practical Persistence for Multi-threaded Applications
 
-- Authors: Terry Hsu, Helge Bruegner, Indrajit Roy, Kimberly Keeton
+- Authors: Terry Hsu, Helge Bruegner, Indrajit Roy, Kimberly Keeton, Patrick Eugster
 
 - Source tree structure:
    
@@ -18,7 +18,7 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 
     eval/: Benchmark evaluation
         datasets/: please save input data for benchmarks in this directory
-        tests/: this directory contains all the benchmarks we used in the paper evaluation (Phoenix and Parsec)
+        tests/: this directory contains Phoenix and PARSEC benchmarks
 
     src/: The core of NVthreads library
         source: source code 
@@ -34,6 +34,3 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 
     See INSTALL at $NVthreads/ directory
     
-
-Note for HP Labs users:
-    You can find the dataset for benchmarks in /scratch/terryh/datasets/nvthreads/
