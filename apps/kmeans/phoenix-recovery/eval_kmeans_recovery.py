@@ -7,8 +7,8 @@ num_points = {1000000, 10000000, 20000000, 30000000}
 #num_points = {1000000}
 #start_at = {10}
 start_at = {10, 50, 75, 150}
-#threads = {'nvthread'}
-threads = {'pthread'}
+threads = {'nvthread'}
+#threads = {'pthread'}
 #runs = 10
 runs = 1
 os.system('rm /tmp/nvlib.crash')
@@ -41,7 +41,7 @@ for npoints in sorted(num_points):
                os.system(cmd)
 
             print '<<<<<<<<<<<<<<<<<<<<< [end] ' + thread + ' p=' + str(npoints) + ', start_at=' + str(start) + ' >>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n'      
-            os.system('rm -rf /mnt/ramdisk/*')
+            os.system('rm -rf /mnt/ramdisk/nvthreads/*')
             os.system('rm -rf /mnt/ssd2/tmp/*')
             os.system('rm /tmp/nvlib.crash')
             run = run + 1
