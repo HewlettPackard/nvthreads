@@ -11,10 +11,13 @@ NVthreads: Practical Persistence for Multi-threaded Applications
         - kmeans/: implementation of the kmeans algorithm.
             - phoenix-recovery: kmeans recovery evaluation
         - pagerank/: implementation of the well-known page rank algorithm.
+        - tokyocabinet-1.4.48: Tokyo Cabinet evaluation.
 
-    configs/: Configuration files for NVthreads 
+    config/: Configuration files for NVthreads 
     
     docs/: Published reserach paper for the NVthreads design rationale.
+
+    dummy_nvmfs: NVM emulator from Hewlett Packard Labs.
 
     eval/: Benchmark evaluation
         datasets/: please save input data for benchmarks in this directory
