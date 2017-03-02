@@ -16,9 +16,9 @@ all:	condvar nested_locks
 
 
 condvar:	
-	$(CC) $(CFLAGS) condvar.c -o condvar.o -rdynamic $(NVLIB) -ldl
+	$(CC) $(CFLAGS) $(NVINCLUDE_DIRS) $(NVSRCS) condvar.c -o condvar.o -rdynamic $(NVLIB) -ldl
 nested_locks:
-	$(CC) $(CFLAGS) nested_locks.c -o nested_locks.o -rdynamic $(NVLIB) -ldl
+	$(CC) $(CFLAGS) $(NVINCLUDE_DIRS) $(NVSRCS) nested_locks.c -o nested_locks.o -rdynamic $(NVLIB) -ldl
 
 clean:
 	rm *.o /mnt/tmpfs/*
