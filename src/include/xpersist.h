@@ -548,6 +548,10 @@ class xpersist {
       lprintf("commit %zu pages to pageInfo (global)\n", num_buffered_pages);
     }
 
+    // Clean pageDependence metadata
+    memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
+    lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
+
     if (num_buffered_pages == 0) {
       lprintf("No buffered pages to commit, return\n");
       return;
@@ -572,9 +576,6 @@ class xpersist {
     } else {
       SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
     }
-
-    memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
-    lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
   }
 
   /// @return true iff the address is in this space.
@@ -1024,7 +1025,7 @@ class xpersist {
   // Get the number of buffered pages first and then increment the buffered page counter by 1.
   // Global and heap have their own instances of xpersist, but the counter is globally accessible.
   // So we need to check if the current xpersist instance is heap or global
-  unsigned long GetAndIncrementBufferedPageCount(void){
+  unsigned long GetAndIncrementBufferedPageCount(int pageNo){
     unsigned long num_buffered_pages = 0;
     if (_isHeap) {
       num_buffered_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
@@ -1042,7 +1043,7 @@ class xpersist {
   void recordLookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied) {
     // No other thread has touched this page, record thread id in pageInfo
     if (_pageDependence[pageNo].threadID == 0) {
-      unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount();      
+      unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount(pageNo);      
       // Buffer pageNo in _pageNoTmp
       _pageNoTmp[num_buffered_pages] = pageNo;
     }
@@ -1058,7 +1059,7 @@ class xpersist {
         lprintf("Page %d not ready yet, store page lookup info in cache, commit later\n", pageNo);
         // Add this pageNo to commit-later list (only once!) if this is the first this page is modified
 // TODO: FIXME for difflogging
-        unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount();            
+        unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount(pageNo);            
         // Buffer pageNo in _pageNoTmp
         _pageNoTmp[num_buffered_pages] = pageNo;
       }
@@ -1094,8 +1095,8 @@ class xpersist {
     int mypid = getpid();
     bool logged = false;
     unsigned long globalXactID = GET_METACOUNTER(globalTransactionCount);
-
     unsigned long memlogOffset = 0;
+
     INC_COUNTER(commit);
 
     if (_dirtiedPagesList.size() == 0) {
@@ -1131,6 +1132,7 @@ class xpersist {
         pageinfo = (struct xpageinfo*)i->second;
         pageNo = pageinfo->pageNo;
         shareinfo = &_pageUsers[pageNo];
+        share = (unsigned long*)((intptr_t)_persistentMemory + xdefines::PageSize * pageNo);
         local = (unsigned long*)pageinfo->pageStart;
 
         // Check if we can skip this log entry
@@ -1157,12 +1159,11 @@ class xpersist {
 #ifdef DIFF_LOGGING
           // Log diffs in dirty page
           localMemoryLog->AppendDiffsToMemoryLog(local, twin, pageNo, globalXactID, localMemoryLog->threadID, _pageLookupTmp);
-          memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+//        memlogOffset = localMemoryLog->_mempages_offset - logged_bytes;
 #else
           // Log whole page
-          localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
+          localMemoryLog->AppendMemoryLog(local, twin, share, pageNo);
           memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
-
 #endif
           // Record page lookup info for recovery
           recordLookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);

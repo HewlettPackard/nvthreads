@@ -661,8 +661,8 @@ public:
                 lprintf("Middle page, starting from pageOffset: 0, copy %zu bytes\n", bytes);
             }
         }
-        lprintf("memlogOffset: %lu, pageOffset: %d\n", memlogOffset, pageOffset);
 
+        lprintf("memlogOffset: %lu, pageOffset: %d\n", memlogOffset, pageOffset);
 
         // Only recover data if the page was dirtied
         if ( _pageLookupHeap[pageNo].dirtied ) {
@@ -674,7 +674,7 @@ public:
                 perror("RecoverOnePage open()");
                 abort();
             }    
-
+         
             // Move file descriptor to correct offset
             memlogOffset += pageOffset;
             lseek(memlogFd, memlogOffset, SEEK_SET);
@@ -685,6 +685,7 @@ public:
             if ( sz != bytes ) {
                 lprintf("Error: copy only %zu bytes, should've copied %zu bytes\n", sz, bytes);
             }
+           
             close(memlogFd);
             lprintf("copied %zu bytes for pageNo %d from %s, memlogOffset: %lu\n", sz, pageNo, memlogFn, memlogOffset);
         }
@@ -739,7 +740,7 @@ public:
     unsigned long nvrecover(void *dest, size_t size, char *name) {
         size_t bytes_checked;
 
-        lprintf("Hint: 0x%p, size: %zu, name: %s\n", dest, size, name);
+        lprintf("Dest: 0x%p, size: %zu, name: %s\n", dest, size, name);
         
         // Recover page lookup info
         if ( _pageLookupHeap == NULL ) {
@@ -751,7 +752,6 @@ public:
         }
 
         // Find the address of the variable in varmap log
-        unsigned long addr;
         struct varmap_entry *v = RecoverVarmapInfo(name);
         if ( !v ) {
             lprintf("Error, can't find variable named %s\n", name);
@@ -766,9 +766,9 @@ public:
         }
 
         // Find the data by address in memory pages
-        lprintf("nvrecover-ed %s at old addr 0x%08lx\n", name, addr);
+        lprintf("nvrecover-ed %s\n", name);
         
-        return addr;
+        return 0;
     }
 
     void DumpLookupInfo(bool isHeap){
@@ -812,6 +812,19 @@ public:
         }
     }
 
+
+    void DumpPage(const char* addr){
+        printf("addr %p:\n", addr);
+        int i = 0;
+        while (i < LogDefines::PageSize) {
+          printf("%02X", (unsigned)addr[i]);
+          i++;
+          if (i % 80 == 0) {
+            printf("\n");
+          }
+        }
+        printf("\n");
+    }
 };
 
 #endif

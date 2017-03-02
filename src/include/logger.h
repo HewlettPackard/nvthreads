@@ -135,6 +135,7 @@ class MemoryLog {
   static int _DurableMethod;
   int _dirtiedPagesCount;
   unsigned long _buffered_bytes;
+  unsigned long logged_bytes;
   int _log_flags;
   char logPath[FILENAME_MAX];
 
@@ -230,13 +231,14 @@ class MemoryLog {
 
   void OpenMemoryLog(int dirtiedPagesCount, bool isHeap, unsigned long XactID) {
     _dirtiedPagesCount = dirtiedPagesCount;
-    _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize;
+    _mempages_filesize = _dirtiedPagesCount * LogEntry::LogEntrySize + _eol_size;
     _local_transaction_id = XactID;
+    _mempages_offset = 0;
 
     if (log_dest == SSD) {
-      sprintf(logPath, "/mnt/ssd2/nvthreads/%d/", nvid);
+      sprintf(logPath, "/mnt/ssd2/nvthreads/%d", nvid);
     } else if (log_dest == NVM_RAMDISK) {
-      sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/logs/", nvid);
+      sprintf(logPath, "/mnt/ramdisk/nvthreads/%d/logs", nvid);
     } else {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();
@@ -250,29 +252,62 @@ class MemoryLog {
       perror("mkstemp: ");
       abort();
     }
-    _mempages_offset = 0;
+
+
 
 #ifdef DIFF_LOGGING
     // Allocate memory buffer to store dirtied bytes
-    _dirtiedPagesCount = dirtiedPagesCount;
     _buffered_bytes = 0;
     _mempages_ptr = (char*)InternalMalloc(LogDefines::PageSize * dirtiedPagesCount);
-    lprintf("Opened memory page log. fd: %d, filename: %s, ptr: %p, offset: %lu\n",
+    lprintf("Opened diff memory page log. fd: %d, filename: %s, ptr: %p, offset: %lu\n",
             _mempages_fd, _mempages_filename, _mempages_ptr, _mempages_offset);
+#else   
+    // Only need 1 page as we log page by page
+    _mempages_ptr = (char*)InternalMalloc(LogDefines::PageSize);
+    lprintf("Opened memory page log. fd: %d, filename: %s, size: %lu, ptr: %p, offset: %lu\n",
+            _mempages_fd, _mempages_filename, _mempages_filesize, _mempages_ptr, _mempages_offset);
 #endif
   }
 
-  /* Append a log entry to the end of a memory log */
-  int AppendMemoryLog(void* addr) {
-    struct LogEntry::log_t newLE;
-    newLE.after_image = (char*)((unsigned long)addr & ~LogDefines::PAGE_SIZE_MASK);
+  /* Log word to memory log */
+  void logWord(char* local, char* twin, char* share, char *dest) {
+    for (int i = 0; i < sizeof(long long); i++) {
+      if (local[i] != twin[i]) {
+        dest[i] = local[i];
+      } 
+      else {
+        dest[i] = share[i];
+      }     
+    }
+  }
 
+  /* Append a log entry to the end of a memory log */
+  int AppendMemoryLog(const void* local, const void* twin, const void* share, int pageNo) {
+
+    long long* mylocal = (long long*)((unsigned long)local & ~LogDefines::PAGE_SIZE_MASK);
+    long long* mytwin = (long long*)twin;
+    long long* myshare = (long long*)share;
+    long long* mylog = (long long*)(_mempages_ptr);
+    
+    // Get the correct shared state before logging
+    for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
+      // Modified, log the updated bytes
+      if (mylocal[i] != mytwin[i]) {
+        logWord( (char*)&mylocal[i], (char*)&mytwin[i], (char*)&myshare[i], (char*)&mylog[i]);
+      }
+      // Not modified, log the orignal shared page
+      else {
+        mylog[i] = myshare[i];
+      }
+    }
+
+    // Log the page
     size_t sz;
     int retry = 0;
     do {
-      sz = write(_mempages_fd, (void*)newLE.after_image, xdefines::PageSize);
+      sz = write(_mempages_fd, (void*)_mempages_ptr, xdefines::PageSize);
       if (sz == -1) {
-        fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), newLE.after_image, _mempages_fd, _mempages_filename);
+        fprintf(stderr, "%d: write image %p error fd: %d, filename: %s\n", getpid(), _mempages_ptr, _mempages_fd, _mempages_filename);
         perror("write (page): ");
         // Close and reopen the file to retry write again
         close(_mempages_fd);
@@ -284,15 +319,15 @@ class MemoryLog {
         }
       }
     }while (sz == -1 && retry < 3);
-    
+
+    lprintf("Logged page %d\n", pageNo);
     INC_COUNTER(loggedpages);
     return 0;
   }
 
-
 #ifdef DIFF_LOGGING
   /* Apply diff bytes from src to dest (vs twin) and return copied bytes */
-  inline int logWord(char* src, char* twin, int block, int pageNo, 
+  inline int logDiffWord(char* src, char* twin, int block, int pageNo, 
                      unsigned short xactID, unsigned short threadID, struct lookupinfo *pageLookupTmp) {
     int copied_bytes = 0;
     int page_start = block * sizeof(long long);
@@ -343,7 +378,7 @@ class MemoryLog {
     for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
       if (mylocal[i] != mytwin[i]) {
         lprintf("commiting %d-th word in page %d\n", i, pageNo);  
-        diff_bytes = diff_bytes + logWord( (char*)&mylocal[i], (char*)&mytwin[i], i, pageNo, xactID, threadID, pageLookupTmp);
+        diff_bytes = diff_bytes + logDiffWord( (char*)&mylocal[i], (char*)&mytwin[i], i, pageNo, xactID, threadID, pageLookupTmp);
         lprintf("Wrote %d-th block, diff_bytes: %d\n", i, diff_bytes);
       }
     }
@@ -355,7 +390,11 @@ class MemoryLog {
   void CloseMemoryLog(void) {
 #ifdef DIFF_LOGGING
     FlushBufferToLog();
+    InternalFree(_mempages_ptr, _dirtiedPagesCount * LogDefines::PageSize);
+#else
+    InternalFree(_mempages_ptr, LogDefines::PageSize);
 #endif
+
     if (log_dest == SSD || log_dest == NVM_RAMDISK) {
       /* Close the memory mapping log */
       if (_mempages_fd != -1) {
@@ -365,6 +404,7 @@ class MemoryLog {
       fprintf(stderr, "Error: unknown logging destination: %d\n", log_dest);
       abort();
     }
+    
     _mempages_file_count++;
     lprintf("Closed file: %s\n", _mempages_filename);
   }
@@ -450,7 +490,6 @@ class MemoryLog {
       perror("FlushBufferToLog write failed");
     }
     lprintf("Dumped %lu bytes from %p to file %s\n", _buffered_bytes, _mempages_ptr, _mempages_filename);
-    InternalFree(_mempages_ptr, _dirtiedPagesCount * LogDefines::PageSize);
   }
 
   /* Malloc for diff logging */
@@ -472,6 +511,19 @@ class MemoryLog {
     }
   }
   
+
+  void DumpPage(const char* addr){
+    printf("addr %p:\n", addr);
+    int i = 0;
+    while (i < _mempages_filesize) {
+      printf("%01X", (unsigned)addr[i]);
+      i++;
+      if (i % 50 == 0) {
+        printf("\n");
+      }
+    }
+    printf("\n");
+  }
 };
 
 #endif
