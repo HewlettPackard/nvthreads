@@ -46,6 +46,7 @@
 #include "xdefines.h"
 #include "prof.h"
 
+//#define DIFF_LOGGING
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
 #define LDEBUG 1
@@ -288,16 +289,33 @@ class MemoryLog {
     return 0;
   }
 
+
+#ifdef DIFF_LOGGING
   /* Apply diff bytes from src to dest (vs twin) and return copied bytes */
-  inline int commitWord(char* src, char* twin) {
+  inline int logWord(char* src, char* twin, int block, int pageNo, 
+                     unsigned short xactID, unsigned short threadID, struct lookupinfo *pageLookupTmp) {
     int copied_bytes = 0;
+    int page_start = block * sizeof(long long);
     ssize_t rv = 0;
-    lprintf("commiting word\n");
     for (int i = 0; i < sizeof(long long); i++) {
       if (src[i] != twin[i]) {
-        lprintf("Writing %d-th byte in this block, copied_bytes: %d\n", i, copied_bytes);
+        int page_offset = page_start + i;
+
         START_TIMER(diff_logging);
         memcpy(&_mempages_ptr[_buffered_bytes], &src[i], sizeof(char));
+
+        // Buffer page lookup info for each byte in the page
+        pageLookupTmp[pageNo]->xactIDs[page_offset] = xactID;
+        pageLookupTmp[pageNo]->threadIDs[page_offset] = threadID;
+        pageLookupTmp[pageNo]->memlogOffsets[page_offset] = _buffered_bytes;
+        pageLookupTmp[pageNo]->dirtied[page_offset] = true;
+
+        lprintf("Buffering Page %d: <byte, xactID, threadID, memlogOffset> = <%d, %d, %d, %lu>\n", 
+                 pageNo, page_offset, 
+                 pageLookupTmp[pageNo]->xactIDs[page_offset],
+                 pageLookupTmp[pageNo]->threadIDs[page_offset],
+                 pageLookupTmp[pageNo]->memlogOffsets[page_offset]);
+
         STOP_TIMER(diff_logging);
         _buffered_bytes++;
         copied_bytes++;
@@ -308,7 +326,9 @@ class MemoryLog {
   }
 
   /* Append page diffs to the end of the memory log */
-  void AppendDiffsToMemoryLog(const void* local, const void* twin) {
+  void AppendDiffsToMemoryLog(const void* local, const void* twin, int pageNo, 
+                              unsigned short xactID, unsigned short threadID, 
+                              struct lookupinfo pageLookupTmp) {
     int diff_bytes = 0;
     int count = 0;
     size_t sz;
@@ -322,13 +342,15 @@ class MemoryLog {
     lprintf("Checking diffs\n");
     for (int i = 0; i < xdefines::PageSize / sizeof(long long); i++) {
       if (mylocal[i] != mytwin[i]) {
-        diff_bytes += commitWord((char*)&mylocal[i], (char*)&mytwin[i]);
+        lprintf("commiting %d-th word in page %d\n", i, pageNo);  
+        diff_bytes = diff_bytes + logWord( (char*)&mylocal[i], (char*)&mytwin[i], i, pageNo, xactID, threadID, pageLookupTmp);
         lprintf("Wrote %d-th block, diff_bytes: %d\n", i, diff_bytes);
       }
     }
     STOP_TIMER(diff_calculation);
     lprintf("Write diffs for a total of %d / %lu bytes\n", diff_bytes, _buffered_bytes);
   }
+#endif
 
   void CloseMemoryLog(void) {
 #ifdef DIFF_LOGGING

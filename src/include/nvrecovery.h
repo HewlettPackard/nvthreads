@@ -78,10 +78,17 @@ extern "C"
 
 /* Lookup info for recovery code to locate memory pages */
 struct lookupinfo {
+#ifdef DIFF_LOGGING
+    unsigned short xactIDs[xdefines::PageSize];
+    unsigned short threadIDs[xdefines::PageSize];
+    unsigned long memlogOffsets[xdefines::PageSize];    
+    bool dirtied[xdefines::PageSize];   
+#else
     unsigned short xactID;
     unsigned short threadID;
     unsigned long memlogOffset;    
     bool dirtied;   
+#endif
 };
 
 /* record the threadID last touched this page */

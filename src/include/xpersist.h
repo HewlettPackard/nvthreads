@@ -538,7 +538,9 @@ class xpersist {
   void commitCacheBuffer(void) {
     unsigned long i;
     unsigned long num_buffered_pages;
-    if (_isHeap) {
+    // Heap and global have their own instances of xpersist class, 
+    // i.e., they use different instances of _pageNoTmp, _pageLookup
+    if (_isHeap) {  
       num_buffered_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
       lprintf("commit %zu pages to pageInfo (heap)\n", num_buffered_pages);
     } else {
@@ -570,6 +572,8 @@ class xpersist {
     } else {
       SET_METACOUNTER(globalBufferedGlobalPageNoCount, 0);
     }
+
+    memset((void*)_pageDependence, 0, TotalPageNums * sizeof(struct pageDependence));
     lprintf("clean up pageDependence, _isHeap: %d\n", _isHeap);
   }
 
@@ -1017,64 +1021,57 @@ class xpersist {
     printf("-----------%d end of dirtied pages--------------\n\n", getpid());
   }
 
+  // Get the number of buffered pages first and then increment the buffered page counter by 1.
+  // Global and heap have their own instances of xpersist, but the counter is globally accessible.
+  // So we need to check if the current xpersist instance is heap or global
+  unsigned long GetAndIncrementBufferedPageCount(void){
+    unsigned long num_buffered_pages = 0;
+    if (_isHeap) {
+      num_buffered_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+      INC_METACOUNTER(globalBufferedHeapPageNoCount);
+      lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, num_buffered_pages);
+    } else {
+      num_buffered_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+      INC_METACOUNTER(globalBufferedGlobalPageNoCount);
+      lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, num_buffered_pages);
+    }
+    return num_buffered_pages;
+  }
+
   // Record the page lookup info for the recovery code to use, called by checkandcommit()
-  void recordlookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied) {
+  void recordLookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied) {
     // No other thread has touched this page, record thread id in pageInfo
     if (_pageDependence[pageNo].threadID == 0) {
-      unsigned long num_pages;
-      lprintf("First time touching this page %d, no other thread has touched this page, not sure if there will be, so log to tmp\n", pageNo);
-      if (_isHeap) {
-        num_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
-        INC_METACOUNTER(globalBufferedHeapPageNoCount);
-        lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, num_pages);
-      } else {
-        num_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
-        INC_METACOUNTER(globalBufferedGlobalPageNoCount);
-        lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, num_pages);
-      }
-      _pageNoTmp[num_pages] = pageNo;
-      _pageLookupTmp[pageNo].xactID = globalXactID;
-      _pageLookupTmp[pageNo].threadID = threadID;
-      _pageLookupTmp[pageNo].memlogOffset = offset;
-      _pageLookupTmp[pageNo].dirtied = dirtied;
+      unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount();      
+      // Buffer pageNo in _pageNoTmp
+      _pageNoTmp[num_buffered_pages] = pageNo;
     }
     // Page dependence detected
     else if (_pageDependence[pageNo].threadID != 0) {
       // The same thread touched the same page again
       if (_pageDependence[pageNo].threadID == threadID) {
-        lprintf("Thread %d touched this page %d again\n", (int)threadID, pageNo);
-        _pageLookupTmp[pageNo].xactID = globalXactID;
-        _pageLookupTmp[pageNo].threadID = threadID;
-        _pageLookupTmp[pageNo].memlogOffset = offset;
-        _pageLookupTmp[pageNo].dirtied = dirtied;
+        lprintf("BUG: Thread %d touched page %d in the same transaction %d again, not possible.\n", 
+                (int)threadID, pageNo, globalXactID);
       }
       // Another thread touched this page before,
       else if (_pageDependence[pageNo].threadID != threadID) {
         lprintf("Page %d not ready yet, store page lookup info in cache, commit later\n", pageNo);
         // Add this pageNo to commit-later list (only once!) if this is the first this page is modified
-        if (_pageLookupTmp[pageNo].threadID ==  0) {
-          unsigned long num_pages;
-          if (_isHeap) {
-            num_pages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
-            INC_METACOUNTER(globalBufferedHeapPageNoCount);
-            lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, num_pages);
-          } else {
-            num_pages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
-            INC_METACOUNTER(globalBufferedGlobalPageNoCount);
-            lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, num_pages);
-          }
-          _pageNoTmp[num_pages] = pageNo;
-        } else {
-          lprintf("Page %d was touched by %d\n", pageNo, _pageLookupTmp[pageNo].threadID);
-        }
-        // Buffer the pageInfo, commit when we exit the outermost nested section
-        _pageLookupTmp[pageNo].xactID = globalXactID;
-        _pageLookupTmp[pageNo].threadID = threadID;
-        _pageLookupTmp[pageNo].memlogOffset = offset;
-        _pageLookupTmp[pageNo].dirtied = dirtied;
+// TODO: FIXME for difflogging
+        unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount();            
+        // Buffer pageNo in _pageNoTmp
+        _pageNoTmp[num_buffered_pages] = pageNo;
       }
     }
+
+    // Buffer page lookup metadata in _pageLookupTmp, will commit when we exit the outermost nested section
+#ifndef DIFF_LOGGING
+    _pageLookupTmp[pageNo].xactID = globalXactID;
+    _pageLookupTmp[pageNo].threadID = threadID;
+    _pageLookupTmp[pageNo].memlogOffset = offset;
+    _pageLookupTmp[pageNo].dirtied = dirtied;
     lprintf("Page %d modified by thread %d at Xact %d\n", pageNo, threadID, globalXactID);
+#endif
   }
 
   // Record which thread touched which page (data dependence)
@@ -1149,27 +1146,30 @@ class xpersist {
 
         // Perform actual logging
         if (needsModify) {
-          // Profile dirty page density
+
           unsigned long* twin = (unsigned long*)xbitmap::getInstance().getAddress(shareinfo->bitmapIndex);
 
 #ifdef PAGE_DENSITY
+          // Profile dirty page density
           ProfileDiffs(local, twin);
 #endif
 
 #ifdef DIFF_LOGGING
           // Log diffs in dirty page
-          localMemoryLog->AppendDiffsToMemoryLog(local, twin);
+          localMemoryLog->AppendDiffsToMemoryLog(local, twin, pageNo, globalXactID, localMemoryLog->threadID, _pageLookupTmp);
           memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
 #else
           // Log whole page
           localMemoryLog->AppendMemoryLog((void *)pageinfo->pageStart);
           memlogOffset = lseek(localMemoryLog->_mempages_fd, 0, SEEK_CUR) - LogDefines::PageSize;
+
 #endif
           // Record page lookup info for recovery
-          recordlookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
+          recordLookUpInfo(pageNo, globalXactID, localMemoryLog->threadID, memlogOffset, true);
 
           // Record data dependency
           recordDependence(pageNo, localMemoryLog->threadID, pageinfo->pageStart);
+
           page_count++;
 
 #ifdef PAGE_DENSITY
