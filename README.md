@@ -2,7 +2,7 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 -------------------------------------------------------------------------------------
 
 
-### Authors ### 
+### Authors ###
 
 - [Terry Hsu](http://www.cs.purdue.edu/homes/hsu62) <<terryhsu@purdue.edu>>
 
