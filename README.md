@@ -6,11 +6,11 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 
 - [Terry Hsu](http://www.cs.purdue.edu/homes/hsu62) <<terryhsu@purdue.edu>>
 
-- [Helge Bruegner) <<helge.bruegner@tum.de>>
+- Helge Bruegner <<helge.bruegner@tum.de>>
 
-- [Indrajit Roy](http://indrajitroy.com) <<indrajitroy@google.com>>
+- [Indrajit Roy](http://www.indrajitroy.com) <<indrajitroy@google.com>>
 
-- [Kimberly Keeton) <<kimberly.keeton@hpe.com>>
+- Kimberly Keeton <<kimberly.keeton@hpe.com>>
 
 - [Patrick Eugster](https://www.cs.purdue.edu/homes/peugster/) <<p@dsp.tu-darmstadt.de>>
 
