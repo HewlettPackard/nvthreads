@@ -1,6 +1,0 @@
-Simple Google PageRank algorithm implementation on artificial data written in good old C.
-There are 3 branches of this project, each devoted to different parallelization technique:
-- openMP
-- openMPI
-- Pthreads.
-I did this for fun, to take a closer look at PageRank and how to parallelize it. Enjoy.
