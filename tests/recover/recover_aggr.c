@@ -38,7 +38,9 @@ void *t(void *args){
 
     pthread_mutex_lock(&gm);
     tmp->b.c[97+tid] = 97+tid;    // 97 is 'a'
+    printf("tid %d wrote %c at f->b.c[%d]\n", tid, tmp->b.c[97+tid], 97+tid);   
     tmp->b.c[10000] = '!'+tid;
+
     if (tid == 0) {
         tmp->b.c[13000] = '@';
         printf("tid %d wrote %c at f->b.c[13000]\n", tid, tmp->b.c[13000]);   
