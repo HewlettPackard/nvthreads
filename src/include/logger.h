@@ -49,7 +49,7 @@
 //#define DIFF_LOGGING
 #define ADDRBYTE sizeof(void*)
 #define NVLOGGING
-#define LDEBUG 1
+#define LDEBUG 0
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define lprintf(...) \
     do{\
@@ -274,10 +274,10 @@ class MemoryLog {
     for (int i = 0; i < sizeof(long long); i++) {
       if (local[i] != twin[i]) {
         dest[i] = local[i];
-      } 
+      }
       else {
         dest[i] = share[i];
-      }     
+      }
     }
   }
 
