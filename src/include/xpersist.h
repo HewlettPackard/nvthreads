@@ -1041,38 +1041,65 @@ class xpersist {
 
   // Record the page lookup info for the recovery code to use, called by checkandcommit()
   void recordLookUpInfo(int pageNo, unsigned short globalXactID, unsigned short threadID, unsigned long offset, bool dirtied) {
-    // No other thread has touched this page, record thread id in pageInfo
+    // No other thread has touched this page, safe to record pageInfo
     if (_pageDependence[pageNo].threadID == 0) {
-      unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount(pageNo);      
-      // Buffer pageNo in _pageNoTmp
-      _pageNoTmp[num_buffered_pages] = pageNo;
+      unsigned long npages;
+      lprintf("First time touching this page %d, no other thread has touched this page, not sure if there will be, so log to tmp\n", pageNo);
+      if (_isHeap) {
+        npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+        INC_METACOUNTER(globalBufferedHeapPageNoCount);
+        lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);
+      } else {
+        npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+        INC_METACOUNTER(globalBufferedGlobalPageNoCount);
+        lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+      }
+      _pageNoTmp[npages] = pageNo;
+      _pageLookupTmp[pageNo].xactID = globalXactID;
+      _pageLookupTmp[pageNo].threadID = threadID;
+      _pageLookupTmp[pageNo].memlogOffset = offset;
+      _pageLookupTmp[pageNo].dirtied = dirtied;
     }
     // Page dependence detected
     else if (_pageDependence[pageNo].threadID != 0) {
-      // The same thread touched the same page again
+      // This thread touched this page before
       if (_pageDependence[pageNo].threadID == threadID) {
-        lprintf("BUG: Thread %d touched page %d in the same transaction %d again, not possible.\n", 
-                (int)threadID, pageNo, globalXactID);
+        lprintf("Thread %d touched this page %d again\n", (int)threadID, pageNo);
+        _pageLookupTmp[pageNo].xactID = globalXactID;
+        _pageLookupTmp[pageNo].threadID = threadID;
+        _pageLookupTmp[pageNo].memlogOffset = offset;
+        _pageLookupTmp[pageNo].dirtied = dirtied;
       }
-      // Another thread touched this page before,
+      // Other thread has touched this page, store page lookup info to cache, commit once we exit the outermost nested section
       else if (_pageDependence[pageNo].threadID != threadID) {
         lprintf("Page %d not ready yet, store page lookup info in cache, commit later\n", pageNo);
-        // Add this pageNo to commit-later list (only once!) if this is the first this page is modified
-// TODO: FIXME for difflogging
-        unsigned long num_buffered_pages = GetAndIncrementBufferedPageCount(pageNo);            
-        // Buffer pageNo in _pageNoTmp
-        _pageNoTmp[num_buffered_pages] = pageNo;
+
+        // Add this pageNo to commit later (only once!) if this is the first this page is modified
+        if (_pageLookupTmp[pageNo].threadID ==  0) {
+          unsigned long npages;
+          if (_isHeap) {
+            npages = GET_METACOUNTER(globalBufferedHeapPageNoCount);
+            INC_METACOUNTER(globalBufferedHeapPageNoCount);
+            lprintf("Record heap page %d at pageNoTmp index %zu\n", pageNo, npages);
+          } else {
+            npages = GET_METACOUNTER(globalBufferedGlobalPageNoCount);
+            INC_METACOUNTER(globalBufferedGlobalPageNoCount);
+            lprintf("Record global page %d at pageNoTmp index %zu\n", pageNo, npages);
+          }
+          _pageNoTmp[npages] = pageNo;
+        } else {
+          lprintf("Page %d was touched by %d\n", pageNo, _pageLookupTmp[pageNo].threadID);
+        }
+
+        // Buffer the pageInfo, commit when we exit the outermost nested section
+
+        _pageLookupTmp[pageNo].xactID = globalXactID;
+        _pageLookupTmp[pageNo].threadID = threadID;
+        _pageLookupTmp[pageNo].memlogOffset = offset;
+        _pageLookupTmp[pageNo].dirtied = dirtied;
       }
     }
-
-    // Buffer page lookup metadata in _pageLookupTmp, will commit when we exit the outermost nested section
-#ifndef DIFF_LOGGING
-    _pageLookupTmp[pageNo].xactID = globalXactID;
-    _pageLookupTmp[pageNo].threadID = threadID;
-    _pageLookupTmp[pageNo].memlogOffset = offset;
-    _pageLookupTmp[pageNo].dirtied = dirtied;
     lprintf("Page %d modified by thread %d at Xact %d\n", pageNo, threadID, globalXactID);
-#endif
   }
 
   // Record which thread touched which page (data dependence)
