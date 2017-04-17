@@ -73,7 +73,8 @@ correctness and performance of your ported apps.
 
 ### Acknowledgement ###
  - We thank the authors of Dthreads: Tongping Liu, Charlie Curtsinger, and Emery Berger, who open sourced their software that 
- makes NVthreads possible. Please refer to their original work at (Dthreads: Efficient Deterministic Multithreading)[https://github.com/emeryberger/dthreads] 
+ makes NVthreads possible. Please refer to their original work at [Dthreads: Efficient Deterministic Multithreading](https://github.com/emeryberger/dthreads)
+ and [Heap Layers: An Extensible Memory Allocation Infrastructure](https://github.com/emeryberger/Heap-Layers).
  - This work was supported in part by Hewlett Packard Labs, the National Science Foundation under grant TC-1117065,  
 TWC-1421910, and the European Research Council under grant FP7-617805.
 
