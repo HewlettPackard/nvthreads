@@ -60,13 +60,20 @@ year      = {2017},
 series    = {EuroSys 2017},   
 address   = {New York, NY, USA},   
 publisher = {ACM},   
-doi       = {},   
-isbn      = {},   
+doi       = {10.1145/3064176.3064204},   
+isbn      = {978-1-4503-4938-3},   
 location  = {Belgrade, Republic of Serbia},   
-url       = {},   
+url       = {http://dl.acm.org/citation.cfm?doid=3064176.3064204},   
 }
 
 ### Note ###
  - Use NVthreads at your own risk. Do not deploy this research prototype to your production software before verifying the 
 correctness and performance of your ported apps.
  - Use the master branch only, other branches are unstable research prototypes.
+
+### Acknowledgement ###
+ - We thank the authors of Dthreads: Tongping Liu, Charlie Curtsinger, and Emery Berger, who open sourced their software that 
+ makes NVthreads possible. Please refer to their original work at (Dthreads: Efficient Deterministic Multithreading)[https://github.com/emeryberger/dthreads] 
+ - This work was supported in part by Hewlett Packard Labs, the National Science Foundation under grant TC-1117065,  
+TWC-1421910, and the European Research Council under grant FP7-617805.
+
