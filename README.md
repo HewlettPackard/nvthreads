@@ -41,10 +41,10 @@ are unstable research prototypes.
 
 ### Dependencies ###
 
- - Install additional packages
-     $ sudo apt-get install gcc-multilib
-     $ sudo apt-get install g++-multilib
-     $ sudo apt-get install libc6-dev-i386 (if you need 32-bit nvthreads)
+Install additional packages
+ - sudo apt-get install gcc-multilib
+ - sudo apt-get install g++-multilib
+ - sudo apt-get install libc6-dev-i386 (if you need 32-bit nvthreads)
      
 ### Build & test ###
      1. Install dummy_nvmfs: 
