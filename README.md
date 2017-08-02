@@ -15,7 +15,7 @@ NVthreads: Practical Persistence for Multi-threaded Applications
 - [Patrick Eugster](https://www.cs.purdue.edu/homes/peugster/) <<p@dsp.tu-darmstadt.de>>
 
 
-### Descriptions ###
+### Description ###
 
 NVthreads is a drop-in replacement for the popular pthreads library that adds persistence
 to existing multi-threaded C/C++ applications. NVthreads infers consistent states via
@@ -41,35 +41,50 @@ are unstable research prototypes.
 
 ### Dependencies ###
 
-Install additional packages
- - sudo apt-get install gcc-multilib
- - sudo apt-get install g++-multilib
- - sudo apt-get install libc6-dev-i386 (if you need 32-bit nvthreads)
-     
+Install the following packages:
+```
+sudo apt-get install gcc-multilib
+sudo apt-get install g++-multilib
+sudo apt-get install libc6-dev-i386 (if you need 32-bit nvthreads)
+```
+
 ### Build & test ###
-     1. Install dummy_nvmfs: 
-         See https://github.com/HewlettPackard/dummy_nvmfs
-     
-     2. Clone NVthreads repo:
-         $ git clone https://github.com/HewlettPackard/nvthreads
-     
-     3. Create nvmfs with 1000ns delays
-         $ cd $NVthreads/
-         $ ./mknvmfs1000
-     
-     4. Build NVthreads:
-         $ cd $NVthreads/src/
-         $ make libnvthread.so
 
-     5. Build test
-         $ cd $NVthreads/tests/recover/
-         $ make
+1. Install dummy_nvmfs: https://github.com/HewlettPackard/dummy_nvmfs
+   - NOTE: For simple testing of NVthreads, this step may be skipped, so long as the path `/mnt/ramdisk/nvthreads/` exists. Be aware that there will be no delays for each NVM write in this case.
+     
+2. Clone NVthreads repo:
+```
+git clone https://github.com/HewlettPackard/nvthreads
+```
 
-     6. Run test:
-         $ ./recover_int.o  //will abort
-         $ ./recover_int.o  //will recover data from previous run
-         
-         
+3. Create nvmfs with 1000ns delays:
+   - This step is only necessary if using dummy_nvmfs from step 1.
+```
+cd $NVthreads/
+./mknvmfs1000
+```
+
+4. Build NVthreads:
+```
+cd $NVthreads/src/
+make libnvthread.so
+```
+
+5. Build the *recovery* test program:
+```
+cd $NVthreads/tests/recover/
+make
+```
+
+6. Run the test:
+   - Note: To start with a clean NVthreads environment, before beginning a test, delete the `/tmp/nvlib.crash` file, if it exists.
+```
+./recover_int.o  //will abort
+./recover_int.o  //will recover data from previous run
+```         
+
+
 ### Source tree structure ###
    
     apps/: The applications cases for NVthreads.
@@ -124,12 +139,3 @@ url       = {http://dl.acm.org/citation.cfm?doid=3064176.3064204},
  and [Heap Layers: An Extensible Memory Allocation Infrastructure](https://github.com/emeryberger/Heap-Layers).
  - This work was supported in part by Hewlett Packard Labs, the National Science Foundation under grant TC-1117065,  
 TWC-1421910, and the European Research Council under grant FP7-617805.
-
-### Note ###
-
-To make sure you start from a clean NVthreads environment, delete the following files before running your test:
-       
- - /tmp/nvlib.crash
- - /mnt/ramdisk/nvthreads/
-
-
